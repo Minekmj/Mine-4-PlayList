@@ -1,0 +1,6 @@
+yt-dlp
+requests
+youtube_transcript_api
+PyQt6
+imageio_ffmpeg
+numpy

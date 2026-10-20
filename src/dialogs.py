@@ -578,8 +578,7 @@ class UrlDialog(AnimatedDialogBase):
         self.default_dir = default_dir
         self.setWindowFlags(
             Qt.WindowType.Window |
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint
+            Qt.WindowType.FramelessWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedWidth(460)

@@ -29,10 +29,14 @@ Windows용 영상·음악 플레이어입니다. 영상을 화려하게 볼 수 
 
 ## 실행 방법 1
 
+0. `FFmpeg`을 다운로드하세요. [바로가기](https://github.com/BtbN/FFmpeg-Builds/releases)
+
 1. 최신 릴리스에서 `.exe` 파일을 다운로드합니다. [최신 릴리스](https://github.com/Minekmj/Mine-4-PlayList/releases) <-링크 바로가기
 2. `Mine 4 PlayList - exe.exe`를 실행합니다.
 
 ## 실행 방법 2
+
+0. `FFmpeg`을 다운로드하세요. [바로가기](https://github.com/BtbN/FFmpeg-Builds/releases)
 
 1. 최신 릴리스에서 `.zip` 파일을 다운로드합니다. [최신 릴리스](https://github.com/Minekmj/Mine-4-PlayList/releases) <-링크 바로가기
 2. 다운로드한 파일을 압축해제합니다.
@@ -41,6 +45,8 @@ Windows용 영상·음악 플레이어입니다. 영상을 화려하게 볼 수 
 ## 실행 방법 3
 
 Python 3.10 이상과 Windows 환경을 기준으로 합니다.
+
+0. `FFmpeg`을 다운로드하세요. [바로가기](https://github.com/BtbN/FFmpeg-Builds/releases)
 
 1. 저장소를 내려받고 프로젝트 폴더에서 터미널을 엽니다.
 2. 필요한 패키지를 설치합니다.
@@ -90,4 +96,3 @@ build.bat
 - YouTube 다운로드와 자막 가져오기는 외부 서비스의 정책이나 제공 상태에 따라 동작하지 않을 수 있습니다.
 - 자막 번역은 영상에 번역 가능한 공식 자막이 있을 때 시도됩니다.
 - 재생목록과 설정 상태는 실행 폴더의 `session_state.json`에 저장됩니다.
-- `FFmpeg`을 받으시길 추천합니다. [바로가기](https://github.com/BtbN/FFmpeg-Builds/releases)

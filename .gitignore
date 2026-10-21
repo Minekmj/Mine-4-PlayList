@@ -1,6 +1,9 @@
 session_state.json
 libmpv-2.dll
 ffmpeg.exe
+ver.txt
+updater.ilk
+updater.exe
 *.png~
 *.kra~
 *.ico~

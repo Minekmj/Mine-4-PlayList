@@ -1,1 +1,0 @@
-pyinstaller -w -n "Mine 4 PlayList - exe" --onefile -i "./src/icon/icon.ico" --add-data "./src/icon/icon.ico;src/icon" --add-data "./src/C/ambient_core.dll;src/C" --add-data "./src/qss/main.qss;src/qss" main.py

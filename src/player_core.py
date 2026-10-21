@@ -1,9 +1,11 @@
 import os
-import sys
 import re
 import math
 import time
+import bisect
+import html
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import av
 import numpy as np
 from PyQt6.QtCore import Qt, QUrl, QObject, QTimer, QRectF, QRect, QSizeF, pyqtSignal
@@ -14,6 +16,8 @@ from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
 
 
 class SubtitleItem:
+    __slots__ = ('start', 'end', 'text')
+
     def __init__(self, start: float, end: float, text: str):
         self.start = start
         self.end = end
@@ -23,10 +27,14 @@ class SubtitleItem:
 class SubtitleManager:
     def __init__(self):
         self.items = []
+        self._starts = []
+        self._max_duration = 10.0
         self.sub_delay = 0.0
 
     def clear(self):
         self.items = []
+        self._starts = []
+        self._max_duration = 10.0
 
     def load_file(self, filepath: str) -> bool:
         self.clear()
@@ -34,7 +42,7 @@ class SubtitleManager:
             return False
 
         content = ""
-        for enc in ['cp949', 'euc-kr', 'utf-8-sig', 'utf-8', 'utf-16', 'latin-1']:
+        for enc in ['utf-8-sig', 'utf-8', 'cp949', 'euc-kr', 'utf-16', 'latin-1']:
             try:
                 with open(filepath, 'r', encoding=enc) as f:
                     content = f.read()
@@ -52,22 +60,27 @@ class SubtitleManager:
         else:
             self.items = self._parse_srt_vtt(content)
 
-        return len(self.items) > 0
+        if self.items:
+            self.items.sort(key=lambda x: x.start)
+            self._starts = [it.start for it in self.items]
+            self._max_duration = max((it.end - it.start for it in self.items), default=10.0)
+            return True
+        return False
 
     def _parse_smi(self, content: str):
         items = []
         sync_regex = re.compile(r'<sync\s+[^>]*?start\s*=\s*["\']?(\d+)["\']?[^>]*>', re.IGNORECASE)
+        tag_regex = re.compile(r'<[^>]+>')
+        br_regex = re.compile(r'<br\s*/?>', re.IGNORECASE)
         splits = sync_regex.split(content)
 
         for i in range(1, len(splits), 2):
             try:
                 start_sec = int(splits[i]) / 1000.0
                 raw_text = splits[i + 1] if i + 1 < len(splits) else ""
-
-                clean = re.sub(r'<br\s*/?>', '\n', raw_text, flags=re.IGNORECASE)
-                clean = re.sub(r'<[^>]+>', '', clean)
-                clean = clean.replace('&nbsp;', ' ').replace('&quot;', '"').replace('&apos;', "'")
-                clean = clean.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&').strip()
+                clean = br_regex.sub('\n', raw_text)
+                clean = tag_regex.sub('', clean)
+                clean = html.unescape(clean).strip()
 
                 if not clean:
                     if items:
@@ -84,46 +97,69 @@ class SubtitleManager:
             except Exception:
                 continue
 
-        items.sort(key=lambda x: x.start)
         return items
 
     def _parse_srt_vtt(self, content: str):
         items = []
         content = content.lstrip('\ufeff').replace('\r\n', '\n').replace('\r', '\n')
-        pattern = re.compile(
-            r'(\d{1,2}:\d{2}:\d{2}[,\.]\d{1,3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,\.]\d{1,3})[^\n]*\n([\s\S]*?)(?=\n\s*(?:\d+\s*\n|\d{1,2}:)|\Z)'
-        )
-        for m in pattern.finditer(content):
-            try:
-                start_sec = self._parse_time(m.group(1))
-                end_sec = self._parse_time(m.group(2))
-                raw_text = m.group(3).strip()
-                clean = re.sub(r'<[^>]+>', '', raw_text).strip()
-                if clean:
-                    items.append(SubtitleItem(start_sec, end_sec, clean))
-            except Exception:
-                continue
+        time_pattern = re.compile(r'((?:\d{1,2}:)?\d{1,2}:\d{2}[,\.]\d{1,3})\s*-->\s*((?:\d{1,2}:)?\d{1,2}:\d{2}[,\.]\d{1,3})')
+        tag_regex = re.compile(r'<[^>]+>')
+        blocks = re.split(r'\n\s*\n+', content)
 
-        items.sort(key=lambda x: x.start)
+        for block in blocks:
+            lines = [line.strip() for line in block.split('\n') if line.strip()]
+            for idx, line in enumerate(lines):
+                match = time_pattern.search(line)
+                if match:
+                    try:
+                        start_sec = self._parse_time(match.group(1))
+                        end_sec = self._parse_time(match.group(2))
+                        raw_text = "\n".join(lines[idx + 1:])
+                        clean = tag_regex.sub('', raw_text).strip()
+                        clean = html.unescape(clean)
+                        if clean:
+                            items.append(SubtitleItem(start_sec, end_sec, clean))
+                    except Exception:
+                        pass
+                    break
+
         return items
 
     def _parse_time(self, time_str: str) -> float:
         time_str = time_str.replace(',', '.')
         parts = time_str.split(':')
-        if len(parts) == 3:
-            return float(parts[0]) * 3600.0 + float(parts[1]) * 60.0 + float(parts[2])
-        elif len(parts) == 2:
-            return float(parts[0]) * 60.0 + float(parts[1])
+        try:
+            if len(parts) == 3:
+                return float(parts[0]) * 3600.0 + float(parts[1]) * 60.0 + float(parts[2])
+            elif len(parts) == 2:
+                return float(parts[0]) * 60.0 + float(parts[1])
+            elif len(parts) == 1:
+                return float(parts[0])
+        except ValueError:
+            pass
         return 0.0
 
     def get_text_at(self, current_sec: float) -> str:
+        if not self.items:
+            return ""
+
         t = current_sec + self.sub_delay
+        idx = bisect.bisect_right(self._starts, t)
+        if idx == 0:
+            return ""
+
         matched = []
-        for item in self.items:
+        for i in range(idx - 1, -1, -1):
+            item = self.items[i]
+            if (t - item.start) > self._max_duration:
+                break
             if item.start <= t <= item.end:
                 matched.append(item.text)
-            elif item.start > t + 5.0:
-                break
+
+        if not matched:
+            return ""
+
+        matched.reverse()
         return "\n".join(matched)
 
 
@@ -135,6 +171,8 @@ class AudioNormalizer(QObject):
         self.target_db = target_base_db
         self.gain_cache = {}
         self._analyzing = set()
+        self._lock = threading.Lock()
+        self._pool = ThreadPoolExecutor(max_workers=2)
 
     def _measure_base_volume_db(self, filepath: str) -> float:
         with av.open(filepath) as container:
@@ -144,7 +182,6 @@ class AudioNormalizer(QObject):
 
             stream = audio_streams[0]
             rate = stream.rate or 44100
-
             dur = float(container.duration / 1000000.0) if container.duration else 0.0
 
             if dur > 20.0:
@@ -154,51 +191,35 @@ class AudioNormalizer(QObject):
                 except Exception:
                     pass
 
-            samples = []
+            chunk_dbs = []
             collected_sec = 0.0
 
-            for packet in container.demux(stream):
-                for frame in packet.decode():
-                    arr = frame.to_ndarray()
-                    if np.issubdtype(arr.dtype, np.integer):
-                        arr = arr.astype(np.float32) / np.iinfo(arr.dtype).max
-                    else:
-                        arr = arr.astype(np.float32)
+            for frame in container.decode(stream):
+                arr = frame.to_ndarray()
+                if np.issubdtype(arr.dtype, np.integer):
+                    data = arr.astype(np.float32) / np.iinfo(arr.dtype).max
+                else:
+                    data = arr.astype(np.float32)
 
-                    if arr.ndim > 1:
-                        arr = arr.mean(axis=0)
+                rms = float(np.sqrt(np.mean(data ** 2) + 1e-9))
+                db = 20.0 * math.log10(rms + 1e-9)
+                chunk_dbs.append(db)
 
-                    samples.append(arr.ravel())
-                    collected_sec += frame.samples / rate
-                    if collected_sec >= 12.0:
-                        break
+                collected_sec += frame.samples / rate
                 if collected_sec >= 12.0:
                     break
 
-            if not samples:
+            if not chunk_dbs:
                 return -24.0
 
-            audio = np.concatenate(samples)
-            if len(audio) < rate * 0.5:
-                return -24.0
-
-            chunk_size = int(rate * 0.05)
-            n_chunks = len(audio) // chunk_size
-            if n_chunks == 0:
-                return -24.0
-
-            audio_trimmed = audio[:n_chunks * chunk_size].reshape(n_chunks, chunk_size)
-            rms_per_chunk = np.sqrt(np.mean(audio_trimmed ** 2, axis=1) + 1e-9)
-            db_per_chunk = 20.0 * np.log10(rms_per_chunk + 1e-9)
-
-            active_db = db_per_chunk[db_per_chunk > -50.0]
+            dbs = np.array(chunk_dbs, dtype=np.float32)
+            active_db = dbs[dbs > -50.0]
             if len(active_db) < 10:
-                active_db = db_per_chunk[db_per_chunk > -65.0]
+                active_db = dbs[dbs > -65.0]
             if len(active_db) == 0:
                 return -24.0
 
-            p15 = np.percentile(active_db, 15)
-            p85 = np.percentile(active_db, 85)
+            p15, p85 = np.percentile(active_db, [15, 85])
             core_db = active_db[(active_db >= p15) & (active_db <= p85)]
 
             if len(core_db) == 0:
@@ -210,13 +231,13 @@ class AudioNormalizer(QObject):
         if not filepath or not os.path.exists(filepath):
             return
 
-        if filepath in self.gain_cache:
-            self.gain_ready.emit(filepath, self.gain_cache[filepath])
-            return
-
-        if filepath in self._analyzing:
-            return
-        self._analyzing.add(filepath)
+        with self._lock:
+            if filepath in self.gain_cache:
+                self.gain_ready.emit(filepath, self.gain_cache[filepath])
+                return
+            if filepath in self._analyzing:
+                return
+            self._analyzing.add(filepath)
 
         def run():
             gain = 1.0
@@ -228,11 +249,13 @@ class AudioNormalizer(QObject):
             except Exception:
                 gain = 1.0
 
-            self.gain_cache[filepath] = gain
-            self._analyzing.discard(filepath)
+            with self._lock:
+                self.gain_cache[filepath] = gain
+                self._analyzing.discard(filepath)
+
             self.gain_ready.emit(filepath, gain)
 
-        threading.Thread(target=run, daemon=True).start()
+        self._pool.submit(run)
 
 
 class SubtitleFrame(QFrame):
@@ -333,7 +356,7 @@ class SubtitleFrame(QFrame):
             words = paragraph.split(' ')
             cur_line = ""
             for w in words:
-                candidate = f"{cur_line} {w}".strip() if cur_line else w
+                candidate = f"{cur_line} {w}" if cur_line else w
                 if fm.horizontalAdvance(candidate) <= max_w:
                     cur_line = candidate
                 else:
@@ -407,49 +430,48 @@ class SubtitleFrame(QFrame):
         text_color = QColor(cfg.get("color", "#FFFFFF"))
 
         start_y = pad + fm.ascent()
+        full_path = QPainterPath()
 
         for i, line in enumerate(lines):
             line_w = fm.horizontalAdvance(line)
             x = (pix_w - line_w) // 2
             y = start_y + (i * line_height)
+            full_path.addText(x, y, font, line)
 
-            path = QPainterPath()
-            path.addText(x, y, font, line)
+        shadow_offset = max(2, border_size)
+        shadow_path = QPainterPath(full_path)
+        shadow_path.translate(shadow_offset, shadow_offset + 1)
+        s_pen = QPen(QColor(0, 0, 0, 160))
+        s_pen.setWidth(border_size * 2 + 3)
+        s_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        s_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.strokePath(shadow_path, s_pen)
 
-            shadow_offset = max(2, border_size)
-            shadow_path = QPainterPath(path)
-            shadow_path.translate(shadow_offset, shadow_offset + 1)
-            s_pen = QPen(QColor(0, 0, 0, 160))
-            s_pen.setWidth(border_size * 2 + 3)
-            s_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            s_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            p.strokePath(shadow_path, s_pen)
+        g_col1 = QColor(outline_color)
+        g_col1.setAlpha(55)
+        g_pen1 = QPen(g_col1)
+        g_pen1.setWidth(border_size * 2 + blur * 4)
+        g_pen1.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        g_pen1.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.strokePath(full_path, g_pen1)
 
-            g_col1 = QColor(outline_color)
-            g_col1.setAlpha(55)
-            g_pen1 = QPen(g_col1)
-            g_pen1.setWidth(border_size * 2 + blur * 4)
-            g_pen1.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            g_pen1.setCapStyle(Qt.PenCapStyle.RoundCap)
-            p.strokePath(path, g_pen1)
+        g_col2 = QColor(outline_color)
+        g_col2.setAlpha(110)
+        g_pen2 = QPen(g_col2)
+        g_pen2.setWidth(border_size * 2 + blur * 2)
+        g_pen2.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        g_pen2.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.strokePath(full_path, g_pen2)
 
-            g_col2 = QColor(outline_color)
-            g_col2.setAlpha(110)
-            g_pen2 = QPen(g_col2)
-            g_pen2.setWidth(border_size * 2 + blur * 2)
-            g_pen2.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            g_pen2.setCapStyle(Qt.PenCapStyle.RoundCap)
-            p.strokePath(path, g_pen2)
+        out_pen = QPen(outline_color)
+        out_pen.setWidth(border_size * 2)
+        out_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        out_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.strokePath(full_path, out_pen)
 
-            out_pen = QPen(outline_color)
-            out_pen.setWidth(border_size * 2)
-            out_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            out_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            p.strokePath(path, out_pen)
-
-            p.fillPath(path, QBrush(text_color))
-
+        p.fillPath(full_path, QBrush(text_color))
         p.end()
+
         self._cached_pixmap = pixmap
 
     def paintEvent(self, event):
@@ -502,7 +524,6 @@ class SubtitleFrame(QFrame):
             elif direction in ("오른쪽에서", "오른쪽에서 왼쪽으로"):
                 offset_x = shift
 
-        scale_factor = 1.0
         if anim_style == "팝업 바운스" and progress < 1.0:
             scale_factor = 0.90 + (0.10 * ease_out) + (math.sin(progress * math.pi) * 0.05)
             center_x = target_x + self._cached_w / 2.0
@@ -520,8 +541,7 @@ class SubtitleFrame(QFrame):
                 for line_idx, line in enumerate(self._cached_lines):
                     line_len = len(line)
                     if revealed_chars <= char_acc:
-                        char_acc += line_len
-                        continue
+                        break
                     elif revealed_chars < char_acc + line_len:
                         show_len = revealed_chars - char_acc
                         w_clip = self._cached_fm.horizontalAdvance(line[:show_len])
@@ -530,9 +550,9 @@ class SubtitleFrame(QFrame):
                     char_acc += line_len
 
                     line_w = self._cached_fm.horizontalAdvance(line)
-                    lx = target_x + (self._cached_w - line_w) / 2.0 + offset_x - 10
-                    ly = target_y + self._cached_pad + (line_idx * self._cached_line_h) + offset_y
-                    clip_region += QRegion(QRect(int(lx), int(ly), int(w_clip + 20), int(self._cached_line_h + 10)))
+                    lx = target_x + (self._cached_w - line_w) / 2.0 + offset_x - self._cached_pad
+                    ly = target_y + self._cached_pad + (line_idx * self._cached_line_h) + offset_y - 4
+                    clip_region = clip_region.united(QRect(int(lx), int(ly), int(w_clip + self._cached_pad * 2), int(self._cached_line_h + 8)))
 
                 painter.setClipRegion(clip_region)
 
@@ -556,7 +576,6 @@ class VideoViewWidget(QGraphicsView):
         self.scene.addItem(self.video_item)
 
         self.sub_frame = SubtitleFrame(self.viewport())
-
         self.aspect_ratio = 16.0 / 9.0
         self.video_item.nativeSizeChanged.connect(self._on_native_size_changed)
 
@@ -663,6 +682,10 @@ class MPVProxy:
     def command(self, cmd: str, *args):
         if cmd == 'stop':
             self._core.qplayer.stop()
+        elif cmd == 'play':
+            self._core.qplayer.play()
+        elif cmd == 'pause':
+            self._core.qplayer.pause()
 
     def __setitem__(self, key, value):
         pass
@@ -736,11 +759,12 @@ class PlayerCore(QObject):
         if not self.audio_norm_enabled:
             return
         for path in playlist:
-            if path and path not in self.normalizer.gain_cache:
+            if path and not path.startswith(('http://', 'https://', 'rtsp://', 'rtmp://')):
                 self.normalizer.analyze_track_gain(path)
 
     def _on_video_frame(self, frame: QVideoFrame):
-        self._latest_frame = frame
+        if frame.isValid():
+            self._latest_frame = frame
 
     def _on_position_changed(self, pos_ms: int):
         self.update_subtitle_display(pos_ms / 1000.0)
@@ -769,13 +793,6 @@ class PlayerCore(QObject):
 
             if self._latest_frame and self._latest_frame.isValid():
                 img = self._latest_frame.toImage()
-                if img.isNull():
-                    clone = QVideoFrame(self._latest_frame)
-                    if clone.map(QVideoFrame.MapMode.ReadOnly):
-                        try:
-                            img = clone.toImage().copy()
-                        finally:
-                            clone.unmap()
                 if not img.isNull():
                     return img.scaled(48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
 
@@ -815,6 +832,7 @@ class PlayerCore(QObject):
 
     def play(self, filepath: str):
         self.current_file = filepath
+        self._latest_frame = None
 
         sub_file = self._find_subtitle_file(filepath)
         if sub_file:
@@ -823,8 +841,10 @@ class PlayerCore(QObject):
             self.sub_manager.clear()
             self.view.sub_frame.set_text("")
 
-        if filepath in self.normalizer.gain_cache:
-            cached_gain = self.normalizer.gain_cache[filepath]
+        with self.normalizer._lock:
+            cached_gain = self.normalizer.gain_cache.get(filepath)
+
+        if cached_gain is not None:
             self.target_gain = cached_gain
             self.current_gain = cached_gain
             self._apply_volume()
@@ -832,7 +852,7 @@ class PlayerCore(QObject):
             self.target_gain = 1.0
             self.current_gain = 1.0
             self._apply_volume()
-            if self.audio_norm_enabled:
+            if self.audio_norm_enabled and not filepath.startswith(('http://', 'https://', 'rtsp://', 'rtmp://')):
                 self.normalizer.analyze_track_gain(filepath)
 
         if filepath.startswith(('http://', 'https://', 'rtsp://', 'rtmp://')):
@@ -844,7 +864,7 @@ class PlayerCore(QObject):
         self.qplayer.play()
 
     def _find_subtitle_file(self, video_path: str) -> str:
-        if not video_path:
+        if not video_path or video_path.startswith(('http://', 'https://', 'rtsp://', 'rtmp://')):
             return ""
         dirname = os.path.dirname(os.path.abspath(video_path))
         basename = os.path.splitext(os.path.basename(video_path))[0]
@@ -888,11 +908,7 @@ class PlayerCore(QObject):
 
     def _apply_volume(self):
         raw_vol = self.user_volume / 100.0
-        if self.audio_norm_enabled:
-            effective = raw_vol * self.current_gain
-        else:
-            effective = raw_vol
-
+        effective = raw_vol * self.current_gain if self.audio_norm_enabled else raw_vol
         clamped = max(0.0, min(1.0, effective))
         self.audio_output.setVolume(clamped)
 
@@ -920,5 +936,7 @@ class PlayerCore(QObject):
         try:
             self.vol_smooth_timer.stop()
             self.qplayer.stop()
+            self._latest_frame = None
+            self.normalizer._pool.shutdown(wait=False)
         except Exception:
             pass

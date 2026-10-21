@@ -39,61 +39,71 @@ class EchoMediaPlayer(QMainWindow):
         self.loop_a = None
         self.loop_b = None
         self.show_remaining_time = False
-
+        
+        true = True
+        false = False
+        
         self.sub_visible = True
         self.sub_config = {
-            "font": "Pretendard, Malgun Gothic, sans-serif",
-            "size": 44,
-            "color": "#FFFFFF",
-            "outline_color": "#000000",
-            "border_size": 3,
-            "blur": 3,
-            "pos": 94,
-            "bold": True,
-            "typewriter_enabled": False,
+            "font": "HY견고딕",
+            "size": 40,
+            "color": "#f9f9f9",
+            "outline_color": "#232323",
+            "border_size": 4,
+            "blur": 1,
+            "pos": 95,
+            "bold": true,
+            "typewriter_enabled": false,
             "typewriter_speed": 28,
-            "fade_in_enabled": True,
+            "fade_in_enabled": true,
             "fade_duration": 220,
             "slide_direction": "아래에서 위로",
             "slide_distance": 16,
-            "anim_style": "슬라이드 & 페이드",
-            "max_width_ratio": 0.88
+            "anim_style": "팝업 바운스",
+            "max_width_ratio": 0.88,
+            "visible": true,
+            "outside_video": true,
+            "bg_color": "#000000",
+            "bg_opacity": 0.0
         }
+            
         self.engine_config = {
-            "ambient_glow": True,
-            "aurora_enabled": True,
-            "aurora_style": "오로라",
-            "aurora_palette": "청록",
-            "aurora_intensity": 0.55,
-            "particle_enabled": True,
+            "ambient_glow": true,
+            "aurora_enabled": true,
+            "aurora_style": "네온 파동",
+            "aurora_palette": "바다",
+            "aurora_intensity": 0.65,
+            "particle_enabled": true,
             "particle_type": "눈 / 먼지",
             "particle_direction": "아래로",
             "particle_palette": "화이트",
-            "particle_density": 0.45,
+            "particle_density": 0.7,
             "particle_speed": 1.0,
-            "ambient_brightness": 1.45,
-            "ambient_black_lift": 0.18,
-            "ambient_gamma": 1.25,
-            "ambient_blur_radius": 12,
-            "ambient_motion_intensity": 0.40,
-            "ambient_motion_speed": 1.0,
-            "video_floating_rim": True,
-            "video_shadow_enabled": True,
-            "video_shadow_opacity": 0.55,
-            "video_shadow_radius": 20,
-            "video_shadow_offset": 10,
-            "ambient_tint_enabled": False,
-            "ambient_tint_color": "#38BDF8",
-            "ambient_tint_ratio": 0.20,
-            "audio_norm": True,
-            "hwdec": True
+            "ambient_brightness": 0.6,
+            "ambient_black_lift": 0.1,
+            "ambient_gamma": 1.07,
+            "ambient_blur_radius": 8,
+            "ambient_motion_intensity": 0.42,
+            "ambient_motion_speed": 2.5,
+            "video_floating_rim": true,
+            "video_shadow_enabled": true,
+            "video_shadow_opacity": 0.1,
+            "video_shadow_radius": 35,
+            "video_shadow_offset": 6,
+            "ambient_tint_enabled": true,
+            "ambient_tint_color": "#000000",
+            "ambient_tint_ratio": 0.7,
+            "audio_norm": true,
+            "hwdec": true
         }
 
         self.init_ui()
         self.init_top_bar()
         self.init_engine()
         self.load_session()
-
+        self.save_session()
+        self.load_session()
+        
         self.state_timer = QTimer(self)
         self.state_timer.setInterval(120)
         self.state_timer.timeout.connect(self.sync_state)

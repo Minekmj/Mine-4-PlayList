@@ -2,48 +2,6 @@ QMainWindow {
     background-color: #151A24;
 }
 
-QFrame#dialogContainer {
-    background-color: rgba(8, 8, 8, 1);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-}
-
-QFrame#dialogHeader {
-    background: transparent;
-    border: none;
-    padding-bottom: 2px;
-}
-
-QLabel#dialogTitle {
-    font-size: 15px;
-    font-weight: 700;
-    color: #F1F5F9;
-    letter-spacing: -0.3px;
-}
-
-QLabel#dialogSubtitle {
-    font-size: 11px;
-    color: #94A3B8;
-}
-
-QPushButton#dialogCloseBtn {
-    background: transparent;
-    border: none;
-    color: #94A3B8;
-    font-size: 13px;
-    border-radius: 13px;
-    padding: 0px;
-}
-
-QPushButton#dialogCloseBtn:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #F8FAFC;
-}
-
-QPushButton#dialogCloseBtn:pressed {
-    background-color: rgba(255, 255, 255, 0.14);
-}
-
 QWidget {
     color: #E2EAF4;
     font-family: 'Pretendard', 'Segoe UI', -apple-system, sans-serif;
@@ -58,14 +16,6 @@ FloatingGlassPanel {
         stop:1 rgba(79, 87, 102, 0.19));
     border: 1px solid rgba(150, 150, 150, 0.19);
     border-radius: 20px;
-}
-
-QFrame#cardFrame {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(210, 225, 245, 0.05), 
-        stop:1 rgba(195, 210, 235, 0.10));
-    border: none;
-    border-radius: 5px;
 }
 
 FloatingGlassPanel#playlistContainer {
@@ -152,22 +102,6 @@ QPushButton#btn_mode {
     padding: 4px 9px;
 }
 
-QPushButton#accentBtn {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(195, 218, 245, 0.32), 
-        stop:1 rgba(155, 185, 220, 0.24));
-    border: none;
-    color: #FFFFFF;
-    font-weight: 600;
-}
-
-QPushButton#accentBtn:hover {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(210, 230, 255, 0.42), 
-        stop:1 rgba(170, 200, 235, 0.34));
-    border-color: rgba(235, 245, 255, 0.65);
-}
-
 QPushButton#iconBtn {
     background: transparent;
     border: none;
@@ -183,77 +117,6 @@ QPushButton#playBtn {
     background: transparent;
     border: none;
     border-radius: 20px;
-}
-
-QLineEdit, QSpinBox, QComboBox, QFontComboBox {
-    background-color: rgba(18, 23, 34, 0.65);
-    border: 1px solid rgba(210, 225, 245, 0.14);
-    border-radius: 8px;
-    padding: 5px 9px;
-    color: #F1F6FC;
-    min-height: 20px;
-}
-
-QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QFontComboBox:focus {
-    border: 1px solid rgba(190, 218, 250, 0.55);
-    background-color: rgba(22, 28, 42, 0.85);
-}
-
-QComboBox::drop-down {
-    border: none;
-    width: 22px;
-}
-
-QComboBox::down-arrow {
-    image: none;
-    width: 0;
-    height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid rgba(215, 230, 250, 0.6);
-    margin-right: 8px;
-}
-
-QComboBox::down-arrow:hover {
-    border-top-color: #FFFFFF;
-}
-
-QComboBox QAbstractItemView {
-    background-color: #171E2B;
-    border: 1px solid rgba(215, 230, 250, 0.16);
-    border-radius: 8px;
-    padding: 4px;
-    color: #E2EBF5;
-    outline: none;
-    selection-background-color: rgba(180, 205, 235, 0.22);
-    selection-color: #FFFFFF;
-}
-
-QCheckBox {
-    spacing: 8px;
-    color: #CBD8E7;
-    font-weight: 500;
-    background: transparent;
-}
-
-QCheckBox::indicator {
-    width: 15px;
-    height: 15px;
-    border-radius: 4px;
-    border: 1px solid rgba(210, 225, 245, 0.25);
-    background: rgba(18, 23, 33, 0.65);
-}
-
-QCheckBox::indicator:hover {
-    border-color: rgba(215, 235, 255, 0.55);
-    background: rgba(22, 29, 42, 0.80);
-}
-
-QCheckBox::indicator:checked {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(190, 215, 245, 0.90), 
-        stop:1 rgba(155, 185, 225, 0.85));
-    border-color: rgba(225, 240, 255, 0.95);
 }
 
 QSlider {
@@ -332,41 +195,6 @@ QScrollArea > QWidget > QWidget {
     background: transparent;
 }
 
-QTabWidget {
-    background: transparent;
-}
-
-QTabWidget::pane {
-    background: transparent;
-    border:none;
-}
-
-QTabBar {
-    background: transparent;
-    border-radius: 8px;
-    padding: 3px;
-}
-
-QTabBar::tab {
-    color: #9CB0C4;
-    padding: 6px 14px;
-    margin-right: 3px;
-    border-radius: 7px;
-    font-weight: 500;
-}
-
-QTabBar::tab:hover {
-    background: rgba(210, 225, 245, 0.10);
-    color: #E2EBF5;
-}
-
-QTabBar::tab:selected {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(210, 225, 245, 0.20), 
-        stop:1 rgba(185, 205, 230, 0.14));
-    color: #FFFFFF;
-    font-weight: 600;
-}
 
 QFrame#playlistOptionBar {
     background: rgba(18, 24, 36, 0.75);

@@ -29,20 +29,13 @@ Windows용 영상·음악 플레이어입니다. 영상을 화려하게 볼 수 
 
 ## 실행 방법 1
 
-1. 최신 릴리스에서 `.exe` 파일을 다운로드합니다. [최신 릴리스](https://github.com/Minekmj/Mine-4-PlayList/releases) <-링크 바로가기
-2. `FFmpeg`을 다운로드하세요. (`Windows (x86_64)` -> `master` -> `ffmpeg-master-latest-win64-gpl.zip`) [바로가기](https://github.com/BtbN/FFmpeg-Builds/releases)
-3. 다운받은 `ffmpeg-master-latest-win64-gpl.zip` 파일을 압축해제하고 내부에 `bin` 폴더를 찾은 뒤 그 폴더에 있는 `ffmpeg.exe`를 `Mine 4 PlayList - exe.exe` 폴더 위치에 두세요.
-4. `Mine 4 PlayList - exe.exe`를 실행합니다.
-
-## 실행 방법 2
-
 1. 최신 릴리스에서 `.zip` 파일을 다운로드합니다. [최신 릴리스](https://github.com/Minekmj/Mine-4-PlayList/releases) <-링크 바로가기
 2. 다운로드한 파일을 압축해제합니다.
-3. `FFmpeg`을 다운로드하세요. (`Windows (x86_64)` -> `master` -> `ffmpeg-master-latest-win64-gpl.zip`) [바로가기](https://github.com/BtbN/FFmpeg-Builds/releases)
-4. 다운받은 `ffmpeg-master-latest-win64-gpl.zip` 파일을 압축해제하고 내부에 `bin` 폴더를 찾은 뒤 그 폴더에 있는 `ffmpeg.exe`를 압푹해제한 폴더에 있는 `Mine 4 PlayList.exe` 폴더 위치에 두세요.
-5. 폴더 내부에 있는 `Mine 4 PlayList.exe`를 실행합니다.
+3. 폴더 내부에 있는 `Mine 4 PlayList.exe`를 실행합니다.
 
-## 실행 방법 3
+4. 번외 - 업데이트 방법 내부에 있는 `updater.exe`를 실행합니다.
+
+## 실행 방법 2
 
 Python 3.10 이상과 Windows 환경을 기준으로 합니다.
 

@@ -4,6 +4,7 @@ ffmpeg.exe
 ver.txt
 updater.ilk
 updater.exe
+updater.exe.manifest
 *.png~
 *.kra~
 *.ico~

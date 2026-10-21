@@ -3,55 +3,14 @@ import sys
 import re
 import math
 import time
-import shutil
-import subprocess
 import threading
+import av
+import numpy as np
 from PyQt6.QtCore import Qt, QUrl, QObject, QTimer, QRectF, QRect, QSizeF, pyqtSignal
 from PyQt6.QtGui import QImage, QPainter, QPainterPath, QPen, QColor, QFont, QFontMetrics, QBrush, QPixmap, QRegion
 from PyQt6.QtWidgets import QVBoxLayout, QFrame, QGraphicsView, QGraphicsScene
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QVideoFrame
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
-
-
-def find_ffmpeg_binary():
-    p = shutil.which("ffmpeg")
-    if p and os.path.exists(p):
-        return p
-
-    try:
-        import imageio_ffmpeg
-        p = imageio_ffmpeg.get_ffmpeg_exe()
-        if p and os.path.exists(p):
-            return p
-    except Exception:
-        pass
-
-    for folder in [sys.prefix, os.path.join(sys.prefix, "Scripts"), os.path.join(sys.prefix, "Library", "bin")]:
-        c = os.path.join(folder, "ffmpeg.exe" if sys.platform.startswith('win') else "ffmpeg")
-        if os.path.exists(c):
-            return c
-
-    if sys.platform.startswith('win'):
-        candidates = [
-            r"C:\ffmpeg\bin\ffmpeg.exe",
-            r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
-            r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe",
-            os.path.join(os.getcwd(), "ffmpeg.exe"),
-            os.path.join(os.getcwd(), "bin", "ffmpeg.exe"),
-        ]
-        local_app = os.environ.get("LOCALAPPDATA", "")
-        if local_app:
-            candidates.append(os.path.join(local_app, "Programs", "ffmpeg", "bin", "ffmpeg.exe"))
-            winget = os.path.join(local_app, "Microsoft", "WinGet", "Packages")
-            if os.path.isdir(winget):
-                for root, _, files in os.walk(winget):
-                    if "ffmpeg.exe" in files:
-                        candidates.append(os.path.join(root, "ffmpeg.exe"))
-                        break
-        for c in candidates:
-            if os.path.exists(c):
-                return c
-    return None
 
 
 class SubtitleItem:
@@ -171,12 +130,81 @@ class SubtitleManager:
 class AudioNormalizer(QObject):
     gain_ready = pyqtSignal(str, float)
 
-    def __init__(self, target_lufs: float = -16.0):
+    def __init__(self, target_base_db: float = -24.0):
         super().__init__()
-        self.target_lufs = target_lufs
+        self.target_db = target_base_db
         self.gain_cache = {}
-        self.ffmpeg_path = find_ffmpeg_binary()
         self._analyzing = set()
+
+    def _measure_base_volume_db(self, filepath: str) -> float:
+        with av.open(filepath) as container:
+            audio_streams = [s for s in container.streams if s.type == 'audio']
+            if not audio_streams:
+                return -24.0
+
+            stream = audio_streams[0]
+            rate = stream.rate or 44100
+
+            dur = float(container.duration / 1000000.0) if container.duration else 0.0
+
+            if dur > 20.0:
+                seek_pos = max(3.0, dur * 0.10)
+                try:
+                    container.seek(int(seek_pos * 1000000))
+                except Exception:
+                    pass
+
+            samples = []
+            collected_sec = 0.0
+
+            for packet in container.demux(stream):
+                for frame in packet.decode():
+                    arr = frame.to_ndarray()
+                    if np.issubdtype(arr.dtype, np.integer):
+                        arr = arr.astype(np.float32) / np.iinfo(arr.dtype).max
+                    else:
+                        arr = arr.astype(np.float32)
+
+                    if arr.ndim > 1:
+                        arr = arr.mean(axis=0)
+
+                    samples.append(arr.ravel())
+                    collected_sec += frame.samples / rate
+                    if collected_sec >= 12.0:
+                        break
+                if collected_sec >= 12.0:
+                    break
+
+            if not samples:
+                return -24.0
+
+            audio = np.concatenate(samples)
+            if len(audio) < rate * 0.5:
+                return -24.0
+
+            chunk_size = int(rate * 0.05)
+            n_chunks = len(audio) // chunk_size
+            if n_chunks == 0:
+                return -24.0
+
+            audio_trimmed = audio[:n_chunks * chunk_size].reshape(n_chunks, chunk_size)
+            rms_per_chunk = np.sqrt(np.mean(audio_trimmed ** 2, axis=1) + 1e-9)
+            db_per_chunk = 20.0 * np.log10(rms_per_chunk + 1e-9)
+
+            active_db = db_per_chunk[db_per_chunk > -50.0]
+            if len(active_db) < 10:
+                active_db = db_per_chunk[db_per_chunk > -65.0]
+            if len(active_db) == 0:
+                return -24.0
+
+            p15 = np.percentile(active_db, 15)
+            p85 = np.percentile(active_db, 85)
+            core_db = active_db[(active_db >= p15) & (active_db <= p85)]
+
+            if len(core_db) == 0:
+                return float(np.mean(active_db))
+
+            return float(np.mean(core_db))
 
     def analyze_track_gain(self, filepath: str):
         if not filepath or not os.path.exists(filepath):
@@ -192,65 +220,13 @@ class AudioNormalizer(QObject):
 
         def run():
             gain = 1.0
-            analyzed = False
-
-            if self.ffmpeg_path:
-                try:
-                    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
-                    cmd = [
-                        self.ffmpeg_path, '-hide_banner',
-                        '-ss', '5', '-t', '4',
-                        '-vn', '-sn', '-dn',
-                        '-i', filepath,
-                        '-af', 'volumedetect',
-                        '-f', 'null', '-'
-                    ]
-                    proc = subprocess.run(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        timeout=2.5,
-                        creationflags=creationflags
-                    )
-                    out = proc.stderr.decode('utf-8', errors='ignore')
-                    m = re.search(r'mean_volume:\s*([-+]?\d*\.?\d+)\s*dB', out)
-                    if m:
-                        mean_db = float(m.group(1))
-                        diff_db = self.target_lufs - mean_db
-                        gain = math.pow(10.0, diff_db / 20.0)
-                        gain = max(0.35, min(2.8, gain))
-                        analyzed = True
-                except Exception:
-                    pass
-
-            if not analyzed and self.ffmpeg_path:
-                try:
-                    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
-                    cmd = [
-                        self.ffmpeg_path, '-hide_banner',
-                        '-t', '4',
-                        '-vn', '-sn', '-dn',
-                        '-i', filepath,
-                        '-af', 'volumedetect',
-                        '-f', 'null', '-'
-                    ]
-                    proc = subprocess.run(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        timeout=2.5,
-                        creationflags=creationflags
-                    )
-                    out = proc.stderr.decode('utf-8', errors='ignore')
-                    m = re.search(r'mean_volume:\s*([-+]?\d*\.?\d+)\s*dB', out)
-                    if m:
-                        mean_db = float(m.group(1))
-                        diff_db = self.target_lufs - mean_db
-                        gain = math.pow(10.0, diff_db / 20.0)
-                        gain = max(0.35, min(2.8, gain))
-                        analyzed = True
-                except Exception:
-                    pass
+            try:
+                base_db = self._measure_base_volume_db(filepath)
+                diff_db = self.target_db - base_db
+                gain = math.pow(10.0, diff_db / 20.0)
+                gain = max(0.35, min(3.0, gain))
+            except Exception:
+                gain = 1.0
 
             self.gain_cache[filepath] = gain
             self._analyzing.discard(filepath)
@@ -734,7 +710,7 @@ class PlayerCore(QObject):
         self.current_gain = 1.0
         self.audio_norm_enabled = True
 
-        self.normalizer = AudioNormalizer(target_lufs=-16.0)
+        self.normalizer = AudioNormalizer(target_base_db=-24.0)
         self.normalizer.gain_ready.connect(self._on_gain_ready)
 
         self.vol_smooth_timer = QTimer(self)
@@ -894,7 +870,7 @@ class PlayerCore(QObject):
     def _on_gain_ready(self, filepath: str, gain: float):
         if self.current_file == filepath:
             self.target_gain = gain
-            if self.qplayer.position() < 800:
+            if self.qplayer.position() < 1200:
                 self.current_gain = gain
                 self._apply_volume()
             else:
@@ -913,7 +889,7 @@ class PlayerCore(QObject):
     def _apply_volume(self):
         raw_vol = self.user_volume / 100.0
         if self.audio_norm_enabled:
-            effective = raw_vol * (self.current_gain * 0.75)
+            effective = raw_vol * self.current_gain
         else:
             effective = raw_vol
 

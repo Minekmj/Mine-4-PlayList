@@ -24,7 +24,6 @@
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(linker, "/subsystem:windows /entry:wWinMainCRTStartup")
 
-// Modern Windows Common Controls (v6) 적용 매니페스트
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -42,7 +41,6 @@ const char *repo_url = "https://github.com/Minekmj/Mine-4-PlayList/";
 #define BUFFER_SIZE 8192
 #define HASH_STR_LEN 65
 
-// UI 전역 핸들 및 상태
 HWND g_hWnd = NULL;
 HWND g_hProgressBar = NULL;
 HFONT g_hFontTitle = NULL;
@@ -51,10 +49,9 @@ HFONT g_hFontSub = NULL;
 
 wchar_t g_statusText[256] = L"업데이트를 준비하는 중...";
 wchar_t g_subStatusText[256] = L"잠시만 기다려주세요.";
-int g_progressPercent = -1; // -1: Marquee(대기 애니메이션), 0~100: 실제 진행률
+int g_progressPercent = -1;
 bool g_isMarquee = false;
 
-// UI 상태 업데이트 함수
 void UpdateUI(const wchar_t *status, const wchar_t *sub, int percent) {
     if (status) wcscpy(g_statusText, status);
     if (sub) wcscpy(g_subStatusText, sub);
@@ -160,7 +157,6 @@ char* FetchAPIResponse(const wchar_t *url) {
     return buffer;
 }
 
-// 실시간 다운로드 용량 및 진행률 표시 지원
 bool DownloadFile(const wchar_t *url, const wchar_t *destPath) {
     HINTERNET hInternet = InternetOpenW(L"Mozilla/5.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
     if (!hInternet) return false;
@@ -171,7 +167,6 @@ bool DownloadFile(const wchar_t *url, const wchar_t *destPath) {
         return false;
     }
 
-    // 파일 총 크기(Content-Length) 가져오기
     DWORD contentLength = 0;
     DWORD bufferSize = sizeof(contentLength);
     DWORD index = 0;
@@ -566,17 +561,14 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
     return 0;
 }
 
-// 윈도우 프로시저 (더블 버퍼링 & 커스텀 다크 렌더링)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_CREATE: {
-            // 다크 모드 & 둥근 모서리 활성화 (Win10/Win11)
             BOOL useDarkMode = TRUE;
             DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &useDarkMode, sizeof(useDarkMode));
             int cornerPref = 2; // DWMWCP_ROUND
             DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPref, sizeof(cornerPref));
 
-            // 세련된 Malgun Gothic 폰트 생성
             g_hFontTitle = CreateFontW(20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
                                       DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                                       CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"맑은 고딕");
@@ -587,7 +579,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                     DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                                     CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"맑은 고딕");
 
-            // 프로그레스 바 생성 (초기 Marquee 모드)
             g_hProgressBar = CreateWindowExW(0, PROGRESS_CLASSW, NULL,
                                             WS_CHILD | WS_VISIBLE | PBS_MARQUEE,
                                             30, 96, 400, 10,
@@ -605,37 +596,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             int width = clientRect.right - clientRect.left;
             int height = clientRect.bottom - clientRect.top;
 
-            // 더블 버퍼링용 메모리 DC
             HDC memDC = CreateCompatibleDC(hdc);
             HBITMAP memBitmap = CreateCompatibleBitmap(hdc, width, height);
             HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
 
-            // 1. 다크 모드 배경 채우기 (Deep Charcoal / Zinc-900: #18181B)
             HBRUSH bgBrush = CreateSolidBrush(RGB(24, 24, 27));
             FillRect(memDC, &clientRect, bgBrush);
             DeleteObject(bgBrush);
 
             SetBkMode(memDC, TRANSPARENT);
 
-            // 2. 타이틀 헤더 그리기
             SelectObject(memDC, g_hFontTitle);
-            SetTextColor(memDC, RGB(250, 250, 250)); // Pure White
+            SetTextColor(memDC, RGB(250, 250, 250));
             RECT rcTitle = { 30, 20, width - 30, 48 };
             DrawTextW(memDC, L"Mine-4-PlayList 업데이트", -1, &rcTitle, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
 
-            // 3. 메인 상태 텍스트
             SelectObject(memDC, g_hFontStatus);
-            SetTextColor(memDC, RGB(212, 212, 216)); // Zinc-300
+            SetTextColor(memDC, RGB(212, 212, 216));
             RECT rcStatus = { 30, 68, width - 30, 92 };
             DrawTextW(memDC, g_statusText, -1, &rcStatus, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
 
-            // 4. 서브 상태/용량 텍스트
             SelectObject(memDC, g_hFontSub);
-            SetTextColor(memDC, RGB(161, 161, 170)); // Zinc-400 (Muted)
+            SetTextColor(memDC, RGB(161, 161, 170));
             RECT rcSub = { 30, 116, width - 30, 140 };
             DrawTextW(memDC, g_subStatusText, -1, &rcSub, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
 
-            // 화면으로 복사
             BitBlt(hdc, 0, 0, width, height, memDC, 0, 0, SRCCOPY);
 
             SelectObject(memDC, oldBitmap);
@@ -669,12 +654,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = NULL; // WM_PAINT에서 직접 그리기 위해 NULL 지정
+    wc.hbrBackground = NULL;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
     RegisterClassExW(&wc);
 
-    // 여유롭고 균형 잡힌 창 크기 (460 x 175)
     int winWidth = 460;
     int winHeight = 175;
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);

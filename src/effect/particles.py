@@ -6,6 +6,8 @@ from PyQt6.QtGui import QPainter, QColor, QPen
 
 class Particle:
     def __init__(self, w: int, h: int, p_type: str, p_dir: str):
+        self.vx = 0.0
+        self.vy = 0.0
         self.reset(w, h, p_type, p_dir, randomize_pos=True)
 
     def reset(self, w: int, h: int, p_type: str, p_dir: str, randomize_pos: bool = False):
@@ -36,25 +38,50 @@ class Particle:
             self.base_speed = random.uniform(0.8, 1.8)
             self.alpha_factor = random.uniform(0.4, 0.8)
 
+        if self.direction == "위로":
+            self.vx = 0.0
+            self.vy = -self.base_speed
+        elif self.direction == "왼쪽 대각선":
+            self.vx = -self.base_speed * 0.9
+            self.vy = self.base_speed * 0.9
+        elif self.direction == "오른쪽 대각선":
+            self.vx = self.base_speed * 0.9
+            self.vy = self.base_speed * 0.9
+        elif self.direction == "부유 / 흩날림":
+            self.vx = math.cos(self.phase * 0.8) * self.base_speed * 0.7
+            self.vy = math.sin(self.phase) * self.base_speed * 0.7
+        else:
+            self.vx = 0.0
+            self.vy = self.base_speed
+
+        pad = self.size + 15
         if randomize_pos or w <= 0 or h <= 0:
             self.x = random.uniform(0, max(1, w))
             self.y = random.uniform(0, max(1, h))
         else:
             if self.direction == "위로":
                 self.x = random.uniform(0, w)
-                self.y = h + self.size + 10
+                self.y = h + pad
             elif self.direction == "왼쪽 대각선":
-                self.x = random.choice([random.uniform(0, w), w + 10])
-                self.y = -10 if self.x < w else random.uniform(0, h)
+                if random.uniform(0, w + h) < w:
+                    self.x = random.uniform(0, w)
+                    self.y = -pad
+                else:
+                    self.x = w + pad
+                    self.y = random.uniform(0, h)
             elif self.direction == "오른쪽 대각선":
-                self.x = random.choice([random.uniform(0, w), -10])
-                self.y = -10 if self.x > 0 else random.uniform(0, h)
+                if random.uniform(0, w + h) < w:
+                    self.x = random.uniform(0, w)
+                    self.y = -pad
+                else:
+                    self.x = -pad
+                    self.y = random.uniform(0, h)
             elif self.direction == "부유 / 흩날림":
                 self.x = random.uniform(0, w)
                 self.y = random.uniform(0, h)
             else:
                 self.x = random.uniform(0, w)
-                self.y = -self.size - 10
+                self.y = -pad
 
 
 class ParticleSystem:
@@ -66,6 +93,8 @@ class ParticleSystem:
         self.palette_name = "청록"
         self.density = 0.45
         self.speed = 1.0
+        self.prev_w = 0
+        self.prev_h = 0
 
         self.palettes = {
             "청록": [QColor(40, 235, 190), QColor(90, 145, 255), QColor(190, 105, 255)],
@@ -89,7 +118,8 @@ class ParticleSystem:
             self.particles.clear()
 
     def _sync_count(self, w: int, h: int):
-        target_count = int(140 * self.density) if self.enabled else 0
+        scale = max(1.0, (w * h) / (1280 * 720))
+        target_count = int(140 * self.density * scale) if self.enabled else 0
         while len(self.particles) < target_count:
             self.particles.append(Particle(w, h, self.p_type, self.direction))
         if len(self.particles) > target_count:
@@ -98,6 +128,15 @@ class ParticleSystem:
     def update(self, w: int, h: int):
         if not self.enabled or w <= 0 or h <= 0 or self.density <= 0.001:
             return
+
+        if self.prev_w > 0 and self.prev_h > 0 and (self.prev_w != w or self.prev_h != h):
+            sx = w / self.prev_w
+            sy = h / self.prev_h
+            for p in self.particles:
+                p.x *= sx
+                p.y *= sy
+        self.prev_w = w
+        self.prev_h = h
 
         self._sync_count(w, h)
         dt = self.speed
@@ -123,6 +162,8 @@ class ParticleSystem:
                 vy = p.base_speed * dt
                 vx = math.sin(p.phase) * 0.45 * dt
 
+            p.vx = vx
+            p.vy = vy
             p.x += vx
             p.y += vy
 
@@ -178,11 +219,12 @@ class ParticleSystem:
             elif p.type == "비":
                 pen = QPen(col, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
                 painter.setPen(pen)
-                dx, dy = 0.0, p.size
-                if p.direction == "왼쪽 대각선":
-                    dx = -p.size * 0.6
-                elif p.direction == "오른쪽 대각선":
-                    dx = p.size * 0.6
+                speed = math.hypot(p.vx, p.vy)
+                if speed > 0.0001:
+                    dx = (p.vx / speed) * p.size
+                    dy = (p.vy / speed) * p.size
+                else:
+                    dx, dy = 0.0, p.size
                 painter.drawLine(int(p.x), int(p.y), int(p.x + dx), int(p.y + dy))
                 painter.setPen(Qt.PenStyle.NoPen)
 

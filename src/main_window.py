@@ -10,9 +10,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent, QSize, QPropertyAnimation, QEasingCurve
 
 from src.icons import ModernIcon
-from src.widgets import AmbientVideoContainer, FloatingGlassPanel, FluidSeekSlider, FloatingOSD, PlaylistWidget, PlaylistItemCard
-from src.player_core import PlayerCore
-from src.dialogs import SettingsDialog, UrlDialog
+from src.widgets.widgets import AmbientVideoContainer, FloatingGlassPanel, FluidSeekSlider, FloatingOSD, PlaylistWidget, PlaylistItemCard
+from src.core.player_core import PlayerCore
+from src.ui.dialogs import SettingsDialog, UrlDialog
 
 SESSION_FILE = "./session_state.json"
 
@@ -662,7 +662,7 @@ class EchoMediaPlayer(QMainWindow):
             self.url_panel.raise_()
             self.url_panel.activateWindow()
             return
-        d = os.path.dirname(self.playlist[0]) if self.playlist else os.path.expanduser("~/Downloads")
+        d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "Download")
         self.url_panel = UrlDialog(self, d)
         self.url_panel.show()
 

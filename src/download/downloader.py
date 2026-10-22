@@ -4,7 +4,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 import yt_dlp
 
-from src.trans_srt import fetch_and_translate_srt
+from src.download.trans_srt import fetch_and_translate_srt
 
 class DownloadSignals(QObject):
     status = pyqtSignal(str)

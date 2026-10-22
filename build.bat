@@ -43,7 +43,7 @@ if exist "%ZIP_NAME%" (
     del /f /q "%ZIP_NAME%"
 )
 
-powershell -Command "Compress-Archive -Path '%OUTPUT_DIR%\*' -DestinationPath '%ZIP_NAME%' -Force"
+powershell -Command "Compress-Archive -Path '%OUTPUT_DIR%' -DestinationPath '%ZIP_NAME%' -Force"
 
 echo.
 echo ========================================================

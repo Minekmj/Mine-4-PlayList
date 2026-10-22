@@ -134,6 +134,8 @@ class ParticleSystem:
         self.prev_w = 0
         self.prev_h = 0
         self._temp_pen = QPen()
+        self._max_particles = 260
+        self._color_cache = {}
 
         raw_palettes = {
             "에메랄드 틸": [(40, 235, 190), (90, 145, 255), (190, 105, 255)],
@@ -170,19 +172,24 @@ class ParticleSystem:
     def set_params(self, enabled: bool, p_type: str, direction: str, palette: str, density: float, speed: float):
         norm_type = ALIAS_MAP.get(p_type, p_type)
         reset_needed = (self.p_type != norm_type or self.direction != direction)
+        cache_changed = self.palette_name != palette or self.density != max(0.0, min(1.0, density))
         self.enabled = enabled
         self.p_type = norm_type
         self.direction = direction
         self.palette_name = palette
         self.density = max(0.0, min(1.0, density))
         self.speed = max(0.1, min(3.0, speed))
+        if cache_changed:
+            self._color_cache.clear()
 
         if reset_needed:
             self.particles.clear()
+            self.prev_w = 0
+            self.prev_h = 0
 
     def _sync_count(self, w: int, h: int):
         scale = max(1.0, (w * h) / 921600.0)
-        target_count = int(140 * self.density * scale) if self.enabled else 0
+        target_count = min(self._max_particles, int(140 * self.density * min(scale, 3.0))) if self.enabled else 0
         cur_count = len(self.particles)
         if cur_count < target_count:
             p_type = self.p_type
@@ -288,6 +295,16 @@ class ParticleSystem:
 
         painter.restore()
 
+    def _color(self, r: int, g: int, b: int, a: int) -> QColor:
+        key = (r, g, b, a)
+        color = self._color_cache.get(key)
+        if color is None:
+            if len(self._color_cache) > 600:
+                self._color_cache.clear()
+            color = QColor(r, g, b, a)
+            self._color_cache[key] = color
+        return color
+
     def _draw_sakura(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
         sin = math.sin
         for i, p in enumerate(self.particles):
@@ -297,7 +314,7 @@ class ParticleSystem:
             painter.translate(p.x, p.y)
             painter.rotate(p.rot)
             painter.scale(sin(p.phase) * 0.35 + 0.65, 1.0)
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             s = p.size
             painter.drawEllipse(QRectF(-s * 0.45, -s * 1.1, s * 0.9, s * 2.2))
             painter.restore()
@@ -312,10 +329,10 @@ class ParticleSystem:
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             s = p.size * (sin(p.phase * 2.0) * 0.35 + 0.75)
             hs = s * 0.5
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             painter.drawEllipse(QRectF(p.x - hs, p.y - hs, s, s))
             if i % 3 == 0:
-                pen.setColor(QColor(r, g, b, max(5, a // 2)))
+                pen.setColor(self._color(r, g, b, max(5, a // 2)))
                 painter.setPen(pen)
                 arm = s * 1.6
                 px, py = p.x, p.y
@@ -328,9 +345,9 @@ class ParticleSystem:
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             s = p.size
-            painter.setBrush(QColor(r, g, b, max(5, a // 4)))
+            painter.setBrush(self._color(r, g, b, max(5, a // 4)))
             painter.drawEllipse(QRectF(p.x - s * 1.5, p.y - s * 1.5, s * 3.0, s * 3.0))
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             painter.drawEllipse(QRectF(p.x - s * 0.5, p.y - s * 0.5, s, s))
 
     def _draw_rain(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
@@ -342,7 +359,7 @@ class ParticleSystem:
         for i, p in enumerate(self.particles):
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
-            pen.setColor(QColor(r, g, b, a))
+            pen.setColor(self._color(r, g, b, a))
             painter.setPen(pen)
             speed = hypot(p.vx, p.vy)
             if speed > 0.0001:
@@ -364,7 +381,7 @@ class ParticleSystem:
             painter.translate(p.x, p.y)
             painter.rotate(p.rot * 0.3 + sin(p.phase) * 15.0)
             painter.scale(p.size, p.size)
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             painter.drawPath(path)
             painter.restore()
 
@@ -383,7 +400,7 @@ class ParticleSystem:
             painter.translate(p.x, p.y)
             painter.rotate(p.rot * 0.4 + sin(p.phase) * 25.0)
             painter.scale(p.size, p.size)
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             painter.drawPath(path)
             pen.setColor(QColor(255, 255, 255, min(255, a + 35)))
             painter.setPen(pen)
@@ -401,7 +418,7 @@ class ParticleSystem:
         for i, p in enumerate(self.particles):
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
-            col = QColor(r, g, b, a)
+            col = self._color(r, g, b, a)
             painter.save()
             painter.translate(p.x, p.y)
             painter.rotate(p.rot * 0.25)
@@ -428,7 +445,7 @@ class ParticleSystem:
             s = p.size * (sin(p.phase * 3.0) * 0.32 + 0.68)
             painter.rotate(p.rot)
             painter.scale(s, s)
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             painter.drawPath(path)
             painter.restore()
 
@@ -439,12 +456,12 @@ class ParticleSystem:
         for i, p in enumerate(self.particles):
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
-            pen.setColor(QColor(r, g, b, a))
+            pen.setColor(self._color(r, g, b, a))
             painter.save()
             painter.translate(p.x, p.y)
             painter.rotate(p.rot)
             painter.setPen(pen)
-            painter.setBrush(QColor(r, g, b, max(5, a // 5)))
+            painter.setBrush(self._color(r, g, b, max(5, a // 5)))
             hs = p.size * 0.5
             painter.drawRect(QRectF(-hs, -hs, p.size, p.size))
             painter.restore()
@@ -454,6 +471,6 @@ class ParticleSystem:
         for i, p in enumerate(self.particles):
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
-            painter.setBrush(QColor(r, g, b, a))
+            painter.setBrush(self._color(r, g, b, a))
             hs = p.size * 0.5
             painter.drawEllipse(QRectF(p.x - hs, p.y - hs, p.size, p.size))

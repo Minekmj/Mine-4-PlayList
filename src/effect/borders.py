@@ -1,4 +1,5 @@
 import math
+from collections import OrderedDict
 from PyQt6.QtCore import Qt, QRectF, QPointF
 from PyQt6.QtGui import (
     QPainter, QColor, QPen, QLinearGradient, QRadialGradient,
@@ -27,6 +28,8 @@ class ScreenBorderSystem:
         self.flicker_val = 1.0
 
         self._scanline_brush = self._create_scanline_brush()
+        self._gradient_cache = OrderedDict()
+        self._path_cache = OrderedDict()
 
     def _create_scanline_brush(self) -> QBrush:
         pattern = QImage(1, 4, QImage.Format.Format_ARGB32_Premultiplied)
@@ -92,10 +95,23 @@ class ScreenBorderSystem:
         return max(0, min(255, final_a))
 
     def _create_brush_gradient(self, w: int, h: int, alpha: int) -> QLinearGradient | QConicalGradient:
+        angle = int(round(self.sweep_angle / 5.0) * 5) % 360 if self.color_mode == "스펙트럼" or self.anim_mode == "로테이팅 체이스" else 0
+        key = (w, h, alpha, self.color_mode, self.color1.rgba(), self.color2.rgba(), self.anim_mode, angle)
+        cached = self._gradient_cache.get(key)
+        if cached is not None:
+            self._gradient_cache.move_to_end(key)
+            return cached
+        grad = self._build_brush_gradient(w, h, alpha, angle)
+        self._gradient_cache[key] = grad
+        if len(self._gradient_cache) > 96:
+            self._gradient_cache.popitem(last=False)
+        return grad
+
+    def _build_brush_gradient(self, w: int, h: int, alpha: int, cached_angle: int) -> QLinearGradient | QConicalGradient:
         cx, cy = w * 0.5, h * 0.5
 
         if self.color_mode == "스펙트럼":
-            cg = QConicalGradient(cx, cy, self.sweep_angle)
+            cg = QConicalGradient(cx, cy, cached_angle)
             hues = [
                 (0.0, 0), (0.16, 60), (0.33, 120), (0.50, 180),
                 (0.66, 240), (0.83, 300), (1.0, 360)
@@ -113,7 +129,7 @@ class ScreenBorderSystem:
             c2 = c1
 
         if self.anim_mode == "로테이팅 체이스":
-            rad = math.radians(self.sweep_angle)
+            rad = math.radians(cached_angle)
             diag = math.hypot(w, h) * 0.65
             dx = math.cos(rad) * diag
             dy = math.sin(rad) * diag
@@ -184,9 +200,16 @@ class ScreenBorderSystem:
         spread = float(max(4, self.glow_spread + pulse_spread))
         r = float(self.radius)
 
-        rect = QRectF(m, m, w - m * 2, h - m * 2)
-        path = QPainterPath()
-        path.addRoundedRect(rect, r, r)
+        path_key = (w, h, self.margin, self.radius)
+        path = self._path_cache.get(path_key)
+        if path is None:
+            path = QPainterPath()
+            path.addRoundedRect(QRectF(m, m, w - m * 2, h - m * 2), r, r)
+            self._path_cache[path_key] = path
+            if len(self._path_cache) > 8:
+                self._path_cache.popitem(last=False)
+        else:
+            self._path_cache.move_to_end(path_key)
 
         p.setBrush(Qt.BrushStyle.NoBrush)
         steps = 2

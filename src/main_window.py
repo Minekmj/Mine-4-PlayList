@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent, QSize, QPropertyAnimation, QEasingCurve
 
-from src.icons import ModernIcon
+from src.ui.icons import ModernIcon
 from src.widgets.widgets import AmbientVideoContainer, FloatingGlassPanel, FluidSeekSlider, FloatingOSD, PlaylistWidget, PlaylistItemCard
 from src.core.player_core import PlayerCore
 from src.ui.dialogs import SettingsDialog, UrlDialog
@@ -94,7 +94,22 @@ class EchoMediaPlayer(QMainWindow):
             "ambient_tint_color": "#000000",
             "ambient_tint_ratio": 0.7,
             "audio_norm": true,
-            "hwdec": true
+            "hwdec": true,
+            "border_margin": 0,
+            "border_glow_spread": 20,
+            "border_color_mode": "단색",
+            "border_color1": "#f8f8f8",
+            "border_color2": "#b3b3b3",
+            "border_anim_mode": "정적",
+            "border_anim_speed": 0.2,
+            "border_wave_intensity": 0.2,
+            "border_pulse_depth": 0.0,
+            "border_reactive": true,
+            "border_enabled": false,
+            "border_style": "게이머 네온",
+            "border_width": 5,
+            "border_radius": 0,
+            "border_opacity": 0.3
         }
 
         self.init_ui()

@@ -5,8 +5,9 @@ from PyQt6.QtCore import Qt, QRectF, QTimer
 from PyQt6.QtGui import (
     QPainter, QColor, QRadialGradient, QLinearGradient, QImage, QPen, QPainterPath
 )
-from src.C.c_ambient import get_compiled_c_engine
+from src.c_ambient import get_compiled_c_engine
 from src.effect.particles import ParticleSystem
+from src.effect.borders import ScreenBorderSystem
 
 
 class AmbientVideoContainer(QFrame):
@@ -28,6 +29,7 @@ class AmbientVideoContainer(QFrame):
         self.aurora_phase = 0.0
 
         self.particle_system = ParticleSystem()
+        self.border_system = ScreenBorderSystem()
         self.video_aspect = 16.0 / 9.0
 
         self.c_w = 360
@@ -100,11 +102,30 @@ class AmbientVideoContainer(QFrame):
 
         self.particle_system.set_params(
             enabled=bool(cfg.get("particle_enabled", True)),
-            p_type=str(cfg.get("particle_type", "눈 / 먼지")),
+            p_type=str(cfg.get("particle_type", "소프트 더스트")),
             direction=str(cfg.get("particle_direction", "아래로")),
-            palette=str(cfg.get("particle_palette", "화이트")),
+            palette=str(cfg.get("particle_palette", "에메랄드 틸")),
             density=float(cfg.get("particle_density", 0.45)),
             speed=float(cfg.get("particle_speed", 1.0))
+        )
+
+        col1 = cfg.get("border_color1", cfg.get("border_color", "#38BDF8"))
+        col2 = cfg.get("border_color2", "#818CF8")
+
+        self.border_system.set_params(
+            enabled=bool(cfg.get("border_enabled", True)),
+            style=str(cfg.get("border_style", "엣지 글로우")),
+            color_mode=str(cfg.get("border_color_mode", "단색")),
+            color1=str(col1),
+            color2=str(col2),
+            anim_mode=str(cfg.get("border_anim_mode", "브리딩 펄스")),
+            anim_speed=float(cfg.get("border_anim_speed", 1.0)),
+            pulse_depth=float(cfg.get("border_pulse_depth", 0.35)),
+            width=int(cfg.get("border_width", 3)),
+            margin=int(cfg.get("border_margin", 0)),
+            radius=int(cfg.get("border_radius", 0)),
+            glow_spread=int(cfg.get("border_glow_spread", 14)),
+            opacity=float(cfg.get("border_opacity", 0.75))
         )
 
         self.floating_rim_enabled = cfg.get("video_floating_rim", True)
@@ -122,8 +143,12 @@ class AmbientVideoContainer(QFrame):
             self.phase += 0.05 * self.motion_speed
         if self.aurora_enabled and self.aurora_style != "없음":
             self.aurora_phase += 0.015
+
         if self.particle_system.enabled:
             self.particle_system.update(self.width(), self.height())
+        if self.border_system.enabled:
+            self.border_system.update()
+
         self.update()
 
     def set_aspect_ratio(self, aspect: float):
@@ -201,11 +226,11 @@ class AmbientVideoContainer(QFrame):
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         W, H = self.width(), self.height()
+        vf_rect = QRectF(self.video_widget.geometry()) if self.video_widget else QRectF(W * 0.15, H * 0.15, W * 0.7, H * 0.7)
 
         if (self.ambient_enabled and self.video_widget and 
             self.raw_frame_image and not self.raw_frame_image.isNull() and self.c_engine):
             
-            vf_rect = QRectF(self.video_widget.geometry())
             pulse = math.sin(self.phase) * (0.07 * self.motion_intensity)
             cur_bright = max(self.brightness * self.black_lift, self.brightness * (1.0 + pulse))
             vf_key = tuple(self.video_widget.geometry().getRect())
@@ -295,6 +320,7 @@ class AmbientVideoContainer(QFrame):
 
         self._paint_aurora(p, W, H)
         self.particle_system.draw(p, W, H)
+        self.border_system.draw(p, W, H)
         p.end()
 
     def _paint_aurora(self, p: QPainter, w: int, h: int):

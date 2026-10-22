@@ -1,11 +1,10 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
-    QFormLayout, QPushButton, QSpinBox, QSlider, QCheckBox, QColorDialog,
-    QFontComboBox, QLabel, QScrollArea, QFrame, QComboBox
+QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
+QFormLayout, QPushButton, QSpinBox, QSlider, QCheckBox, QColorDialog,
+QFontComboBox, QLabel, QScrollArea, QFrame, QComboBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
-
 from src.ui.base import *
 
 class SettingsDialog(AnimatedDialogBase):
@@ -14,12 +13,17 @@ class SettingsDialog(AnimatedDialogBase):
         self.p = parent
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setFixedSize(520, 640)
-        
+        self.setFixedSize(540, 660)
         self.setStyleSheet(Get_qss())
 
         self.sub_cfg = dict(self.p.sub_config)
         self.engine_cfg = dict(self.p.engine_config)
+
+        c1_str = self.engine_cfg.get("border_color1", self.engine_cfg.get("border_color", "#38BDF8"))
+        c2_str = self.engine_cfg.get("border_color2", "#818CF8")
+
+        self.border_col1 = QColor(c1_str)
+        self.border_col2 = QColor(c2_str)
 
         self.init_ui()
         self._center_to_parent()
@@ -42,7 +46,7 @@ class SettingsDialog(AnimatedDialogBase):
 
     def _make_val_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setFixedWidth(54)
+        lbl.setFixedWidth(64)
         lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         lbl.setStyleSheet("color: #475569; font-weight: 600; font-size: 11px;")
         return lbl
@@ -64,6 +68,20 @@ class SettingsDialog(AnimatedDialogBase):
                 border-color: #2563EB;
             }}
         """)
+
+    def _on_border_color_mode_changed(self, mode: str):
+        if mode == "단색":
+            self.btn_border_col1.setVisible(True)
+            self.btn_border_col2.setVisible(False)
+            self.row_b_cols_widget.setVisible(True)
+        elif mode == "듀얼 그라디언트":
+            self.btn_border_col1.setVisible(True)
+            self.btn_border_col2.setVisible(True)
+            self.row_b_cols_widget.setVisible(True)
+        else:
+            self.btn_border_col1.setVisible(False)
+            self.btn_border_col2.setVisible(False)
+            self.row_b_cols_widget.setVisible(False)
 
     def init_ui(self):
         root_layout = QVBoxLayout(self)
@@ -239,8 +257,11 @@ class SettingsDialog(AnimatedDialogBase):
         f_pt.addRow(self.chk_particles)
 
         self.particle_type_cb = QComboBox()
-        self.particle_type_cb.addItems(["눈 / 먼지", "벚꽃", "별빛", "빛망울", "비"])
-        self.particle_type_cb.setCurrentText(self.engine_cfg.get("particle_type", "눈 / 먼지"))
+        self.particle_type_cb.addItems(["소프트 더스트", "사쿠라", "스타더스트", "보케 글로우", "라이트 레인", "하트", "페더", "음표", "크로스 스타", "기하학 큐브"])
+        curr_p_type = self.engine_cfg.get("particle_type", "소프트 더스트")
+        alias = {"눈 / 먼지": "소프트 더스트", "벚꽃": "사쿠라", "별빛": "스타더스트", "빛망울": "보케 글로우", "비": "라이트 레인", "깃털": "페더", "반짝이": "크로스 스타", "네온 큐브": "기하학 큐브"}
+        curr_p_type = alias.get(curr_p_type, curr_p_type)
+        self.particle_type_cb.setCurrentText(curr_p_type)
         f_pt.addRow("파티클 종류", self.particle_type_cb)
 
         self.particle_dir_cb = QComboBox()
@@ -249,8 +270,11 @@ class SettingsDialog(AnimatedDialogBase):
         f_pt.addRow("이동 방향", self.particle_dir_cb)
 
         self.particle_palette_cb = QComboBox()
-        self.particle_palette_cb.addItems(["청록", "벚꽃", "바다", "보라", "노을", "화이트"])
-        self.particle_palette_cb.setCurrentText(self.engine_cfg.get("particle_palette", "화이트"))
+        self.particle_palette_cb.addItems(["에메랄드 틸", "사쿠라 로즈", "딥 오션", "네뷸라 바이올렛", "선셋 앰버", "퓨어 화이트", "샴페인 골드", "사이버 네온", "소프트 핑크"])
+        curr_palette = self.engine_cfg.get("particle_palette", "에메랄드 틸")
+        palette_alias = {"청록": "에메랄드 틸", "벚꽃": "사쿠라 로즈", "바다": "딥 오션", "보라": "네뷸라 바이올렛", "노을": "선셋 앰버", "화이트": "퓨어 화이트", "골드": "샴페인 골드", "마법소녀": "소프트 핑크"}
+        curr_palette = palette_alias.get(curr_palette, curr_palette)
+        self.particle_palette_cb.setCurrentText(curr_palette)
         f_pt.addRow("파티클 색상", self.particle_palette_cb)
 
         self.particle_density_slider = QSlider(Qt.Orientation.Horizontal)
@@ -275,7 +299,136 @@ class SettingsDialog(AnimatedDialogBase):
         l_atmos.addWidget(c_pt)
 
         l_atmos.addStretch()
-        self.tabs.addTab(self._scroll_page(t_atmos), "배경 효과")
+        self.tabs.addTab(self._scroll_page(t_atmos), "배경 & 입자")
+
+        t_frame = QWidget()
+        l_frame = QVBoxLayout(t_frame)
+        l_frame.setContentsMargins(4, 8, 4, 8)
+        l_frame.setSpacing(10)
+
+        c_border, f_border = self._create_card()
+        self.chk_border = QCheckBox("화면 테두리 오버레이 활성화")
+        self.chk_border.setChecked(self.engine_cfg.get("border_enabled", True))
+        f_border.addRow(self.chk_border)
+
+        self.border_style_cb = QComboBox()
+        self.border_style_cb.addItems([
+            "엣지 글로우", "미니멀 보더", "더블 라인", "테크니컬 브래킷",
+            "인셋 프레임", "스튜디오 챔퍼", "도트 매트릭스", "사이버 그루브",
+            "옵티컬 비네트", "시네마틱 레터 림", "코너 크로스", "게이머 네온", "없음"
+        ])
+        self.border_style_cb.setCurrentText(self.engine_cfg.get("border_style", "엣지 글로우"))
+        f_border.addRow("프레임 스타일", self.border_style_cb)
+
+        self.border_color_mode_cb = QComboBox()
+        self.border_color_mode_cb.addItems(["단색", "듀얼 그라디언트", "스펙트럼"])
+        curr_cmode = self.engine_cfg.get("border_color_mode", "단색")
+        if curr_cmode not in ["단색", "듀얼 그라디언트", "스펙트럼"]:
+            curr_cmode = "단색"
+        self.border_color_mode_cb.setCurrentText(curr_cmode)
+        self.border_color_mode_cb.currentTextChanged.connect(self._on_border_color_mode_changed)
+        f_border.addRow("컬러 모드", self.border_color_mode_cb)
+
+        self.row_b_cols_widget = QWidget()
+        row_b_cols = QHBoxLayout(self.row_b_cols_widget)
+        row_b_cols.setContentsMargins(0, 0, 0, 0)
+        row_b_cols.setSpacing(8)
+
+        self.btn_border_col1 = QPushButton("1차 색상")
+        self._update_color_btn(self.btn_border_col1, self.border_col1.name())
+        self.btn_border_col1.clicked.connect(lambda: self.pick_border_col(1))
+
+        self.btn_border_col2 = QPushButton("2차 색상")
+        self._update_color_btn(self.btn_border_col2, self.border_col2.name())
+        self.btn_border_col2.clicked.connect(lambda: self.pick_border_col(2))
+
+        row_b_cols.addWidget(self.btn_border_col1)
+        row_b_cols.addWidget(self.btn_border_col2)
+        f_border.addRow("지정 색상", self.row_b_cols_widget)
+
+        self._on_border_color_mode_changed(curr_cmode)
+
+        self.border_anim_cb = QComboBox()
+        self.border_anim_cb.addItems(["정적", "브리딩 펄스", "로테이팅 체이스", "네온 플리커"])
+        curr_anim = self.engine_cfg.get("border_anim_mode", "브리딩 펄스")
+        if curr_anim not in ["정적", "브리딩 펄스", "로테이팅 체이스", "네온 플리커"]:
+            curr_anim = "브리딩 펄스"
+        self.border_anim_cb.setCurrentText(curr_anim)
+        f_border.addRow("애니메이션 효과", self.border_anim_cb)
+
+        self.border_pulse_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_pulse_slider.setRange(0, 80)
+        self.border_pulse_slider.setValue(int(self.engine_cfg.get("border_pulse_depth", 0.35) * 100))
+        self.lbl_border_pulse = self._make_val_label(f"{self.border_pulse_slider.value()}%")
+        self.border_pulse_slider.valueChanged.connect(lambda v: self.lbl_border_pulse.setText(f"{v}%"))
+        h_bpulse = QHBoxLayout()
+        h_bpulse.addWidget(self.border_pulse_slider)
+        h_bpulse.addWidget(self.lbl_border_pulse)
+        f_border.addRow("펄스 호흡 깊이", h_bpulse)
+
+        self.border_spd_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_spd_slider.setRange(20, 300)
+        self.border_spd_slider.setValue(int(self.engine_cfg.get("border_anim_speed", 1.0) * 100))
+        self.lbl_border_spd = self._make_val_label(f"{self.border_spd_slider.value() / 100:.1f}x")
+        self.border_spd_slider.valueChanged.connect(lambda v: self.lbl_border_spd.setText(f"{v / 100:.1f}x"))
+        h_bspd = QHBoxLayout()
+        h_bspd.addWidget(self.border_spd_slider)
+        h_bspd.addWidget(self.lbl_border_spd)
+        f_border.addRow("효과 속도", h_bspd)
+
+        self.border_w_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_w_slider.setRange(1, 24)
+        self.border_w_slider.setValue(self.engine_cfg.get("border_width", 3))
+        self.lbl_border_w = self._make_val_label(f"{self.border_w_slider.value()} px")
+        self.border_w_slider.valueChanged.connect(lambda v: self.lbl_border_w.setText(f"{v} px"))
+        h_bw = QHBoxLayout()
+        h_bw.addWidget(self.border_w_slider)
+        h_bw.addWidget(self.lbl_border_w)
+        f_border.addRow("선 두께", h_bw)
+
+        self.border_margin_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_margin_slider.setRange(0, 50)
+        self.border_margin_slider.setValue(self.engine_cfg.get("border_margin", 0))
+        self.lbl_border_margin = self._make_val_label("화면 밀착" if self.border_margin_slider.value() == 0 else f"{self.border_margin_slider.value()} px")
+        self.border_margin_slider.valueChanged.connect(lambda v: self.lbl_border_margin.setText("화면 밀착" if v == 0 else f"{v} px"))
+        h_bm = QHBoxLayout()
+        h_bm.addWidget(self.border_margin_slider)
+        h_bm.addWidget(self.lbl_border_margin)
+        f_border.addRow("화면 여백", h_bm)
+
+        self.border_r_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_r_slider.setRange(0, 60)
+        self.border_r_slider.setValue(self.engine_cfg.get("border_radius", 0))
+        self.lbl_border_r = self._make_val_label(f"{self.border_r_slider.value()} px")
+        self.border_r_slider.valueChanged.connect(lambda v: self.lbl_border_r.setText(f"{v} px"))
+        h_br = QHBoxLayout()
+        h_br.addWidget(self.border_r_slider)
+        h_br.addWidget(self.lbl_border_r)
+        f_border.addRow("모서리 반경", h_br)
+
+        self.border_glow_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_glow_slider.setRange(0, 40)
+        self.border_glow_slider.setValue(self.engine_cfg.get("border_glow_spread", 14))
+        self.lbl_border_glow = self._make_val_label(f"{self.border_glow_slider.value()} px")
+        self.border_glow_slider.valueChanged.connect(lambda v: self.lbl_border_glow.setText(f"{v} px"))
+        h_bglow = QHBoxLayout()
+        h_bglow.addWidget(self.border_glow_slider)
+        h_bglow.addWidget(self.lbl_border_glow)
+        f_border.addRow("글로우 번짐", h_bglow)
+
+        self.border_op_slider = QSlider(Qt.Orientation.Horizontal)
+        self.border_op_slider.setRange(10, 100)
+        self.border_op_slider.setValue(int(self.engine_cfg.get("border_opacity", 0.75) * 100))
+        self.lbl_border_op = self._make_val_label(f"{self.border_op_slider.value()}%")
+        self.border_op_slider.valueChanged.connect(lambda v: self.lbl_border_op.setText(f"{v}%"))
+        h_bop = QHBoxLayout()
+        h_bop.addWidget(self.border_op_slider)
+        h_bop.addWidget(self.lbl_border_op)
+        f_border.addRow("불투명도", h_bop)
+        l_frame.addWidget(c_border)
+
+        l_frame.addStretch()
+        self.tabs.addTab(self._scroll_page(t_frame), "화면 프레임")
 
         t_sub = QWidget()
         l_sub = QVBoxLayout(t_sub)
@@ -447,6 +600,17 @@ class SettingsDialog(AnimatedDialogBase):
                 self.outline_color = c
             self._update_color_btn(btn, c.name())
 
+    def pick_border_col(self, idx: int):
+        target = self.border_col1 if idx == 1 else self.border_col2
+        btn = self.btn_border_col1 if idx == 1 else self.btn_border_col2
+        c = QColorDialog.getColor(target, self, f"프레임 {idx}차 색상 선택")
+        if c.isValid():
+            if idx == 1:
+                self.border_col1 = c
+            else:
+                self.border_col2 = c
+            self._update_color_btn(btn, c.name())
+
     def apply_subtitle_preset(self, name: str):
         presets = {
             "기본": {"size": 44, "color": "#FFFFFF", "outline_color": "#101010", "border_size": 4, "blur": 3, "pos": 94, "bold": True, "anim_style": "슬라이드 & 페이드", "fade_in_enabled": True},
@@ -519,6 +683,19 @@ class SettingsDialog(AnimatedDialogBase):
             "particle_palette": self.particle_palette_cb.currentText(),
             "particle_density": self.particle_density_slider.value() / 100.0,
             "particle_speed": self.particle_speed_slider.value() / 100.0,
+            "border_enabled": self.chk_border.isChecked(),
+            "border_style": self.border_style_cb.currentText(),
+            "border_color_mode": self.border_color_mode_cb.currentText(),
+            "border_color1": self.border_col1.name(),
+            "border_color2": self.border_col2.name(),
+            "border_anim_mode": self.border_anim_cb.currentText(),
+            "border_anim_speed": self.border_spd_slider.value() / 100.0,
+            "border_pulse_depth": self.border_pulse_slider.value() / 100.0,
+            "border_width": self.border_w_slider.value(),
+            "border_margin": self.border_margin_slider.value(),
+            "border_radius": self.border_r_slider.value(),
+            "border_glow_spread": self.border_glow_slider.value(),
+            "border_opacity": self.border_op_slider.value() / 100.0,
             "audio_norm": self.chk_norm.isChecked(),
             "hwdec": self.chk_hw.isChecked()
         })

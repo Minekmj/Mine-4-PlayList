@@ -1,9 +1,9 @@
 import math
 import ctypes
 from PyQt6.QtWidgets import QFrame, QWidget
-from PyQt6.QtCore import Qt, QRectF, QTimer
+from PyQt6.QtCore import Qt, QRectF, QPointF, QTimer
 from PyQt6.QtGui import (
-    QPainter, QColor, QRadialGradient, QLinearGradient, QImage, QPen, QPainterPath
+    QPainter, QColor, QRadialGradient, QLinearGradient, QImage, QPen, QPainterPath, QPixmap
 )
 from src.c_ambient import get_compiled_c_engine
 from src.effect.particles import ParticleSystem
@@ -55,11 +55,15 @@ class AmbientVideoContainer(QFrame):
         self.shadow_radius = 20
         self.shadow_offset = 10
 
+        self._shadow_cache_pixmap = None
+        self._shadow_cache_pos = QPointF(0, 0)
+        self._shadow_dirty = True
+
         self.c_engine = get_compiled_c_engine()
 
         self.phase = 0.0
         self.anim_timer = QTimer(self)
-        self.anim_timer.setInterval(30)
+        self.anim_timer.setInterval(33)
         self.anim_timer.timeout.connect(self.on_anim_tick)
         self.anim_timer.start()
 
@@ -134,9 +138,11 @@ class AmbientVideoContainer(QFrame):
         self.shadow_radius = cfg.get("video_shadow_radius", 20)
         self.shadow_offset = cfg.get("video_shadow_offset", 10)
 
+        self._ambient_dirty = True
+        self._shadow_dirty = True
         self.update_sub_geometries()
         self.update()
-        QTimer.singleShot(0, self.restore_child_stacking)
+        self.restore_child_stacking()
 
     def on_anim_tick(self):
         if self.ambient_enabled and self.raw_frame_image and self.motion_intensity > 0.01:
@@ -154,6 +160,7 @@ class AmbientVideoContainer(QFrame):
     def set_aspect_ratio(self, aspect: float):
         if aspect > 0.1 and abs(self.video_aspect - aspect) > 0.01:
             self.video_aspect = aspect
+            self._shadow_dirty = True
             self.update_sub_geometries()
             self.update()
 
@@ -202,12 +209,15 @@ class AmbientVideoContainer(QFrame):
         dock_y = H - dock_h - pad
         self.dock_widget.setGeometry(dock_x, dock_y, dock_w, dock_h)
 
+        self._ambient_dirty = True
+        self._shadow_dirty = True
         self.restore_child_stacking()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        self._shadow_dirty = True
+        self._ambient_dirty = True
         self.update_sub_geometries()
-        QTimer.singleShot(0, self.restore_child_stacking)
 
     def update_video_frame(self, qimage: QImage):
         if qimage.isNull():
@@ -218,6 +228,101 @@ class AmbientVideoContainer(QFrame):
         self.raw_frame_image = image
         self._ambient_dirty = True
         self.update()
+
+    def _render_ambient_base(self, W: int, H: int, vf_key: tuple):
+        if not (self.ambient_enabled and self.raw_frame_image and not self.raw_frame_image.isNull() and self.c_engine):
+            return
+
+        sx, sy = self.c_w / float(W), self.c_h / float(H)
+        c_vx1, c_vy1 = vf_key[0] * sx, vf_key[1] * sy
+        c_vx2, c_vy2 = (vf_key[0] + vf_key[2]) * sx, (vf_key[1] + vf_key[3]) * sy
+
+        out_ptr = ctypes.cast(int(self.c_out_img.bits()), ctypes.POINTER(ctypes.c_uint32))
+        src_ptr = ctypes.cast(int(self.raw_frame_image.bits()), ctypes.POINTER(ctypes.c_uint32))
+
+        self.c_engine.c_render_vanishing_perspective(
+            out_ptr, self.c_w, self.c_h, src_ptr,
+            self.raw_frame_image.width(), self.raw_frame_image.height(),
+            c_vx1, c_vy1, c_vx2, c_vy2,
+            self.brightness, self.black_lift, self.gamma, 1.0
+        )
+        self.c_engine.c_apply_optical_gaussian_blur(
+            out_ptr, self.c_temp_buf, self.c_w, self.c_h,
+            max(0, min(64, int(self.blur_radius)))
+        )
+        self._ambient_dirty = False
+
+    def _rebuild_shadow_cache(self, vf_rect: QRectF):
+        if not self.shadow_enabled or self.shadow_opacity <= 0.01 or vf_rect.width() <= 0 or vf_rect.height() <= 0:
+            self._shadow_cache_pixmap = None
+            return
+
+        R = float(max(2, self.shadow_radius))
+        O = float(self.shadow_offset)
+        dx = O * 0.75
+        dy = O * 1.0
+
+        pix_w = int(vf_rect.width() + 2 * R)
+        pix_h = int(vf_rect.height() + 2 * R)
+        if pix_w <= 0 or pix_h <= 0:
+            return
+
+        pix = QPixmap(pix_w, pix_h)
+        pix.fill(Qt.GlobalColor.transparent)
+
+        sp = QPainter(pix)
+        sp.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        sh_alpha = int(255 * min(1.0, self.shadow_opacity))
+        c_sh = QColor(0, 0, 0, sh_alpha)
+
+        def apply_stops(grad):
+            grad.setColorAt(0.0, c_sh)
+            grad.setColorAt(0.25, QColor(0, 0, 0, int(sh_alpha * 0.72)))
+            grad.setColorAt(0.55, QColor(0, 0, 0, int(sh_alpha * 0.32)))
+            grad.setColorAt(0.85, QColor(0, 0, 0, int(sh_alpha * 0.08)))
+            grad.setColorAt(1.0, QColor(0, 0, 0, 0))
+
+        local_s = QRectF(R, R, vf_rect.width(), vf_rect.height())
+        sp.fillRect(local_s, c_sh)
+
+        g_top = QLinearGradient(0, local_s.top(), 0, local_s.top() - R)
+        apply_stops(g_top)
+        sp.fillRect(QRectF(local_s.left(), local_s.top() - R, local_s.width(), R), g_top)
+
+        g_bot = QLinearGradient(0, local_s.bottom(), 0, local_s.bottom() + R)
+        apply_stops(g_bot)
+        sp.fillRect(QRectF(local_s.left(), local_s.bottom(), local_s.width(), R), g_bot)
+
+        g_left = QLinearGradient(local_s.left(), 0, local_s.left() - R, 0)
+        apply_stops(g_left)
+        sp.fillRect(QRectF(local_s.left() - R, local_s.top(), R, local_s.height()), g_left)
+
+        g_right = QLinearGradient(local_s.right(), 0, local_s.right() + R, 0)
+        apply_stops(g_right)
+        sp.fillRect(QRectF(local_s.right(), local_s.top(), R, local_s.height()), g_right)
+
+        gtl = QRadialGradient(local_s.topLeft(), R)
+        apply_stops(gtl)
+        sp.fillRect(QRectF(local_s.left() - R, local_s.top() - R, R, R), gtl)
+
+        gtr = QRadialGradient(local_s.topRight(), R)
+        apply_stops(gtr)
+        sp.fillRect(QRectF(local_s.right(), local_s.top() - R, R, R), gtr)
+
+        gbl = QRadialGradient(local_s.bottomLeft(), R)
+        apply_stops(gbl)
+        sp.fillRect(QRectF(local_s.left() - R, local_s.bottom(), R, R), gbl)
+
+        gbr = QRadialGradient(local_s.bottomRight(), R)
+        apply_stops(gbr)
+        sp.fillRect(QRectF(local_s.right(), local_s.bottom(), R, R), gbr)
+
+        sp.end()
+
+        self._shadow_cache_pixmap = pix
+        self._shadow_cache_pos = QPointF(vf_rect.left() + dx - R, vf_rect.top() + dy - R)
+        self._shadow_dirty = False
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -231,77 +336,26 @@ class AmbientVideoContainer(QFrame):
         if (self.ambient_enabled and self.video_widget and 
             self.raw_frame_image and not self.raw_frame_image.isNull() and self.c_engine):
             
-            pulse = math.sin(self.phase) * (0.07 * self.motion_intensity)
-            cur_bright = max(self.brightness * self.black_lift, self.brightness * (1.0 + pulse))
             vf_key = tuple(self.video_widget.geometry().getRect())
-            params_key = (vf_key, self.raw_frame_image.cacheKey(), cur_bright, self.blur_radius, W, H)
+            params_key = (vf_key, self.raw_frame_image.cacheKey(), self.blur_radius, W, H)
             
             if self._ambient_dirty or params_key != self._ambient_params_key:
-                sx, sy = self.c_w / float(W), self.c_h / float(H)
-                c_vx1, c_vy1 = vf_key[0] * sx, vf_key[1] * sy
-                c_vx2, c_vy2 = (vf_key[0] + vf_key[2]) * sx, (vf_key[1] + vf_key[3]) * sy
-                out_ptr = ctypes.cast(int(self.c_out_img.bits()), ctypes.POINTER(ctypes.c_uint32))
-                src_ptr = ctypes.cast(int(self.raw_frame_image.bits()), ctypes.POINTER(ctypes.c_uint32))
-                self.c_engine.c_render_vanishing_perspective(out_ptr, self.c_w, self.c_h, src_ptr, self.raw_frame_image.width(), self.raw_frame_image.height(), c_vx1, c_vy1, c_vx2, c_vy2, cur_bright, self.black_lift, self.gamma, 1.0)
-                self.c_engine.c_apply_optical_gaussian_blur(out_ptr, self.c_temp_buf, self.c_w, self.c_h, max(0, min(64, int(self.blur_radius))))
+                self._render_ambient_base(W, H, vf_key)
                 self._ambient_params_key = params_key
-                self._ambient_dirty = False
             
             p.save()
+            if self.motion_intensity > 0.01:
+                pulse = math.sin(self.phase) * (0.07 * self.motion_intensity)
+                p.setOpacity(max(0.1, min(1.0, 1.0 + pulse)))
+
             p.drawImage(QRectF(0, 0, W, H), self.c_out_img)
+            p.restore()
 
             if self.shadow_enabled and self.shadow_opacity > 0.01:
-                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
-                R = float(max(2, self.shadow_radius))
-                O = float(self.shadow_offset)
-
-                dx = O * 0.75
-                dy = O * 1.0
-                S = vf_rect.translated(dx, dy)
-
-                sh_alpha = int(255 * min(1.0, self.shadow_opacity))
-                c_sh = QColor(0, 0, 0, sh_alpha)
-
-                def apply_stops(grad):
-                    grad.setColorAt(0.0, c_sh)
-                    grad.setColorAt(0.25, QColor(0, 0, 0, int(sh_alpha * 0.72)))
-                    grad.setColorAt(0.55, QColor(0, 0, 0, int(sh_alpha * 0.32)))
-                    grad.setColorAt(0.85, QColor(0, 0, 0, int(sh_alpha * 0.08)))
-                    grad.setColorAt(1.0, QColor(0, 0, 0, 0))
-
-                p.fillRect(S, c_sh)
-
-                g_top = QLinearGradient(0, S.top(), 0, S.top() - R)
-                apply_stops(g_top)
-                p.fillRect(QRectF(S.left(), S.top() - R, S.width(), R), g_top)
-
-                g_bot = QLinearGradient(0, S.bottom(), 0, S.bottom() + R)
-                apply_stops(g_bot)
-                p.fillRect(QRectF(S.left(), S.bottom(), S.width(), R), g_bot)
-
-                g_left = QLinearGradient(S.left(), 0, S.left() - R, 0)
-                apply_stops(g_left)
-                p.fillRect(QRectF(S.left() - R, S.top(), R, S.height()), g_left)
-
-                g_right = QLinearGradient(S.right(), 0, S.right() + R, 0)
-                apply_stops(g_right)
-                p.fillRect(QRectF(S.right(), S.top(), R, S.height()), g_right)
-
-                gtl = QRadialGradient(S.topLeft(), R)
-                apply_stops(gtl)
-                p.fillRect(QRectF(S.left() - R, S.top() - R, R, R), gtl)
-
-                gtr = QRadialGradient(S.topRight(), R)
-                apply_stops(gtr)
-                p.fillRect(QRectF(S.right(), S.top() - R, R, R), gtr)
-
-                gbl = QRadialGradient(S.bottomLeft(), R)
-                apply_stops(gbl)
-                p.fillRect(QRectF(S.left() - R, S.bottom(), R, R), gbl)
-
-                gbr = QRadialGradient(S.bottomRight(), R)
-                apply_stops(gbr)
-                p.fillRect(QRectF(S.right(), S.bottom(), R, R), gbr)
+                if self._shadow_dirty or not self._shadow_cache_pixmap:
+                    self._rebuild_shadow_cache(vf_rect)
+                if self._shadow_cache_pixmap:
+                    p.drawPixmap(self._shadow_cache_pos, self._shadow_cache_pixmap)
 
             if self.floating_rim_enabled:
                 p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
@@ -310,11 +364,11 @@ class AmbientVideoContainer(QFrame):
                 p.drawRect(vf_rect.adjusted(-1.0, -1.0, 1.0, 1.0))
 
             if self.tint_enabled and self.tint_ratio > 0.01:
+                p.save()
                 p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Overlay)
                 p.setOpacity(self.tint_ratio * 0.45)
                 p.fillRect(0, 0, W, H, self.tint_color)
-
-            p.restore()
+                p.restore()
         else:
             p.fillRect(0, 0, W, H, QColor(8, 10, 16))
 
@@ -343,21 +397,22 @@ class AmbientVideoContainer(QFrame):
         p.setPen(Qt.PenStyle.NoPen)
 
         band_h = max(90, int(h * (0.42 if is_aurora else 0.30)))
+        steps = 28
+        step_w = w / steps
+
         for i, color in enumerate(colors):
             path = QPainterPath()
-            steps = max(40, min(120, w // 10))
             base = 0.12 + i * 0.07
             amp = (0.075 if is_aurora else 0.035) * self.aurora_intensity
 
+            path.moveTo(0, h * base)
             for n in range(steps + 1):
-                x = w * n / steps
-                w1 = math.sin((n / steps * math.pi * 2 * (1.15 + i * 0.4)) + phase * 4.0 + i * 1.6)
-                w2 = math.sin((n / steps * math.pi * 2 * 0.55) - phase * 1.8 + i)
+                x = n * step_w
+                ratio = n / steps
+                w1 = math.sin((ratio * math.pi * 2 * (1.15 + i * 0.4)) + phase * 4.0 + i * 1.6)
+                w2 = math.sin((ratio * math.pi * 2 * 0.55) - phase * 1.8 + i)
                 y = h * base + h * amp * w1 + h * 0.016 * w2
-                if n == 0:
-                    path.moveTo(x, y)
-                else:
-                    path.lineTo(x, y)
+                path.lineTo(x, y)
 
             path.lineTo(w, band_h)
             path.lineTo(0, band_h)

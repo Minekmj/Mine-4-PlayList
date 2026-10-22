@@ -1,15 +1,30 @@
 import os
+import time
 from PyQt6.QtCore import Qt, QUrl, QObject, QTimer, QRectF, QSizeF
 from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QVBoxLayout, QFrame, QGraphicsView, QGraphicsScene
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QVideoFrame
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtGui import QPainter
 
 from src.core.module import *
 
 class VideoViewWidget(QGraphicsView):
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.gl_viewport = QOpenGLWidget(self)
+        self.setViewport(self.gl_viewport)
+
+        self.setRenderHints(
+            QPainter.RenderHint.Antialiasing |
+            QPainter.RenderHint.SmoothPixmapTransform
+        )
+
+        self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
+        self.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True)
+
         self.setStyleSheet("background-color: black; border: none;")
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -35,8 +50,11 @@ class VideoViewWidget(QGraphicsView):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         size = self.viewport().size()
-        self.scene.setSceneRect(0, 0, size.width(), size.height())
-        self.video_item.setSize(QSizeF(size.width(), size.height()))
+        w, h = size.width(), size.height()
+        
+        self.scene.setSceneRect(0, 0, w, h)
+        self.video_item.setPos(0, 0)
+        self.video_item.setSize(QSizeF(w, h))
         self.reposition_subtitle()
 
     def get_video_presentation_rect(self) -> QRectF:
@@ -62,12 +80,13 @@ class VideoViewWidget(QGraphicsView):
             return
 
         v_rect = self.get_video_presentation_rect()
-        if self.sub_frame.size() != self.viewport().size() or self.sub_frame.video_rect != v_rect:
+        if self.sub_frame.size() != self.viewport().size() or getattr(self.sub_frame, 'video_rect', None) != v_rect:
             self.sub_frame.setGeometry(0, 0, w, h)
             self.sub_frame.video_rect = v_rect
             self.sub_frame._cache_dirty = True
             self.sub_frame.update()
             self.sub_frame.raise_()
+
 
 class PlayerCore(QObject):
     def __init__(self, parent_video_frame):
@@ -102,6 +121,8 @@ class PlayerCore(QObject):
             "max_width_ratio": 0.88
         }
         self._latest_frame = None
+        self._cached_ambient_img = QImage()
+        self._last_ambient_capture_time = 0.0
 
         self.user_volume = 80
         self.target_gain = 1.0
@@ -166,10 +187,18 @@ class PlayerCore(QObject):
             if not self.qplayer or self.qplayer.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
                 return QImage()
 
+            now = time.monotonic()
+            if now - self._last_ambient_capture_time < 0.04 and not self._cached_ambient_img.isNull():
+                return self._cached_ambient_img
+
             if self._latest_frame and self._latest_frame.isValid():
                 img = self._latest_frame.toImage()
                 if not img.isNull():
-                    return img.scaled(48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
+                    self._cached_ambient_img = img.scaled(
+                        48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation
+                    )
+                    self._last_ambient_capture_time = now
+                    return self._cached_ambient_img
 
             target = fallback_widget or getattr(self, 'view', None)
             if target and target.isVisible() and target.width() > 10 and target.height() > 10:
@@ -177,10 +206,14 @@ class PlayerCore(QObject):
                 if not pix.isNull():
                     img = pix.toImage()
                     if not img.isNull():
-                        return img.scaled(48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
+                        self._cached_ambient_img = img.scaled(
+                            48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation
+                        )
+                        self._last_ambient_capture_time = now
+                        return self._cached_ambient_img
         except Exception:
             pass
-        return QImage()
+        return self._cached_ambient_img
 
     def set_hwdec(self, enabled: bool):
         pass
@@ -208,6 +241,7 @@ class PlayerCore(QObject):
     def play(self, filepath: str):
         self.current_file = filepath
         self._latest_frame = None
+        self._cached_ambient_img = QImage()
 
         sub_file = self._find_subtitle_file(filepath)
         if sub_file:
@@ -312,6 +346,7 @@ class PlayerCore(QObject):
             self.vol_smooth_timer.stop()
             self.qplayer.stop()
             self._latest_frame = None
+            self._cached_ambient_img = QImage()
             self.normalizer._pool.shutdown(wait=False)
         except Exception:
             pass

@@ -2,7 +2,7 @@ import math
 from PyQt6.QtCore import Qt, QRectF, QPointF
 from PyQt6.QtGui import (
     QPainter, QColor, QPen, QLinearGradient, QRadialGradient,
-    QConicalGradient, QPainterPath, QPolygonF
+    QConicalGradient, QPainterPath, QPolygonF, QBrush, QImage
 )
 
 
@@ -25,6 +25,17 @@ class ScreenBorderSystem:
         self.phase = 0.0
         self.sweep_angle = 0.0
         self.flicker_val = 1.0
+
+        self._scanline_brush = self._create_scanline_brush()
+
+    def _create_scanline_brush(self) -> QBrush:
+        pattern = QImage(1, 4, QImage.Format.Format_ARGB32_Premultiplied)
+        pattern.fill(0)
+        pattern.setPixelColor(0, 0, QColor(0, 0, 0, 0))
+        pattern.setPixelColor(0, 1, QColor(0, 0, 0, 0))
+        pattern.setPixelColor(0, 2, QColor(255, 255, 255, 30))
+        pattern.setPixelColor(0, 3, QColor(255, 255, 255, 30))
+        return QBrush(pattern)
 
     def set_params(
         self,
@@ -178,7 +189,7 @@ class ScreenBorderSystem:
         path.addRoundedRect(rect, r, r)
 
         p.setBrush(Qt.BrushStyle.NoBrush)
-        steps = 4
+        steps = 2
         for i in range(steps, 0, -1):
             cur_w = float(self.width) + (spread * (i / steps))
             glow_a = max(0, min(255, int(alpha * (1.0 - (i / (steps + 1))) * 0.42)))
@@ -237,13 +248,10 @@ class ScreenBorderSystem:
 
         p.drawLine(QPointF(m, m + arm), QPointF(m, m))
         p.drawLine(QPointF(m, m), QPointF(m + arm, m))
-
         p.drawLine(QPointF(w - m - arm, m), QPointF(w - m, m))
         p.drawLine(QPointF(w - m, m), QPointF(w - m, m + arm))
-
         p.drawLine(QPointF(m, h - m - arm), QPointF(m, h - m))
         p.drawLine(QPointF(m, h - m), QPointF(m + arm, h - m))
-
         p.drawLine(QPointF(w - m - arm, h - m), QPointF(w - m, h - m))
         p.drawLine(QPointF(w - m, h - m), QPointF(w - m, h - m - arm))
 
@@ -348,13 +356,10 @@ class ScreenBorderSystem:
 
         p.drawLine(QPointF(m, m), QPointF(cx - gap, m))
         p.drawLine(QPointF(cx + gap, m), QPointF(w - m, m))
-
         p.drawLine(QPointF(m, h - m), QPointF(cx - gap, h - m))
         p.drawLine(QPointF(cx + gap, h - m), QPointF(w - m, h - m))
-
         p.drawLine(QPointF(m, m), QPointF(m, cy - gap))
         p.drawLine(QPointF(m, cy + gap), QPointF(m, h - m))
-
         p.drawLine(QPointF(w - m, m), QPointF(w - m, cy - gap))
         p.drawLine(QPointF(w - m, cy + gap), QPointF(w - m, h - m))
 
@@ -375,12 +380,8 @@ class ScreenBorderSystem:
         p.setPen(pen)
         p.drawRoundedRect(rect, r, r)
 
-        line_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.12))))
-        p.setPen(line_pen)
-        y = m + 4.0
-        while y < h - m - 4.0:
-            p.drawLine(QPointF(m + 4.0, y), QPointF(w - m - 4.0, y))
-            y += 4.0
+        inner_rect = QRectF(m + 4.0, m + 4.0, w - (m + 4.0) * 2, h - (m + 4.0) * 2)
+        p.fillRect(inner_rect, self._scanline_brush)
 
         grad = QRadialGradient(QPointF(w * 0.5, h * 0.5), max(w, h) * 0.65)
         grad.setColorAt(0.0, QColor(0, 0, 0, 0))

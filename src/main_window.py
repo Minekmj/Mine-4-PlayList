@@ -42,6 +42,8 @@ class EchoMediaPlayer(QMainWindow):
         top_bar(self)
         self.init_engine()
         load_session(self)
+        save_session(self)
+        load_session(self)
         timers(self)
 
     def init_ui(self):
@@ -266,7 +268,7 @@ class EchoMediaPlayer(QMainWindow):
             self.url_panel.raise_()
             self.url_panel.activateWindow()
             return
-        d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "Download")
+        d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..", "Download")
         self.url_panel = UrlDialog(self, d)
         self.url_panel.show()
 

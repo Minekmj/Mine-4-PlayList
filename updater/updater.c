@@ -35,6 +35,29 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define DWMWA_WINDOW_CORNER_PREFERENCE 33
 #endif
 
+#define COLOR_WINDOW_BG            RGB(255, 255, 255)
+#define COLOR_WINDOW_BORDER        RGB(226, 232, 240)
+
+#define COLOR_BADGE_BG             RGB(238, 242, 255)
+#define COLOR_BADGE_BORDER         RGB(199, 210, 254)
+#define COLOR_BADGE_TEXT           RGB(79, 70, 229)
+
+#define COLOR_TITLE_TEXT           RGB(15, 23, 42)
+#define COLOR_STATUS_TEXT          RGB(51, 65, 85)
+#define COLOR_SUB_TEXT             RGB(100, 116, 139)
+#define COLOR_PERCENT_TEXT         RGB(79, 70, 229)
+
+#define COLOR_CLOSE_NORMAL_X       RGB(148, 163, 184)
+#define COLOR_CLOSE_HOVER_BG       RGB(239, 68, 68)
+#define COLOR_CLOSE_HOVER_BORDER   RGB(220, 38, 38)
+#define COLOR_CLOSE_HOVER_X        RGB(255, 255, 255)
+
+#define COLOR_PROGRESS_TRACK       RGB(241, 245, 249)
+#define COLOR_PROGRESS_FILL        RGB(99, 102, 241)
+
+#define COLOR_FOOTER_DOT           RGB(34, 197, 94)
+#define COLOR_FOOTER_TEXT          RGB(148, 163, 184)
+
 const char *ver = "Start";
 const char *repo_url = "https://github.com/Minekmj/Mine-4-PlayList/";
 
@@ -336,7 +359,7 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
 
     char *json = FetchAPIResponse(apiUrlW);
     if (!json) {
-        UpdateUI(L"네트워크 연결을 확인할 수 없습니다.", L"기존 프로그램을 시작합니다...", 100);
+        UpdateUI(L"네트워크 연결을 확인할 수 없습니다.", L"종료합니다...", 100);
         Sleep(1200);
         FindAndLaunchM(appDir);
         PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
@@ -372,7 +395,7 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
 
     if (strcmp(cmpTag, cmpVer) == 0) {
         free(json);
-        UpdateUI(L"현재 최신 버전을 사용 중입니다.", L"프로그램을 실행합니다...", 100);
+        UpdateUI(L"현재 최신 버전을 사용 중입니다.", L"종료합니다...", 100);
         Sleep(800);
         FindAndLaunchM(appDir);
         PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
@@ -380,12 +403,12 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
     }
 
     wchar_t askMsg[512];
-    swprintf(askMsg, 512, L"새로운 업데이트가 발견되었습니다!\n\n현재 버전: %hs\n최신 버전: %hs\n\n지금 업데이트를 진행하시겠습니까?", currentVer, tagName);
+    swprintf(askMsg, 512, L"새로운 업데이트가 발견되었습니다.\n\n현재 버전: %hs\n최신 버전: %hs\n\n지금 업데이트를 진행하시겠습니까?", currentVer, tagName);
    
     UpdateUI(L"업데이트 대기 중...", L"사용자 확인 대기 중", 0);
     if (MessageBoxW(g_hWnd, askMsg, L"업데이트 안내", MB_YESNO | MB_ICONINFORMATION) != IDYES) {
         free(json);
-        UpdateUI(L"업데이트를 건너뜁니다.", L"기존 프로그램을 실행합니다...", 100);
+        UpdateUI(L"업데이트를 건너뜁니다.", L"종료합니다...", 100);
         Sleep(600);
         FindAndLaunchM(appDir);
         PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
@@ -411,7 +434,7 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
     free(json);
 
     if (strlen(downloadUrlA) == 0) {
-        UpdateUI(L"업데이트 패키지를 찾을 수 없습니다.", L"기존 프로그램 실행 중...", 100);
+        UpdateUI(L"업데이트 패키지를 찾을 수 없습니다.", L"종료합니다...", 100);
         Sleep(1200);
         FindAndLaunchM(appDir);
         PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
@@ -426,7 +449,7 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
 
     UpdateUI(L"업데이트 패키지 다운로드 준비...", L"서버 요청 중...", 0);
     if (!DownloadFile(downloadUrlW, zipPath)) {
-        UpdateUI(L"다운로드에 실패했습니다.", L"기존 프로그램을 실행합니다...", 100);
+        UpdateUI(L"다운로드에 실패했습니다.", L"종료합니다...", 100);
         Sleep(1200);
         FindAndLaunchM(appDir);
         PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
@@ -439,7 +462,7 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
 
     if (!ExtractZip(zipPath, tempExtractDir)) {
         DeleteFileW(zipPath);
-        UpdateUI(L"압축 해제 실패", L"기존 프로그램을 실행합니다...", 100);
+        UpdateUI(L"압축 해제 실패", L"종료합니다...", 100);
         Sleep(1200);
         FindAndLaunchM(appDir);
         PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
@@ -529,18 +552,8 @@ DWORD WINAPI UpdateWorkerThread(LPVOID lpParam) {
         fclose(fUpdateVer);
     }
 
-    UpdateUI(L"업데이트 완료!", L"프로그램을 시작합니다...", 100);
+    UpdateUI(L"업데이트 완료!", L"종료합니다...", 100);
     Sleep(800);
-
-    if (wcslen(launchExePath) > 0) {
-        STARTUPINFOW si = { sizeof(si) };
-        PROCESS_INFORMATION pi;
-        CreateProcessW(launchExePath, NULL, NULL, NULL, FALSE, 0, NULL, appDir, &si, &pi);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    } else {
-        FindAndLaunchM(appDir);
-    }
 
     PostMessageW(g_hWnd, WM_CLOSE, 0, 0);
     return 0;
@@ -642,19 +655,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             HBITMAP memBitmap = CreateCompatibleBitmap(hdc, width, height);
             HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
 
-            HBRUSH bgBrush = CreateSolidBrush(RGB(15, 17, 23));
+            HBRUSH bgBrush = CreateSolidBrush(COLOR_WINDOW_BG);
             FillRect(memDC, &clientRect, bgBrush);
             DeleteObject(bgBrush);
 
-            HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(38, 42, 55));
+            HPEN borderPen = CreatePen(PS_SOLID, 1, COLOR_WINDOW_BORDER);
             HBRUSH nullBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
             SelectObject(memDC, borderPen);
             SelectObject(memDC, nullBrush);
             RoundRect(memDC, 0, 0, width, height, 16, 16);
             DeleteObject(borderPen);
 
-            HBRUSH badgeBg = CreateSolidBrush(RGB(30, 34, 56));
-            HPEN badgePen = CreatePen(PS_SOLID, 1, RGB(55, 62, 102));
+            HBRUSH badgeBg = CreateSolidBrush(COLOR_BADGE_BG);
+            HPEN badgePen = CreatePen(PS_SOLID, 1, COLOR_BADGE_BORDER);
             SelectObject(memDC, badgeBg);
             SelectObject(memDC, badgePen);
             RoundRect(memDC, 34, 22, 114, 42, 8, 8);
@@ -663,26 +676,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             SetBkMode(memDC, TRANSPARENT);
             SelectObject(memDC, g_hFontBadge);
-            SetTextColor(memDC, RGB(129, 140, 248));
+            SetTextColor(memDC, COLOR_BADGE_TEXT);
             RECT rcBadge = { 34, 22, 114, 42 };
-            DrawTextW(memDC, L"LAUNCHER", -1, &rcBadge, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            DrawTextW(memDC, L"UPDATER", -1, &rcBadge, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
             SelectObject(memDC, g_hFontTitle);
-            SetTextColor(memDC, RGB(248, 250, 252));
+            SetTextColor(memDC, COLOR_TITLE_TEXT);
             RECT rcTitle = { 124, 20, width - 60, 44 };
             DrawTextW(memDC, L"Mine-4-PlayList", -1, &rcTitle, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
             RECT rcClose = { width - 42, 14, width - 14, 42 };
             if (g_closeHover) {
-                HBRUSH closeBg = CreateSolidBrush(RGB(220, 38, 38));
-                HPEN closePen = CreatePen(PS_SOLID, 1, RGB(239, 68, 68));
+                HBRUSH closeBg = CreateSolidBrush(COLOR_CLOSE_HOVER_BG);
+                HPEN closePen = CreatePen(PS_SOLID, 1, COLOR_CLOSE_HOVER_BORDER);
                 SelectObject(memDC, closeBg);
                 SelectObject(memDC, closePen);
                 RoundRect(memDC, rcClose.left, rcClose.top, rcClose.right, rcClose.bottom, 8, 8);
                 DeleteObject(closeBg);
                 DeleteObject(closePen);
 
-                HPEN xPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+                HPEN xPen = CreatePen(PS_SOLID, 2, COLOR_CLOSE_HOVER_X);
                 SelectObject(memDC, xPen);
                 MoveToEx(memDC, rcClose.left + 9, rcClose.top + 9, NULL);
                 LineTo(memDC, rcClose.right - 9, rcClose.bottom - 9);
@@ -690,7 +703,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 LineTo(memDC, rcClose.left + 9, rcClose.bottom - 9);
                 DeleteObject(xPen);
             } else {
-                HPEN xPen = CreatePen(PS_SOLID, 2, RGB(148, 163, 184));
+                HPEN xPen = CreatePen(PS_SOLID, 2, COLOR_CLOSE_NORMAL_X);
                 SelectObject(memDC, xPen);
                 MoveToEx(memDC, rcClose.left + 9, rcClose.top + 9, NULL);
                 LineTo(memDC, rcClose.right - 9, rcClose.bottom - 9);
@@ -700,12 +713,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             }
 
             SelectObject(memDC, g_hFontStatus);
-            SetTextColor(memDC, RGB(226, 232, 240));
+            SetTextColor(memDC, COLOR_STATUS_TEXT);
             RECT rcStatus = { 34, 76, width - 34, 98 };
             DrawTextW(memDC, g_statusText, -1, &rcStatus, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
 
             SelectObject(memDC, g_hFontSub);
-            SetTextColor(memDC, RGB(148, 163, 184));
+            SetTextColor(memDC, COLOR_SUB_TEXT);
             RECT rcSub = { 34, 102, width - 110, 124 };
             DrawTextW(memDC, g_subStatusText, -1, &rcSub, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
 
@@ -713,7 +726,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 wchar_t pctText[16];
                 swprintf(pctText, 16, L"%d%%", g_progressPercent);
                 SelectObject(memDC, g_hFontPercent);
-                SetTextColor(memDC, RGB(99, 102, 241));
+                SetTextColor(memDC, COLOR_PERCENT_TEXT);
                 RECT rcPct = { width - 110, 100, width - 34, 124 };
                 DrawTextW(memDC, pctText, -1, &rcPct, DT_RIGHT | DT_SINGLELINE | DT_NOPREFIX);
             }
@@ -723,7 +736,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             int barW = width - 68;
             int barH = 8;
 
-            HBRUSH trackBrush = CreateSolidBrush(RGB(28, 32, 45));
+            HBRUSH trackBrush = CreateSolidBrush(COLOR_PROGRESS_TRACK);
             HPEN nullPen = (HPEN)GetStockObject(NULL_PEN);
             SelectObject(memDC, trackBrush);
             SelectObject(memDC, nullPen);
@@ -733,7 +746,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             HRGN clipRgn = CreateRoundRectRgn(barX, barY, barX + barW, barY + barH + 1, 8, 8);
             SelectClipRgn(memDC, clipRgn);
 
-            HBRUSH fillBrush = CreateSolidBrush(RGB(99, 102, 241));
+            HBRUSH fillBrush = CreateSolidBrush(COLOR_PROGRESS_FILL);
             SelectObject(memDC, fillBrush);
 
             if (g_progressPercent >= 0) {
@@ -750,13 +763,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             DeleteObject(clipRgn);
             DeleteObject(fillBrush);
 
-            HBRUSH dotBrush = CreateSolidBrush(RGB(34, 197, 94));
+            HBRUSH dotBrush = CreateSolidBrush(COLOR_FOOTER_DOT);
             SelectObject(memDC, dotBrush);
             Ellipse(memDC, 34, 172, 40, 178);
             DeleteObject(dotBrush);
 
             SelectObject(memDC, g_hFontFooter);
-            SetTextColor(memDC, RGB(100, 116, 139));
+            SetTextColor(memDC, COLOR_FOOTER_TEXT);
             RECT rcFooter = { 46, 166, width - 34, 186 };
             DrawTextW(memDC, L"Minekmj / Mine-4-PlayList", -1, &rcFooter, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
@@ -807,7 +820,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     int posX = (screenWidth - WIN_WIDTH) / 2;
     int posY = (screenHeight - WIN_HEIGHT) / 2;
 
-    g_hWnd = CreateWindowExW(WS_EX_TOPMOST | WS_EX_APPWINDOW, CLASS_NAME, L"Mine-4-PlayList Launcher",
+    g_hWnd = CreateWindowExW(WS_EX_TOPMOST | WS_EX_APPWINDOW, CLASS_NAME, L"Mine-4-PlayList Updater",
                              WS_POPUP,
                              posX, posY, WIN_WIDTH, WIN_HEIGHT,
                              NULL, NULL, hInstance, NULL);

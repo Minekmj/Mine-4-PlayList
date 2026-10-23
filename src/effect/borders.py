@@ -113,8 +113,13 @@ class ScreenBorderSystem:
         if self.color_mode == "스펙트럼":
             cg = QConicalGradient(cx, cy, cached_angle)
             hues = [
-                (0.0, 0), (0.16, 60), (0.33, 120), (0.50, 180),
-                (0.66, 240), (0.83, 300), (1.0, 360)
+                (0.0, 0),
+                (0.16, 42),
+                (0.33, 85),
+                (0.50, 128),
+                (0.66, 170),
+                (0.83, 212),
+                (1.0, 255)
             ]
             for pos, h_val in hues:
                 sc = QColor.fromHsv(h_val, 215, 255, alpha)

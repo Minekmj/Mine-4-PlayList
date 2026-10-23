@@ -96,9 +96,6 @@ def write_session_state(filepath: str, data: dict) -> None:
         print(f"세션 저장 오류: {e}")
         
 def save_session(self):
-    if not getattr(self, '_session_loaded', False):
-        return
-
     pos = 0.0
     if self.core and self.core.player and self.core.player.time_pos:
         try:

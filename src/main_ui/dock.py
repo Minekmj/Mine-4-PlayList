@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSlider
 from PyQt6.QtCore import Qt
 
+from src.main_logic.media import format_time
 from src.ui.icons import ModernIcon
 from src.widgets.widgets import FloatingGlassPanel, FluidSeekSlider
 
@@ -27,9 +28,9 @@ def time_row(self) -> QHBoxLayout:
 
     self.seek_slider = FluidSeekSlider()
     self.seek_slider.setRange(0, 1000)
-    self.seek_slider.sliderMoved.connect(self.on_seek_moved)
-    self.seek_slider.sliderPressed.connect(self.on_seek_pressed)
-    self.seek_slider.sliderReleased.connect(self.on_seek_released)
+    self.seek_slider.sliderMoved.connect(lambda x:on_seek_moved(self, x))
+    self.seek_slider.sliderPressed.connect(lambda:on_seek_pressed(self))
+    self.seek_slider.sliderReleased.connect(lambda:on_seek_released(self))
 
     self.lbl_total_time = QLabel("00:00")
     self.lbl_total_time.setObjectName("lbl_total_time")
@@ -115,3 +116,17 @@ def btn_row(self) -> QHBoxLayout:
 
 def toggle_time_mode(self):
     self.show_remaining_time = not self.show_remaining_time
+    
+def on_seek_pressed(self):
+    self.is_seeking = True
+
+def on_seek_moved(self, val):
+    if self.core and self.core.player.duration:
+        target = (val / 1000.0) * self.core.player.duration
+        self.lbl_cur_time.setText(format_time(target))
+
+def on_seek_released(self):
+    if self.core and self.core.player.duration:
+        pos = (self.seek_slider.value() / 1000.0) * self.core.player.duration
+        self.core.seek(pos)
+    self.is_seeking = False

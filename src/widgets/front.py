@@ -163,6 +163,9 @@ class FluidSeekSlider(QSlider):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.total_seconds = 0.0
         self._hover_progress = 0.0
+        
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
 
         self._anim = QPropertyAnimation(self, b"hoverProgress", self)
         self._anim.setDuration(150)

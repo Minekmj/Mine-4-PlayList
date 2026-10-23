@@ -11,6 +11,10 @@ from src.base import *
 def playlist_panel(self):
     self.right_box = QFrame()
     self.right_box.setObjectName("right_ppanel")
+    
+    self.right_box.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+    self.right_box.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+            
     right_vbox = QVBoxLayout(self.right_box)
     right_vbox.setSpacing(8)
 

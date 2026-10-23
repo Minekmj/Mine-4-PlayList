@@ -120,20 +120,6 @@ class EchoMediaPlayer(QMainWindow):
         self.btn_mode.setText(PLAYBACK_MODE_NAMES[self.playback_mode])
         save_session(self)
 
-    def on_seek_pressed(self):
-        self.is_seeking = True
-
-    def on_seek_moved(self, val):
-        if self.core and self.core.player.duration:
-            target = (val / 1000.0) * self.core.player.duration
-            self.lbl_cur_time.setText(format_time(target))
-
-    def on_seek_released(self):
-        if self.core and self.core.player.duration:
-            pos = (self.seek_slider.value() / 1000.0) * self.core.player.duration
-            self.core.seek(pos)
-        self.is_seeking = False
-
     def set_volume(self, val):
         if self.core:
             self.core.set_volume(val)

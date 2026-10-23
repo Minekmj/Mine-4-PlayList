@@ -23,7 +23,6 @@ def collect_media_files(paths: List[str]) -> List[str]:
 
 
 def get_next_track_index(current_idx: int, total_count: int, mode: int) -> Optional[int]:
-    """재생 모드에 맞춰 다음 곡 인덱스 계산 (재생 중지 시 None 반환)"""
     if total_count <= 0:
         return None
     if mode == 3:  # 랜덤 재생

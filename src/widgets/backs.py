@@ -4,7 +4,7 @@ import ctypes
 from PyQt6.QtWidgets import QFrame, QWidget
 from PyQt6.QtCore import Qt, QRectF, QPointF, QTimer
 from PyQt6.QtGui import QPainter, QColor, QRadialGradient, QLinearGradient, QImage, QPen, QPainterPath, QPixmap
-from src.native_bridge import get_native_engine
+from src.C.native_bridge import get_native_engine
 from src.effect.particles import ParticleSystem
 from src.effect.borders import ScreenBorderSystem
 

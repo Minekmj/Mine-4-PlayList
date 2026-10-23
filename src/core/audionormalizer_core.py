@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 import av
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal
-from src.native_bridge import get_native_engine
+from src.C.native_bridge import get_native_engine
 
 class AudioNormalizer(QObject):
     gain_ready = pyqtSignal(str, float)

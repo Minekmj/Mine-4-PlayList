@@ -2,7 +2,7 @@ import math
 import random
 from PyQt6.QtCore import Qt, QRectF, QLineF
 from PyQt6.QtGui import QPainter, QColor, QPen, QPainterPath
-from src.native_bridge import get_native_engine, NativeParticle
+from src.C.native_bridge import get_native_engine, NativeParticle
 
 ALIAS_MAP = {
     "눈 / 먼지": "소프트 더스트",

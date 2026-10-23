@@ -94,7 +94,7 @@ def get_native_engine():
     if _cached_lib is not None:
         return _cached_lib
 
-    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "C")
+    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
     c_src_name = "native_effects.c"
     c_src = os.path.join(base_dir, c_src_name)
 

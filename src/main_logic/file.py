@@ -13,7 +13,7 @@ def get_default_sub_config() -> dict:
         "color": "#f9f9f9",
         "outline_color": "#232323",
         "border_size": 4,
-        "blur": 1,
+        "blur": 0,
         "pos": 95,
         "bold": True,
         "typewriter_enabled": False,

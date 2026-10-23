@@ -257,8 +257,22 @@ class SubtitleFrame(QFrame):
         self._cached_lines = lines
         line_height = fm.lineSpacing()
         self._cached_line_h = line_height
-        border_size = max(1, int(float(cfg.get("border_size", 3)) * (base_h / 900.0)))
-        blur = max(1, min(12, int(cfg.get("blur", 3))))
+        
+        border_size = max(0, int(float(cfg.get("border_size", 3)) * (base_h / 900.0)))
+        raw_border = float(cfg.get("border_size", 3))
+        if raw_border <= 0:
+            border_size = 0
+        else:
+            border_size = max(1, int(round(raw_border * (base_h / 900.0))))
+
+        # 1. 글로우 활성화 여부 확인 및 blur 값 0 허용
+        glow_enabled = bool(cfg.get("glow_enabled", cfg.get("glow", cfg.get("blur_enabled", True))))
+        blur = max(0, min(12, int(cfg.get("blur", 3))))
+
+        # 글로우가 꺼져있거나 blur가 0이면 blur 수치를 0으로 확정
+        if not glow_enabled:
+            blur = 0
+
         pad = int(blur * 3 + border_size * 2 + 12)
         self._cached_pad = pad
         max_w = max((fm.horizontalAdvance(line) for line in lines), default=100)
@@ -278,26 +292,38 @@ class SubtitleFrame(QFrame):
         for i, line in enumerate(lines):
             x = (pix_w - fm.horizontalAdvance(line)) // 2
             full_path.addText(x, start_y + i * line_height, font, line)
-        shadow_path = QPainterPath(full_path)
-        shadow_path.translate(max(2, border_size), max(2, border_size) + 1)
-        s_pen = QPen(QColor(0, 0, 0, 160))
-        s_pen.setWidth(border_size * 2 + 3)
-        s_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        s_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        p.strokePath(shadow_path, s_pen)
-        for alpha, width in ((55, border_size * 2 + blur * 4), (110, border_size * 2 + blur * 2)):
-            glow = QColor(outline_color)
-            glow.setAlpha(alpha)
-            pen = QPen(glow)
-            pen.setWidth(width)
-            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            p.strokePath(full_path, pen)
-        out_pen = QPen(outline_color)
-        out_pen.setWidth(border_size * 2)
-        out_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        out_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        p.strokePath(full_path, out_pen)
+
+        # 그림자 렌더링 (border_size가 있을 때만)
+        shadow_enabled = bool(cfg.get("shadow_enabled", cfg.get("shadow", True)))
+        if shadow_enabled and border_size > 0:
+            shadow_path = QPainterPath(full_path)
+            shadow_path.translate(max(1, border_size), max(1, border_size) + 1)
+            s_pen = QPen(QColor(0, 0, 0, 160))
+            s_pen.setWidth(border_size * 2 + 1)
+            s_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            s_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.strokePath(shadow_path, s_pen)
+
+        # 2. 글로우가 켜져 있고 blur가 0보다 클 때만 외곽 글로우 패스 실행
+        if glow_enabled and blur > 0:
+            for alpha, width in ((55, border_size * 2 + blur * 4), (110, border_size * 2 + blur * 2)):
+                glow = QColor(outline_color)
+                glow.setAlpha(alpha)
+                pen = QPen(glow)
+                pen.setWidth(width)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                p.strokePath(full_path, pen)
+
+        # 3. 기본 검은색 테두리 외곽선 렌더링
+        if border_size > 0:
+            out_pen = QPen(outline_color)
+            out_pen.setWidth(border_size * 2)
+            out_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            out_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.strokePath(full_path, out_pen)
+
+        # 4. 본문 텍스트 채우기
         p.fillPath(full_path, QBrush(text_color))
         p.end()
         self._cached_pixmap = pixmap

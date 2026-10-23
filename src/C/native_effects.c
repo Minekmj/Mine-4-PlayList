@@ -8,7 +8,17 @@
 #define EXPORT __attribute__((visibility("default")))
 #endif
 
-static inline uint32_t sample_bgrx(const uint32_t* src, int w, int h, float u, float v) {
+#define PI 3.14159265358979323846f
+#define TWO_PI 6.28318530717958647692f
+
+// 블러
+static inline uint32_t sample_bgrx(
+    const uint32_t* src, 
+    int w, 
+    int h, 
+    float u, 
+    float v
+) {
     if (!src || w <= 0 || h <= 0) return 0xFF000000u;
     if (u < 0.0f) u = 0.0f;
     if (v < 0.0f) v = 0.0f;
@@ -31,7 +41,12 @@ static inline uint32_t sample_bgrx(const uint32_t* src, int w, int h, float u, f
     return 0xFF000000u | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)bl;
 }
 
-EXPORT void c_render_vanishing_perspective(uint32_t* out_buf, int out_w, int out_h, const uint32_t* video_src, int src_w, int src_h, float vx1, float vy1, float vx2, float vy2, float brightness, float black_lift, float gamma, float decay_scale) {
+EXPORT void c_render_vanishing_perspective(
+    uint32_t* out_buf, int out_w, int out_h,
+    const uint32_t* video_src, int src_w, int src_h,
+    float vx1, float vy1, float vx2, float vy2,
+    float brightness, float black_lift, float gamma, float decay_scale
+) {
     if (!out_buf || !video_src || out_w <= 0 || out_h <= 0 || src_w <= 0 || src_h <= 0) return;
     float vw = vx2 - vx1, vh = vy2 - vy1;
     size_t out_count = (size_t)out_w * (size_t)out_h;
@@ -89,7 +104,13 @@ EXPORT void c_render_vanishing_perspective(uint32_t* out_buf, int out_w, int out
     }
 }
 
-EXPORT void c_apply_optical_gaussian_blur(uint32_t* buf, uint32_t* temp, int w, int h, int radius) {
+EXPORT void c_apply_optical_gaussian_blur(
+    uint32_t* buf, 
+    uint32_t* temp, 
+    int w, 
+    int h, 
+    int radius
+) {
     if (!buf || !temp || w <= 0 || h <= 0 || radius <= 0) return;
     int max_dim = w > h ? w : h;
     if (radius > max_dim) radius = max_dim;
@@ -145,4 +166,114 @@ EXPORT void c_apply_optical_gaussian_blur(uint32_t* buf, uint32_t* temp, int w, 
             }
         }
     }
+}
+
+// 파티클
+typedef struct {
+    float x;
+    float y;
+    float vx;
+    float vy;
+    float size;
+    float base_speed;
+    float alpha_factor;
+    float rot;
+    float rot_speed;
+    float phase;
+    float pad;
+    int32_t type;
+    int32_t direction; // 0: 위로, 1: 왼쪽 대각선, 2: 오른쪽 대각선, 3: 부유/흩날림, 4: 아래
+    int32_t out_of_bounds;
+} NativeParticle;
+
+EXPORT void c_update_particles(
+    NativeParticle* particles,
+    int count,
+    float w,
+    float h,
+    float dt,
+    float phase_dt,
+    float sway_speed
+) {
+    for (int i = 0; i < count; ++i) {
+        NativeParticle* p = &particles[i];
+        p->phase += phase_dt;
+        p->rot = fmodf(p->rot + p->rot_speed * dt, 360.0f);
+        if (p->rot < 0.0f) p->rot += 360.0f;
+
+        switch (p->direction) {
+            case 0: // 위로
+                p->vx = sinf(p->phase) * sway_speed;
+                p->vy = -p->base_speed * dt;
+                break;
+            case 1: // 왼쪽 대각선
+                p->vx = -p->base_speed * 0.9f * dt;
+                p->vy = p->base_speed * 0.9f * dt;
+                break;
+            case 2: // 오른쪽 대각선
+                p->vx = p->base_speed * 0.9f * dt;
+                p->vy = p->base_speed * 0.9f * dt;
+                break;
+            case 3: // 부유 / 흩날림
+                p->vx = cosf(p->phase * 0.8f) * p->base_speed * (0.7f * dt);
+                p->vy = sinf(p->phase) * p->base_speed * (0.7f * dt);
+                break;
+            case 4: // 아래
+            default:
+                p->vx = sinf(p->phase) * sway_speed;
+                p->vy = p->base_speed * dt;
+                break;
+        }
+
+        p->x += p->vx;
+        p->y += p->vy;
+
+        float pad = p->pad;
+        if (p->x < -pad || p->x > w + pad || p->y < -pad || p->y > h + pad) {
+            p->out_of_bounds = 1;
+        } else {
+            p->out_of_bounds = 0;
+        }
+    }
+}
+
+// 오로라
+EXPORT void c_compute_aurora_wave(
+    float* out_y,
+    int steps,
+    float h,
+    float base_ratio,
+    float amp,
+    float phase,
+    int band_index
+) {
+    float inv_steps = 1.0f / (float)steps;
+    float band_f = (float)band_index;
+    float w1_freq = (1.15f + band_f * 0.4f) * TWO_PI;
+    float w1_offset = phase * 4.0f + band_f * 1.6f;
+    float w2_freq = PI * 1.1f;
+    float w2_offset = -phase * 1.8f + band_f;
+
+    for (int n = 0; n <= steps; ++n) {
+        float ratio = (float)n * inv_steps;
+        float w1 = sinf(ratio * w1_freq + w1_offset);
+        float w2 = sinf(ratio * w2_freq + w2_offset);
+        out_y[n] = h * base_ratio + h * amp * w1 + h * 0.016f * w2;
+    }
+}
+
+// 오디오
+EXPORT float c_calculate_frame_db(const float* samples, int count) {
+    if (count <= 0 || !samples) return -120.0f;
+
+    double sum_sq = 0.0;
+    for (int i = 0; i < count; ++i) {
+        double val = (double)samples[i];
+        sum_sq += val * val;
+    }
+
+    double mean_sq = sum_sq / (double)count;
+    double rms = sqrt(mean_sq + 1e-9);
+    float db = (float)(20.0 * log10(rms + 1e-9));
+    return db;
 }

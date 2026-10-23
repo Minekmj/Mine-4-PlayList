@@ -23,7 +23,7 @@ class FFmpegWorkerSignals(QObject):
 
 class FFmpegInstallerDialog(AnimatedDialogBase):
     def __init__(self, parent, target_dir: str):
-        super().__init__(None)
+        super().__init__(parent)
         self.p = parent
         self.target_dir = target_dir
         self.destination_ffmpeg = os.path.join(target_dir, "ffmpeg.exe")
@@ -32,7 +32,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
         self._cancelled = False
         self._loop = None
 
-        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedWidth(440)
         self.setStyleSheet(Get_qss())

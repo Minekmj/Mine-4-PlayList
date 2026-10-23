@@ -2,6 +2,7 @@ import math
 import random
 from PyQt6.QtCore import Qt, QRectF, QLineF
 from PyQt6.QtGui import QPainter, QColor, QPen, QPainterPath
+from src.native_bridge import get_native_engine, NativeParticle
 
 ALIAS_MAP = {
     "눈 / 먼지": "소프트 더스트",
@@ -12,6 +13,20 @@ ALIAS_MAP = {
     "깃털": "페더",
     "반짝이": "크로스 스타",
     "네온 큐브": "기하학 큐브",
+}
+
+TYPE_ENUM = {
+    "소프트 더스트": 0, "사쿠라": 1, "스타더스트": 2, "보케 글로우": 3,
+    "라이트 레인": 4, "하트": 5, "페더": 6, "음표": 7,
+    "크로스 스타": 8, "기하학 큐브": 9
+}
+
+DIR_ENUM = {
+    "위로": 0,
+    "왼쪽 대각선": 1,
+    "오른쪽 대각선": 2,
+    "부유 / 흩날림": 3,
+    "아래로": 4
 }
 
 TYPE_CONFIG = {
@@ -52,79 +67,9 @@ RECT_NOTE_HEAD = QRectF(-0.45, 0.0, 0.9, 0.65)
 LINE_NOTE_STEM = QLineF(0.38, 0.3, 0.38, -0.85)
 
 
-class Particle:
-    __slots__ = (
-        "x", "y", "vx", "vy", "size", "base_speed",
-        "alpha_factor", "rot", "rot_speed", "phase",
-        "type", "direction", "pad"
-    )
-
-    def __init__(self, w: int, h: int, p_type: str, p_dir: str):
-        self.vx = 0.0
-        self.vy = 0.0
-        self.reset(w, h, p_type, p_dir, randomize_pos=True)
-
-    def reset(self, w: int, h: int, p_type: str, p_dir: str, randomize_pos: bool = False):
-        self.type = p_type
-        self.direction = p_dir
-        self.rot = random.uniform(0.0, 360.0)
-        self.rot_speed = random.uniform(-2.5, 2.5)
-        self.phase = random.uniform(0.0, 6.2831853)
-
-        cfg = TYPE_CONFIG.get(p_type, DEFAULT_CONFIG)
-        self.size = random.uniform(cfg[0], cfg[1])
-        self.base_speed = random.uniform(cfg[2], cfg[3])
-        self.alpha_factor = random.uniform(cfg[4], cfg[5])
-        self.pad = self.size + 15.0
-
-        if p_dir == "위로":
-            self.vx = 0.0
-            self.vy = -self.base_speed
-        elif p_dir == "왼쪽 대각선":
-            self.vx = -self.base_speed * 0.9
-            self.vy = self.base_speed * 0.9
-        elif p_dir == "오른쪽 대각선":
-            self.vx = self.base_speed * 0.9
-            self.vy = self.base_speed * 0.9
-        elif p_dir == "부유 / 흩날림":
-            self.vx = math.cos(self.phase * 0.8) * self.base_speed * 0.7
-            self.vy = math.sin(self.phase) * self.base_speed * 0.7
-        else:
-            self.vx = 0.0
-            self.vy = self.base_speed
-
-        pad = self.pad
-        if randomize_pos or w <= 0 or h <= 0:
-            self.x = random.uniform(0.0, max(1.0, float(w)))
-            self.y = random.uniform(0.0, max(1.0, float(h)))
-        elif p_dir == "위로":
-            self.x = random.uniform(0.0, w)
-            self.y = h + pad
-        elif p_dir == "왼쪽 대각선":
-            if random.uniform(0.0, w + h) < w:
-                self.x = random.uniform(0.0, w)
-                self.y = -pad
-            else:
-                self.x = w + pad
-                self.y = random.uniform(0.0, h)
-        elif p_dir == "오른쪽 대각선":
-            if random.uniform(0.0, w + h) < w:
-                self.x = random.uniform(0.0, w)
-                self.y = -pad
-            else:
-                self.x = -pad
-                self.y = random.uniform(0.0, h)
-        elif p_dir == "부유 / 흩날림":
-            self.x = random.uniform(0.0, w)
-            self.y = random.uniform(0.0, h)
-        else:
-            self.x = random.uniform(0.0, w)
-            self.y = -pad
-
-
 class ParticleSystem:
     def __init__(self):
-        self.particles: list[Particle] = []
+        self.c_engine = get_native_engine()
         self.enabled = True
         self.p_type = "소프트 더스트"
         self.direction = "아래로"
@@ -135,6 +80,8 @@ class ParticleSystem:
         self.prev_h = 0
         self._temp_pen = QPen()
         self._max_particles = 260
+        self.active_count = 0
+        self.particle_array = (NativeParticle * self._max_particles)()
         self._color_cache = {}
 
         raw_palettes = {
@@ -169,6 +116,51 @@ class ParticleSystem:
             "기하학 큐브": self._draw_cube,
         }
 
+    def _reset_particle(self, idx: int, w: int, h: int, randomize_pos: bool = False):
+        p = self.particle_array[idx]
+        p_type = self.p_type
+        p_dir = self.direction
+        p.type = TYPE_ENUM.get(p_type, 0)
+        p.direction = DIR_ENUM.get(p_dir, 4)
+        p.rot = random.uniform(0.0, 360.0)
+        p.rot_speed = random.uniform(-2.5, 2.5)
+        p.phase = random.uniform(0.0, 6.2831853)
+
+        cfg = TYPE_CONFIG.get(p_type, DEFAULT_CONFIG)
+        p.size = random.uniform(cfg[0], cfg[1])
+        p.base_speed = random.uniform(cfg[2], cfg[3])
+        p.alpha_factor = random.uniform(cfg[4], cfg[5])
+        p.pad = p.size + 15.0
+        p.out_of_bounds = 0
+
+        pad = p.pad
+        if randomize_pos or w <= 0 or h <= 0:
+            p.x = random.uniform(0.0, max(1.0, float(w)))
+            p.y = random.uniform(0.0, max(1.0, float(h)))
+        elif p_dir == "위로":
+            p.x = random.uniform(0.0, w)
+            p.y = h + pad
+        elif p_dir == "왼쪽 대각선":
+            if random.uniform(0.0, w + h) < w:
+                p.x = random.uniform(0.0, w)
+                p.y = -pad
+            else:
+                p.x = w + pad
+                p.y = random.uniform(0.0, h)
+        elif p_dir == "오른쪽 대각선":
+            if random.uniform(0.0, w + h) < w:
+                p.x = random.uniform(0.0, w)
+                p.y = -pad
+            else:
+                p.x = -pad
+                p.y = random.uniform(0.0, h)
+        elif p_dir == "부유 / 흩날림":
+            p.x = random.uniform(0.0, w)
+            p.y = random.uniform(0.0, h)
+        else:
+            p.x = random.uniform(0.0, w)
+            p.y = -pad
+
     def set_params(self, enabled: bool, p_type: str, direction: str, palette: str, density: float, speed: float):
         norm_type = ALIAS_MAP.get(p_type, p_type)
         reset_needed = (self.p_type != norm_type or self.direction != direction)
@@ -183,103 +175,65 @@ class ParticleSystem:
             self._color_cache.clear()
 
         if reset_needed:
-            self.particles.clear()
+            self.active_count = 0
             self.prev_w = 0
             self.prev_h = 0
 
     def _sync_count(self, w: int, h: int):
         scale = max(1.0, (w * h) / 921600.0)
-        target_count = min(self._max_particles, int(140 * self.density * min(scale, 3.0))) if self.enabled else 0
-        cur_count = len(self.particles)
-        if cur_count < target_count:
-            p_type = self.p_type
-            direction = self.direction
-            self.particles.extend(Particle(w, h, p_type, direction) for _ in range(target_count - cur_count))
-        elif cur_count > target_count:
-            del self.particles[target_count:]
+        target = min(self._max_particles, int(140 * self.density * min(scale, 3.0))) if self.enabled else 0
+        if self.active_count < target:
+            for i in range(self.active_count, target):
+                self._reset_particle(i, w, h, randomize_pos=True)
+            self.active_count = target
+        elif self.active_count > target:
+            self.active_count = target
 
     def update(self, w: int, h: int):
         if not self.enabled or w <= 0 or h <= 0 or self.density <= 0.001:
             return
 
         if self.prev_w > 0 and self.prev_h > 0 and (self.prev_w != w or self.prev_h != h):
-            sx = w / self.prev_w
-            sy = h / self.prev_h
-            for p in self.particles:
+            sx = w / float(self.prev_w)
+            sy = h / float(self.prev_h)
+            for i in range(self.active_count):
+                p = self.particle_array[i]
                 p.x *= sx
                 p.y *= sy
+
         self.prev_w = w
         self.prev_h = h
-
         self._sync_count(w, h)
+        if self.active_count == 0:
+            return
+
         dt = self.speed
-        p_type = self.p_type
-        direction = self.direction
         phase_dt = 0.03 * dt
         sway_speed = 0.45 * dt
-        sin = math.sin
-        cos = math.cos
-        particles = self.particles
 
-        if direction == "위로":
-            for p in particles:
-                p.phase += phase_dt
-                p.rot = (p.rot + p.rot_speed * dt) % 360.0
-                p.vx = sin(p.phase) * sway_speed
-                p.vy = -p.base_speed * dt
-                p.x += p.vx
-                p.y += p.vy
-                pad = p.pad
-                if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
-                    p.reset(w, h, p_type, direction, False)
-        elif direction == "왼쪽 대각선":
-            for p in particles:
-                p.phase += phase_dt
-                p.rot = (p.rot + p.rot_speed * dt) % 360.0
-                p.vx = -p.base_speed * 0.9 * dt
-                p.vy = p.base_speed * 0.9 * dt
-                p.x += p.vx
-                p.y += p.vy
-                pad = p.pad
-                if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
-                    p.reset(w, h, p_type, direction, False)
-        elif direction == "오른쪽 대각선":
-            for p in particles:
-                p.phase += phase_dt
-                p.rot = (p.rot + p.rot_speed * dt) % 360.0
-                p.vx = p.base_speed * 0.9 * dt
-                p.vy = p.base_speed * 0.9 * dt
-                p.x += p.vx
-                p.y += p.vy
-                pad = p.pad
-                if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
-                    p.reset(w, h, p_type, direction, False)
-        elif direction == "부유 / 흩날림":
-            factor = 0.7 * dt
-            for p in particles:
-                p.phase += phase_dt
-                p.rot = (p.rot + p.rot_speed * dt) % 360.0
-                p.vx = cos(p.phase * 0.8) * p.base_speed * factor
-                p.vy = sin(p.phase) * p.base_speed * factor
-                p.x += p.vx
-                p.y += p.vy
-                pad = p.pad
-                if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
-                    p.reset(w, h, p_type, direction, False)
+        if self.c_engine:
+            self.c_engine.c_update_particles(
+                self.particle_array, self.active_count,
+                float(w), float(h), float(dt), float(phase_dt), float(sway_speed)
+            )
+            for i in range(self.active_count):
+                if self.particle_array[i].out_of_bounds:
+                    self._reset_particle(i, w, h, False)
         else:
-            for p in particles:
+            for i in range(self.active_count):
+                p = self.particle_array[i]
                 p.phase += phase_dt
                 p.rot = (p.rot + p.rot_speed * dt) % 360.0
-                p.vx = sin(p.phase) * sway_speed
+                p.vx = math.sin(p.phase) * sway_speed
                 p.vy = p.base_speed * dt
                 p.x += p.vx
                 p.y += p.vy
                 pad = p.pad
                 if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
-                    p.reset(w, h, p_type, direction, False)
+                    self._reset_particle(i, w, h, False)
 
     def draw(self, painter: QPainter, w: int, h: int):
-        if not self.enabled or not self.particles or w <= 0 or h <= 0:
+        if not self.enabled or self.active_count == 0 or w <= 0 or h <= 0:
             return
 
         painter.save()
@@ -307,7 +261,8 @@ class ParticleSystem:
 
     def _draw_sakura(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
         sin = math.sin
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             painter.save()
@@ -324,7 +279,8 @@ class ParticleSystem:
         pen = self._temp_pen
         pen.setStyle(Qt.PenStyle.SolidLine)
         pen.setWidthF(1.0)
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             s = p.size * (sin(p.phase * 2.0) * 0.35 + 0.75)
@@ -341,7 +297,8 @@ class ParticleSystem:
                 painter.setPen(Qt.PenStyle.NoPen)
 
     def _draw_bokeh(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             s = p.size
@@ -356,7 +313,8 @@ class ParticleSystem:
         pen.setWidthF(1.2)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         hypot = math.hypot
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             pen.setColor(self._color(r, g, b, a))
@@ -374,7 +332,8 @@ class ParticleSystem:
     def _draw_heart(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
         sin = math.sin
         path = PATH_HEART
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             painter.save()
@@ -393,7 +352,8 @@ class ParticleSystem:
         pen.setStyle(Qt.PenStyle.SolidLine)
         pen.setWidthF(1.0)
         pen.setCosmetic(True)
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             painter.save()
@@ -415,7 +375,8 @@ class ParticleSystem:
         pen = self._temp_pen
         pen.setStyle(Qt.PenStyle.SolidLine)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             col = self._color(r, g, b, a)
@@ -437,7 +398,8 @@ class ParticleSystem:
     def _draw_cross_star(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
         sin = math.sin
         path = PATH_CROSS_STAR
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             painter.save()
@@ -453,7 +415,8 @@ class ParticleSystem:
         pen = self._temp_pen
         pen.setStyle(Qt.PenStyle.SolidLine)
         pen.setWidthF(1.2)
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             pen.setColor(self._color(r, g, b, a))
@@ -468,7 +431,8 @@ class ParticleSystem:
         painter.setPen(Qt.PenStyle.NoPen)
 
     def _draw_default(self, painter: QPainter, cols: list, c_count: int, alpha_scale: float):
-        for i, p in enumerate(self.particles):
+        for i in range(self.active_count):
+            p = self.particle_array[i]
             r, g, b = cols[i % c_count]
             a = max(10, min(255, int(alpha_scale * p.alpha_factor)))
             painter.setBrush(self._color(r, g, b, a))

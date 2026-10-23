@@ -4,7 +4,7 @@ import ctypes
 from PyQt6.QtWidgets import QFrame, QWidget
 from PyQt6.QtCore import Qt, QRectF, QPointF, QTimer
 from PyQt6.QtGui import QPainter, QColor, QRadialGradient, QLinearGradient, QImage, QPen, QPainterPath, QPixmap
-from src.c_ambient import get_compiled_c_engine
+from src.native_bridge import get_native_engine
 from src.effect.particles import ParticleSystem
 from src.effect.borders import ScreenBorderSystem
 
@@ -12,10 +12,11 @@ from src.effect.borders import ScreenBorderSystem
 class AmbientVideoContainer(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.c_engine = get_native_engine()
         self._ambient_dirty = True
         self._ambient_params_key = None
         self._last_ambient_render_time = 0.0
-        self._ambient_render_interval = 1.0 / 20.0
+        self._ambient_render_interval = 1.0 / 25.0
         self.video_widget = None
         self.dock_widget = None
         self.playlist_widget = None
@@ -26,6 +27,9 @@ class AmbientVideoContainer(QFrame):
         self.aurora_intensity = 0.55
         self.aurora_phase = 0.0
         self._aurora_gradient_cache = {}
+        self._aurora_steps = 28
+        self._aurora_y_buf = (ctypes.c_float * (self._aurora_steps + 1))()
+
         self.particle_system = ParticleSystem()
         self.border_system = ScreenBorderSystem()
         self.video_aspect = 16.0 / 9.0
@@ -38,6 +42,7 @@ class AmbientVideoContainer(QFrame):
         self.brightness = 1.65
         self.black_lift = 0.25
         self.gamma = 1.35
+        self.decay_scale = 1.0
         self.blur_radius = 12
         self.motion_intensity = 0.35
         self.motion_speed = 1.0
@@ -52,8 +57,8 @@ class AmbientVideoContainer(QFrame):
         self._shadow_cache_pixmap = None
         self._shadow_cache_pos = QPointF(0, 0)
         self._shadow_dirty = True
-        self.c_engine = get_compiled_c_engine()
         self.phase = 0.0
+
         self.anim_timer = QTimer(self)
         self.anim_timer.setInterval(33)
         self.anim_timer.timeout.connect(self.on_anim_tick)
@@ -82,6 +87,7 @@ class AmbientVideoContainer(QFrame):
         self.brightness = float(cfg.get("ambient_brightness", 1.65))
         self.black_lift = float(cfg.get("ambient_black_lift", 0.25))
         self.gamma = float(cfg.get("ambient_gamma", 1.35))
+        self.decay_scale = float(cfg.get("ambient_decay_scale", 1.0))
         try:
             self.blur_radius = max(0, min(64, int(round(float(cfg.get("ambient_blur_radius", 12))))))
         except (TypeError, ValueError, OverflowError):
@@ -95,6 +101,7 @@ class AmbientVideoContainer(QFrame):
         self.aurora_style = str(cfg.get("aurora_style", "오로라"))
         self.aurora_palette = str(cfg.get("aurora_palette", "청록"))
         self.aurora_intensity = max(0.0, min(1.0, float(cfg.get("aurora_intensity", 0.55))))
+
         self.particle_system.set_params(
             enabled=bool(cfg.get("particle_enabled", True)),
             p_type=str(cfg.get("particle_type", "소프트 더스트")),
@@ -220,12 +227,15 @@ class AmbientVideoContainer(QFrame):
         c_vx2, c_vy2 = (vf_key[0] + vf_key[2]) * sx, (vf_key[1] + vf_key[3]) * sy
         out_ptr = ctypes.cast(int(self.c_out_img.bits()), ctypes.POINTER(ctypes.c_uint32))
         src_ptr = ctypes.cast(int(image.bits()), ctypes.POINTER(ctypes.c_uint32))
+
         self.c_engine.c_render_vanishing_perspective(
             out_ptr, self.c_w, self.c_h, src_ptr, image.width(), image.height(),
-            c_vx1, c_vy1, c_vx2, c_vy2, self.brightness, self.black_lift, self.gamma, 1.0
+            c_vx1, c_vy1, c_vx2, c_vy2,
+            self.brightness, self.black_lift, self.gamma, self.decay_scale
         )
         if self.blur_radius > 0:
             self.c_engine.c_apply_optical_gaussian_blur(out_ptr, self.c_temp_buf, self.c_w, self.c_h, self.blur_radius)
+
         self._ambient_dirty = False
         self._last_ambient_render_time = time.monotonic()
         return True
@@ -291,7 +301,7 @@ class AmbientVideoContainer(QFrame):
         vf_rect = QRectF(self.video_widget.geometry()) if self.video_widget else QRectF(W * 0.15, H * 0.15, W * 0.7, H * 0.7)
         if self.ambient_enabled and self.video_widget and self.raw_frame_image and not self.raw_frame_image.isNull() and self.c_engine:
             vf_key = tuple(self.video_widget.geometry().getRect())
-            params_key = (vf_key, self.raw_frame_image.cacheKey(), self.blur_radius, W, H, self.brightness, self.black_lift, self.gamma)
+            params_key = (vf_key, self.raw_frame_image.cacheKey(), self.blur_radius, W, H, self.brightness, self.black_lift, self.gamma, self.decay_scale)
             if self._ambient_dirty or params_key != self._ambient_params_key:
                 now = time.monotonic()
                 if self._ambient_params_key is None or now - self._last_ambient_render_time >= self._ambient_render_interval:
@@ -321,6 +331,7 @@ class AmbientVideoContainer(QFrame):
                 p.restore()
         else:
             p.fillRect(0, 0, W, H, QColor(8, 10, 16))
+
         self._paint_aurora(p, W, H)
         self.particle_system.draw(p, W, H)
         self.border_system.draw(p, W, H)
@@ -361,22 +372,36 @@ class AmbientVideoContainer(QFrame):
             self._aurora_gradient_cache[gradient_key] = gradients
             if len(self._aurora_gradient_cache) > 12:
                 self._aurora_gradient_cache.pop(next(iter(self._aurora_gradient_cache)))
+
         p.save()
         p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         p.setPen(Qt.PenStyle.NoPen)
-        steps = 28
+        steps = self._aurora_steps
         step_w = w / steps
+
+        use_c = self.c_engine is not None
+
         for i, grad in enumerate(gradients):
             base = 0.12 + i * 0.07
             path = QPainterPath()
             path.moveTo(0, h * base)
-            for n in range(steps + 1):
-                x = n * step_w
-                ratio = n / steps
-                w1 = math.sin(ratio * math.pi * 2.0 * (1.15 + i * 0.4) + phase * 4.0 + i * 1.6)
-                w2 = math.sin(ratio * math.pi * 1.1 - phase * 1.8 + i)
-                y = h * base + h * amp * w1 + h * 0.016 * w2
-                path.lineTo(x, y)
+
+            if use_c:
+                self.c_engine.c_compute_aurora_wave(
+                    self._aurora_y_buf, steps, float(h), float(base),
+                    float(amp), float(phase), i
+                )
+                for n in range(steps + 1):
+                    path.lineTo(n * step_w, self._aurora_y_buf[n])
+            else:
+                for n in range(steps + 1):
+                    x = n * step_w
+                    ratio = n / steps
+                    w1 = math.sin(ratio * math.pi * 2.0 * (1.15 + i * 0.4) + phase * 4.0 + i * 1.6)
+                    w2 = math.sin(ratio * math.pi * 1.1 - phase * 1.8 + i)
+                    y = h * base + h * amp * w1 + h * 0.016 * w2
+                    path.lineTo(x, y)
+
             path.lineTo(w, band_h)
             path.lineTo(0, band_h)
             path.closeSubpath()

@@ -2,7 +2,7 @@ import math
 from collections import OrderedDict
 from PyQt6.QtCore import Qt, QRectF, QPointF
 from PyQt6.QtGui import (
-    QPainter, QColor, QPen, QLinearGradient, QRadialGradient,
+    QPainter, QColor, QPen, QLinearGradient,
     QConicalGradient, QPainterPath, QPolygonF, QBrush, QImage
 )
 
@@ -162,7 +162,6 @@ class ScreenBorderSystem:
 
         p.save()
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-
         active_alpha = self._get_active_alpha(255)
 
         if self.style == "엣지 글로우":
@@ -229,7 +228,6 @@ class ScreenBorderSystem:
         half_w = float(self.width) * 0.5
         rect = QRectF(m + half_w, m + half_w, w - (m + half_w) * 2, h - (m + half_w) * 2)
         r = float(self.radius)
-
         p.setBrush(Qt.BrushStyle.NoBrush)
         pen = self._create_styled_pen(w, h, float(self.width), alpha)
         p.setPen(pen)
@@ -240,7 +238,6 @@ class ScreenBorderSystem:
         half_w = float(self.width) * 0.5
         rect1 = QRectF(m + half_w, m + half_w, w - (m + half_w) * 2, h - (m + half_w) * 2)
         r1 = float(self.radius)
-
         p.setBrush(Qt.BrushStyle.NoBrush)
         pen1 = self._create_styled_pen(w, h, float(self.width), alpha)
         p.setPen(pen1)
@@ -317,14 +314,10 @@ class ScreenBorderSystem:
         c = max(8.0, float(self.radius) if self.radius > 0 else 16.0)
 
         poly = QPolygonF([
-            QPointF(m + c, m),
-            QPointF(w - m - c, m),
-            QPointF(w - m, m + c),
-            QPointF(w - m, h - m - c),
-            QPointF(w - m - c, h - m),
-            QPointF(m + c, h - m),
-            QPointF(m, h - m - c),
-            QPointF(m, m + c),
+            QPointF(m + c, m), QPointF(w - m - c, m),
+            QPointF(w - m, m + c), QPointF(w - m, h - m - c),
+            QPointF(w - m - c, h - m), QPointF(m + c, h - m),
+            QPointF(m, h - m - c), QPointF(m, m + c),
         ])
 
         p.setBrush(Qt.BrushStyle.NoBrush)
@@ -337,14 +330,10 @@ class ScreenBorderSystem:
         m2 = m + 4.0
         c2 = max(4.0, c - 3.0)
         poly_inner = QPolygonF([
-            QPointF(m2 + c2, m2),
-            QPointF(w - m2 - c2, m2),
-            QPointF(w - m2, m2 + c2),
-            QPointF(w - m2, h - m2 - c2),
-            QPointF(w - m2 - c2, h - m2),
-            QPointF(m2 + c2, h - m2),
-            QPointF(m2, h - m2 - c2),
-            QPointF(m2, m2 + c2),
+            QPointF(m2 + c2, m2), QPointF(w - m2 - c2, m2),
+            QPointF(w - m2, m2 + c2), QPointF(w - m2, h - m2 - c2),
+            QPointF(w - m2 - c2, h - m2), QPointF(m2 + c2, h - m2),
+            QPointF(m2, h - m2 - c2), QPointF(m2, m2 + c2),
         ])
         p.drawPolygon(poly_inner)
 
@@ -406,14 +395,6 @@ class ScreenBorderSystem:
         inner_rect = QRectF(m + 4.0, m + 4.0, w - (m + 4.0) * 2, h - (m + 4.0) * 2)
         p.fillRect(inner_rect, self._scanline_brush)
 
-        grad = QRadialGradient(QPointF(w * 0.5, h * 0.5), max(w, h) * 0.65)
-        grad.setColorAt(0.0, QColor(0, 0, 0, 0))
-        grad.setColorAt(0.70, QColor(0, 0, 0, int(alpha * 0.10)))
-        grad.setColorAt(1.0, QColor(0, 0, 0, int(alpha * 0.48)))
-        p.setBrush(grad)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.drawRect(0, 0, w, h)
-
     def _draw_cinematic_rim(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(self.margin)
         bar_h = max(3.0, float(self.width) * 1.5)
@@ -436,12 +417,7 @@ class ScreenBorderSystem:
         p.setBrush(Qt.BrushStyle.NoBrush)
 
         cs = 16.0
-        corners = [
-            (m, m),
-            (w - m, m),
-            (m, h - m),
-            (w - m, h - m)
-        ]
+        corners = [(m, m), (w - m, m), (m, h - m), (w - m, h - m)]
         for cx, cy in corners:
             p.drawLine(QPointF(cx - cs, cy), QPointF(cx + cs, cy))
             p.drawLine(QPointF(cx, cy - cs), QPointF(cx, cy + cs))
@@ -456,7 +432,6 @@ class ScreenBorderSystem:
         rect = QRectF(m, m, w - m * 2, h - m * 2)
 
         p.setBrush(Qt.BrushStyle.NoBrush)
-
         outer_pen = self._create_styled_pen(w, h, float(self.width * 2.5), max(0, min(255, int(alpha * 0.25))))
         p.setPen(outer_pen)
         p.drawRoundedRect(rect, r, r)

@@ -13,7 +13,6 @@ if not exist "%OUTPUT_DIR%" (
 )
 
 echo [2/5] updater.exe 복사 중...
-if not exist "src\updater" mkdir "src\updater"
 if not exist "./updater/updater.exe" (
     echo [경고] 루트에 ./updater/updater.exe 파일이 존재하지 않습니다. 복사를 건너뜁니다.
 ) else (

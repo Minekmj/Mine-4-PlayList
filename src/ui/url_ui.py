@@ -13,13 +13,10 @@ from src.ui.ffmpeg_ui import (
 
 class UrlDialog(AnimatedDialogBase):
     def __init__(self, parent, default_dir: str):
-        super().__init__(None)
+        super().__init__(parent)
         self.p = parent
         self.default_dir = default_dir
-        self.setWindowFlags(
-            Qt.WindowType.Window |
-            Qt.WindowType.FramelessWindowHint
-        )
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedWidth(460)
 

@@ -12,6 +12,7 @@ updater.exe.manifest
 *.lib
 *.obj
 *.pdb
+*.dll
 
 myenv/
 main.dist/

@@ -9,9 +9,9 @@ from src.ui.base import *
 
 class SettingsDialog(AnimatedDialogBase):
     def __init__(self, parent):
-        super().__init__(None)
+        super().__init__(parent)
         self.p = parent
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedSize(540, 660)
         self.setStyleSheet(Get_qss())
@@ -299,7 +299,7 @@ class SettingsDialog(AnimatedDialogBase):
         l_atmos.addWidget(c_pt)
 
         l_atmos.addStretch()
-        self.tabs.addTab(self._scroll_page(t_atmos), "배경 & 입자")
+        self.tabs.addTab(self._scroll_page(t_atmos), "배경")
 
         t_frame = QWidget()
         l_frame = QVBoxLayout(t_frame)
@@ -428,7 +428,7 @@ class SettingsDialog(AnimatedDialogBase):
         l_frame.addWidget(c_border)
 
         l_frame.addStretch()
-        self.tabs.addTab(self._scroll_page(t_frame), "화면 프레임")
+        self.tabs.addTab(self._scroll_page(t_frame), "테두리")
 
         t_sub = QWidget()
         l_sub = QVBoxLayout(t_sub)

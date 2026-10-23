@@ -1,10 +1,12 @@
 import os
 import math
+import ctypes
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import av
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal
+from src.native_bridge import get_native_engine
 
 class AudioNormalizer(QObject):
     gain_ready = pyqtSignal(str, float)
@@ -16,6 +18,7 @@ class AudioNormalizer(QObject):
         self._analyzing = set()
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=2)
+        self.c_engine = get_native_engine()
 
     def _measure_base_volume_db(self, filepath: str) -> float:
         with av.open(filepath) as container:
@@ -36,6 +39,7 @@ class AudioNormalizer(QObject):
 
             chunk_dbs = []
             collected_sec = 0.0
+            use_c = self.c_engine is not None
 
             for frame in container.decode(stream):
                 arr = frame.to_ndarray()
@@ -44,10 +48,14 @@ class AudioNormalizer(QObject):
                 else:
                     data = arr.astype(np.float32)
 
-                rms = float(np.sqrt(np.mean(data ** 2) + 1e-9))
-                db = 20.0 * math.log10(rms + 1e-9)
-                chunk_dbs.append(db)
+                if use_c:
+                    data_ptr = data.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+                    db = self.c_engine.c_calculate_frame_db(data_ptr, data.size)
+                else:
+                    rms = float(np.sqrt(np.mean(data ** 2) + 1e-9))
+                    db = 20.0 * math.log10(rms + 1e-9)
 
+                chunk_dbs.append(db)
                 collected_sec += frame.samples / rate
                 if collected_sec >= 12.0:
                     break

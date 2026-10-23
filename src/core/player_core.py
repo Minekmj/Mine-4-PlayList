@@ -75,6 +75,9 @@ class PlayerCore(QObject):
     def __init__(self, parent_video_frame):
         super().__init__()
         self.parent_frame = parent_video_frame
+        
+        self.hwdec_enabled = True
+        
         self.view = VideoViewWidget(self.parent_frame)
         layout = QVBoxLayout(self.parent_frame)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -171,10 +174,58 @@ class PlayerCore(QObject):
         return self._cached_ambient_img
 
     def set_hwdec(self, enabled: bool):
-        pass
+        self.hwdec_enabled = enabled
 
-    def set_floating_rim(self, enabled: bool):
-        pass
+        if enabled:
+            os.environ.pop("QT_FFMPEG_DECODING_HW_DEVICE_TYPES", None)
+            os.environ.pop("QT_DISABLE_HW_TEXTURES_CONVERSION", None)
+        else:
+            os.environ["QT_FFMPEG_DECODING_HW_DEVICE_TYPES"] = ""
+            os.environ["QT_DISABLE_HW_TEXTURES_CONVERSION"] = "1"
+
+        if hasattr(self, "player") and self.player is not None:
+            try:
+                if hasattr(self.player, "set_hwdec") and callable(self.player.set_hwdec):
+                    self.player.set_hwdec(enabled)
+                elif hasattr(self.player, "hwdec"):
+                    self.player.hwdec = "auto" if enabled else "no"
+                elif hasattr(self.player, "set_property") and callable(self.player.set_property):
+                    self.player.set_property("hwdec", "auto" if enabled else "no")
+            except Exception:
+                pass
+
+        if self.current_file and self.qplayer.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
+            current_pos = self.qplayer.position()
+            is_playing = (self.qplayer.playbackState() == QMediaPlayer.PlaybackState.PlayingState)
+
+            def _on_restored_media_loaded(status):
+                if status in (QMediaPlayer.MediaStatus.LoadedMedia, QMediaPlayer.MediaStatus.BufferedMedia):
+                    try:
+                        self.qplayer.mediaStatusChanged.disconnect(_on_restored_media_loaded)
+                    except Exception:
+                        pass
+                    self.qplayer.setPosition(current_pos)
+                    if is_playing:
+                        self.qplayer.play()
+                    else:
+                        self.qplayer.pause()
+                elif status == QMediaPlayer.MediaStatus.InvalidMedia:
+                    try:
+                        self.qplayer.mediaStatusChanged.disconnect(_on_restored_media_loaded)
+                    except Exception:
+                        pass
+
+            try:
+                self.qplayer.mediaStatusChanged.connect(_on_restored_media_loaded)
+            except Exception:
+                pass
+
+            url = (
+                QUrl(self.current_file)
+                if self.current_file.startswith(("http://", "https://", "rtsp://", "rtmp://"))
+                else QUrl.fromLocalFile(os.path.abspath(self.current_file))
+            )
+            self.qplayer.setSource(url)
 
     def set_audio_normalization(self, enabled: bool):
         self.audio_norm_enabled = enabled

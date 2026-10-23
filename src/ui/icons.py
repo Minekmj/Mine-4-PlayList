@@ -126,6 +126,21 @@ class ModernIcon:
             p.setPen(pen_slash)
             p.drawLine(int(4 * s), int(4 * s), int(20 * s), int(20 * s))
 
+        elif name == "mini_mode":
+            p.drawRoundedRect(QRectF(3.5 * s, 4.5 * s, 17 * s, 15 * s), 2.0, 2.0)
+            p.setBrush(QBrush(QColor(color)))
+            p.drawRoundedRect(QRectF(11 * s, 11 * s, 8.5 * s, 7.5 * s), 1.5, 1.5)
+
+        elif name == "expand":
+            p.drawPolyline([QPoint(int(5 * s), int(9 * s)), QPoint(int(5 * s), int(5 * s)), QPoint(int(9 * s), int(5 * s))])
+            p.drawPolyline([QPoint(int(19 * s), int(15 * s)), QPoint(int(19 * s), int(19 * s)), QPoint(int(15 * s), int(19 * s))])
+            p.drawLine(int(5 * s), int(5 * s), int(10 * s), int(10 * s))
+            p.drawLine(int(19 * s), int(19 * s), int(14 * s), int(14 * s))
+
+        elif name == "close":
+            p.drawLine(int(6 * s), int(6 * s), int(18 * s), int(18 * s))
+            p.drawLine(int(18 * s), int(6 * s), int(6 * s), int(18 * s))
+
         p.end()
         pixmap.addPixmap(img)
         return pixmap

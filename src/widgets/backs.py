@@ -63,6 +63,8 @@ class AmbientVideoContainer(QFrame):
         self.anim_timer.setInterval(33)
         self.anim_timer.timeout.connect(self.on_anim_tick)
         self.anim_timer.start()
+        
+        self.is_mini_mode = False
 
     def set_children_widgets(self, video_w: QWidget, dock_w: QWidget, list_w: QWidget):
         self.video_widget = video_w
@@ -177,6 +179,31 @@ class AmbientVideoContainer(QFrame):
         if not self.video_widget or not self.dock_widget or not self.playlist_widget:
             return
         W, H = self.width(), self.height()
+        
+        if getattr(self, "is_mini_mode", False):
+            pad = 12
+            avail_w = max(40, W - pad * 2)
+            avail_h = max(40, H - pad * 2)
+            if avail_w / max(1.0, avail_h) > self.video_aspect:
+                target_h = int(avail_h)
+                target_w = int(target_h * self.video_aspect)
+            else:
+                target_w = int(avail_w)
+                target_h = int(target_w / self.video_aspect)
+
+            vx = (W - target_w) // 2
+            vy = (H - target_h) // 2
+            self.video_widget.setGeometry(vx, vy, target_w, target_h)
+            self.video_widget.show()
+            self.dock_widget.hide()
+            self.playlist_widget.hide()
+
+            self._ambient_dirty = True
+            self._shadow_dirty = True
+            self._ambient_params_key = None
+            self.restore_child_stacking()
+            return
+        
         pad = 16
         plist_w = 330 if self.playlist_visible else 0
         if self.playlist_visible:

@@ -20,7 +20,7 @@ def top_bar(self):
     self.btn_win_max.setObjectName("trafficBtn")
     self.btn_win_max.setStyleSheet("background-color: #10B981;")
     self.btn_win_max.setToolTip("최대화 / 이전 크기")
-    self.btn_win_max.clicked.connect(lambda:toggle_maximize_restore(self))
+    self.btn_win_max.clicked.connect(lambda: toggle_maximize_restore(self))
 
     self.btn_win_close = QPushButton()
     self.btn_win_close.setObjectName("trafficBtn")
@@ -39,14 +39,15 @@ def top_bar(self):
     self.top_control_bar.setGraphicsEffect(self._top_opacity)
 
     self._top_anim = QPropertyAnimation(self._top_opacity, b"opacity")
-    self._top_anim.setDuration(160)
+    self._top_anim.setDuration(140)
     self._top_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
     self.top_bar_timer = QTimer(self)
     self.top_bar_timer.setSingleShot(True)
-    self.top_bar_timer.setInterval(220)
+    self.top_bar_timer.setInterval(1500)
     self.top_bar_timer.timeout.connect(self._hide_top_bar)
-    
+
+
 def toggle_maximize_restore(self):
     if self.isMaximized():
         self.showNormal()

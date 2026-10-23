@@ -32,7 +32,7 @@ def get_next_track_index(current_idx: int, total_count: int, mode: int) -> Optio
 
     next_idx = current_idx + 1 if current_idx != -1 else 0
     if next_idx >= total_count:
-        if mode == 0:  # 순차 재생 (끝에 도달하면 정지)
+        if mode == 0:  # 순차 재생
             return None
         next_idx = 0  # 전체 반복
     return next_idx

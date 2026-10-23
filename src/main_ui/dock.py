@@ -97,9 +97,14 @@ def btn_row(self) -> QHBoxLayout:
     self.btn_settings.setIcon(ModernIcon.create("gear", "#FFFFFF", 20))
     self.btn_settings.setObjectName("iconBtn")
     self.btn_settings.clicked.connect(self.open_settings)
+    
+    self.btn_pip_toggle = QPushButton()
+    self.btn_pip_toggle.setIcon(ModernIcon.create("mini_mode", "#FFFFFF", 20))
+    self.btn_pip_toggle.setObjectName("iconBtn")
+    self.btn_pip_toggle.clicked.connect(self.toggle_mini_mode)
 
     self.btn_list_toggle = QPushButton()
-    self.btn_list_toggle.setIcon(ModernIcon.create("playlist", "#CBD5E1", 20))
+    self.btn_list_toggle.setIcon(ModernIcon.create("playlist", "#FFFFFF", 20))
     self.btn_list_toggle.setObjectName("iconBtn")
     self.btn_list_toggle.clicked.connect(self.toggle_playlist_panel)
 
@@ -110,6 +115,7 @@ def btn_row(self) -> QHBoxLayout:
 
     row.addWidget(self.btn_sub_toggle)
     row.addWidget(self.btn_settings)
+    row.addWidget(self.btn_pip_toggle)
     row.addWidget(self.btn_list_toggle)
     row.addWidget(self.btn_fs)
     return row

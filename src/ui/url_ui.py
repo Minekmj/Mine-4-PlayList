@@ -101,8 +101,7 @@ class UrlDialog(AnimatedDialogBase):
         if not url:
             return
 
-        ffmpeg_dir = os.environ.get("SCRIPT_DIR", self.default_dir)
-        if not ensure_ffmpeg(self, ffmpeg_dir):
+        if not ensure_ffmpeg(self, self.default_dir):
             self.status.setStyleSheet("color: #DC2626; font-size: 11px; font-weight: 600;")
             self.status.setText("FFmpeg 구성 요소가 없어 다운로드를 시작할 수 없습니다.")
             return
@@ -119,7 +118,7 @@ class UrlDialog(AnimatedDialogBase):
 
         threading.Thread(
             target=run_youtube_download,
-            args=(url, self.default_dir, signals),
+            args=(url, os.path.join(self.default_dir, "Download"), signals),
             daemon=True
         ).start()
 

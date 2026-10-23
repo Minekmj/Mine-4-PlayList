@@ -268,7 +268,7 @@ class EchoMediaPlayer(QMainWindow):
             self.url_panel.raise_()
             self.url_panel.activateWindow()
             return
-        d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..", "Download")
+        d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..")
         self.url_panel = UrlDialog(self, d)
         self.url_panel.show()
 

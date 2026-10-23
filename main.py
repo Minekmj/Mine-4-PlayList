@@ -3,7 +3,6 @@ import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.environ["SCRIPT_DIR"] = script_dir
-os.environ["PATH"] = script_dir + os.pathsep + os.environ.get("PATH", "")
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication

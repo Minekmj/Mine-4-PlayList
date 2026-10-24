@@ -11,7 +11,7 @@ from src.C.native_bridge import get_native_engine
 class AudioNormalizer(QObject):
     gain_ready = pyqtSignal(str, float)
 
-    def __init__(self, target_base_db: float = -24.0):
+    def __init__(self, target_base_db: float = -18.0):
         super().__init__()
         self.target_db = target_base_db
         self.gain_cache = {}
@@ -39,7 +39,6 @@ class AudioNormalizer(QObject):
 
             chunk_dbs = []
             collected_sec = 0.0
-            use_c = self.c_engine is not None
 
             for frame in container.decode(stream):
                 arr = frame.to_ndarray()
@@ -48,12 +47,8 @@ class AudioNormalizer(QObject):
                 else:
                     data = arr.astype(np.float32)
 
-                if use_c:
-                    data_ptr = data.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-                    db = self.c_engine.c_calculate_frame_db(data_ptr, data.size)
-                else:
-                    rms = float(np.sqrt(np.mean(data ** 2) + 1e-9))
-                    db = 20.0 * math.log10(rms + 1e-9)
+                data_ptr = data.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+                db = self.c_engine.c_calculate_frame_db(data_ptr, data.size)
 
                 chunk_dbs.append(db)
                 collected_sec += frame.samples / rate
@@ -95,8 +90,10 @@ class AudioNormalizer(QObject):
             try:
                 base_db = self._measure_base_volume_db(filepath)
                 diff_db = self.target_db - base_db
+                
                 gain = math.pow(10.0, diff_db / 20.0)
-                gain = max(0.35, min(3.0, gain))
+                gain = max(0.35, min(5.5, gain))
+                
             except Exception:
                 gain = 1.0
 

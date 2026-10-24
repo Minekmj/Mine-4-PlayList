@@ -102,7 +102,7 @@ class PlayerCore(QObject):
         self.target_gain = 1.0
         self.current_gain = 1.0
         self.audio_norm_enabled = True
-        self.normalizer = AudioNormalizer(target_base_db=-24.0)
+        self.normalizer = AudioNormalizer()
         self.normalizer.gain_ready.connect(self._on_gain_ready)
         self.vol_smooth_timer = QTimer(self)
         self.vol_smooth_timer.setInterval(25)

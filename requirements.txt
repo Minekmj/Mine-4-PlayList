@@ -4,3 +4,4 @@ youtube_transcript_api
 PyQt6
 numpy
 av
+pyvda

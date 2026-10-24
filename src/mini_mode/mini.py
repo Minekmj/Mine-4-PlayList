@@ -1,21 +1,14 @@
-import os
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, QRectF
 from src.ui.icons import ModernIcon
+from pyvda import AppView
 
-
+hwnd = 0
 class MiniTopBar(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.main_win = parent
-        self.setObjectName("miniTopBar")
-        self.setStyleSheet(
-            "#miniTopBar {"
-            "  background: rgba(15, 23, 42, 0.88);"
-            "  border: 1px solid rgba(255, 255, 255, 0.22);"
-            "  border-radius: 12px;"
-            "}"
-        )
+        self.setObjectName("topControlBar")
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
@@ -83,8 +76,8 @@ def toggle_mini_mode(main_win):
     else:
         enter_mini_mode(main_win)
 
-
 def enter_mini_mode(main_win):
+    global hwnd
     if getattr(main_win, "is_mini_mode", False) or main_win.isFullScreen():
         return
 
@@ -106,6 +99,15 @@ def enter_mini_mode(main_win):
     main_win.setMaximumSize(1200, 800)
     main_win.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
     main_win.show()
+    
+    def apply_pin():
+        try:
+            hwnd = int(main_win.winId())
+            AppView(hwnd=hwnd).pin()
+        except Exception as e:
+            print(f"가상 데스크톱 고정 실패: {e}")
+
+    QTimer.singleShot(100, apply_pin) 
 
     target_w, target_h = 420, 250
     old = main_win._pre_mini_geo
@@ -128,6 +130,7 @@ def enter_mini_mode(main_win):
 
 
 def exit_mini_mode(main_win):
+    global hwnd
     if not getattr(main_win, "is_mini_mode", False):
         return
 
@@ -135,6 +138,12 @@ def exit_mini_mode(main_win):
 
     if hasattr(main_win, "mini_top_bar") and main_win.mini_top_bar:
         main_win.mini_top_bar.fast_hide()
+        
+    try:
+        hwnd = int(main_win.winId())
+        AppView(hwnd=hwnd).unpin()
+    except Exception as e:
+        print(f"가상 데스크톱 언고정 실패: {e}")
 
     main_win.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
     main_win.setMinimumSize(960, 600)

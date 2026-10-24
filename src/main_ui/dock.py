@@ -18,6 +18,8 @@ def dock_panel(self):
 
     dock_layout.addLayout(time_row(self))
     dock_layout.addLayout(btn_row(self))
+    
+    self.dock_panel.raise_()
 
 def time_row(self) -> QHBoxLayout:
     row = QHBoxLayout()

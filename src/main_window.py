@@ -8,7 +8,7 @@ from src.main_ui.dock import dock_panel
 from src.main_ui.playlist import playlist_panel
 from src.main_ui.top import top_bar
 from src.ui.icons import ModernIcon
-from src.widgets.widgets import AmbientVideoContainer, FloatingOSD, PlaylistItemCard
+from src.widgets.widgets import AmbientVideoContainer, PlaylistItemCard
 from src.core.player_core import PlayerCore
 from src.ui.dialogs import SettingsDialog, UrlDialog
 from src.mini_mode.mini import (
@@ -61,7 +61,6 @@ class EchoMediaPlayer(QMainWindow):
         self.video_frame.setStyleSheet("background-color: transparent; border: none;")
         self.video_frame.installEventFilter(self)
         self.video_frame.setMouseTracking(True)
-        self.osd = FloatingOSD(self.video_frame)
 
         dock_panel(self)
         playlist_panel(self)
@@ -74,8 +73,6 @@ class EchoMediaPlayer(QMainWindow):
             if hasattr(self.core, 'view') and self.core.view:
                 self.core.view.viewport().installEventFilter(self)
                 self.core.view.installEventFilter(self)
-            if hasattr(self, 'osd'):
-                self.osd.raise_()
 
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
@@ -90,7 +87,6 @@ class EchoMediaPlayer(QMainWindow):
             return
         target = self.playlist[idx]
         if not os.path.exists(target):
-            self.osd.show_message("파일을 찾을 수 없습니다.")
             return
 
         self.current_idx = idx
@@ -99,7 +95,6 @@ class EchoMediaPlayer(QMainWindow):
         self.btn_play.setIcon(ModernIcon.create("pause", "#FFFFFF", 22))
 
         self.highlight_playing_row()
-        self.osd.show_message(f"{os.path.basename(target)}")
         save_session(self)
 
     def toggle_play(self):
@@ -197,7 +192,7 @@ class EchoMediaPlayer(QMainWindow):
             for i in range(self.list_widget.count()):
                 it = self.list_widget.item(i)
                 if it.data(Qt.ItemDataRole.UserRole) == cur:
-                    self.list_widget.setCurrentRow(i)
+                    self.list_set(i)
                     break
 
     def on_item_double_click(self, item):
@@ -376,6 +371,8 @@ class EchoMediaPlayer(QMainWindow):
             reposition_mini_bar(self)
         if hasattr(self, 'core') and self.core:
             self.core.reposition_subtitle()
+        if hasattr(self, 'dock_panel'):
+            self.dock_panel.raise_()
 
     def mouseMoveEvent(self, event):
         pos = self.mapFromGlobal(event.globalPosition().toPoint()) if hasattr(event, 'globalPosition') else event.position().toPoint()

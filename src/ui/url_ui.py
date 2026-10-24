@@ -124,7 +124,6 @@ class UrlDialog(AnimatedDialogBase):
 
     def on_finished(self, filepath: str):
         self.p.handle_dropped_files([filepath])
-        self.p.osd.show_message("다운로드 완료!")
         self.animated_close()
 
     def on_error(self, err: str):

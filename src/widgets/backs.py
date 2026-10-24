@@ -16,7 +16,7 @@ class AmbientVideoContainer(QFrame):
         self._ambient_dirty = True
         self._ambient_params_key = None
         self._last_ambient_render_time = 0.0
-        self._ambient_render_interval = 1.0 / 25.0
+        self._ambient_render_interval = 1.0 / 30.0
         self.video_widget = None
         self.dock_widget = None
         self.playlist_widget = None
@@ -27,7 +27,8 @@ class AmbientVideoContainer(QFrame):
         self.aurora_intensity = 0.55
         self.aurora_phase = 0.0
         self._aurora_gradient_cache = {}
-        self._aurora_steps = 28
+        
+        self._aurora_steps = 16
         self._aurora_y_buf = (ctypes.c_float * (self._aurora_steps + 1))()
 
         self.particle_system = ParticleSystem()
@@ -143,6 +144,10 @@ class AmbientVideoContainer(QFrame):
 
     def on_anim_tick(self):
         active = False
+        
+        if self._ambient_dirty:
+            active = True
+
         if self.ambient_enabled and self.raw_frame_image and self.motion_intensity > 0.01:
             self.phase = (self.phase + 0.05 * self.motion_speed) % (math.pi * 2.0)
             active = True
@@ -156,6 +161,7 @@ class AmbientVideoContainer(QFrame):
             self.border_system.update()
             if self.border_system.anim_mode != "없음" or self.border_system.color_mode == "스펙트럼":
                 active = True
+        
         if active:
             self.update()
 
@@ -243,7 +249,6 @@ class AmbientVideoContainer(QFrame):
         image = qimage if qimage.format() == QImage.Format.Format_RGB32 else qimage.convertToFormat(QImage.Format.Format_RGB32)
         self.raw_frame_image = image
         self._ambient_dirty = True
-        self.update()
 
     def _render_ambient_base(self, W: int, H: int, vf_key: tuple):
         image = self.raw_frame_image
@@ -323,38 +328,45 @@ class AmbientVideoContainer(QFrame):
         super().paintEvent(event)
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        
         W, H = self.width(), self.height()
         vf_rect = QRectF(self.video_widget.geometry()) if self.video_widget else QRectF(W * 0.15, H * 0.15, W * 0.7, H * 0.7)
+
         if self.ambient_enabled and self.video_widget and self.raw_frame_image and not self.raw_frame_image.isNull() and self.c_engine:
             vf_key = tuple(self.video_widget.geometry().getRect())
             params_key = (vf_key, self.raw_frame_image.cacheKey(), self.blur_radius, W, H, self.brightness, self.black_lift, self.gamma, self.decay_scale)
+            
             if self._ambient_dirty or params_key != self._ambient_params_key:
                 now = time.monotonic()
                 if self._ambient_params_key is None or now - self._last_ambient_render_time >= self._ambient_render_interval:
                     if self._render_ambient_base(W, H, vf_key):
                         self._ambient_params_key = params_key
+            
             if not self.c_out_img.isNull():
                 p.save()
+                p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
                 if self.motion_intensity > 0.01:
                     pulse = math.sin(self.phase) * (0.07 * self.motion_intensity)
                     p.setOpacity(max(0.1, min(1.0, 1.0 + pulse)))
                 p.drawImage(QRectF(0, 0, W, H), self.c_out_img)
                 p.restore()
+
             if self.shadow_enabled and self.shadow_opacity > 0.01:
                 if self._shadow_dirty or self._shadow_cache_pixmap is None:
                     self._rebuild_shadow_cache(vf_rect)
                 if self._shadow_cache_pixmap:
                     p.drawPixmap(self._shadow_cache_pos, self._shadow_cache_pixmap)
+
             if self.floating_rim_enabled:
                 p.setPen(QPen(QColor(255, 255, 255, 45), 1.0))
                 p.setBrush(Qt.BrushStyle.NoBrush)
                 p.drawRect(vf_rect.adjusted(-1.0, -1.0, 1.0, 1.0))
+
             if self.tint_enabled and self.tint_ratio > 0.01:
                 p.save()
-                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Overlay)
-                p.setOpacity(self.tint_ratio * 0.45)
-                p.fillRect(0, 0, W, H, self.tint_color)
+                t_col = QColor(self.tint_color)
+                t_col.setAlpha(int(255 * self.tint_ratio * 0.35))
+                p.fillRect(0, 0, W, H, t_col)
                 p.restore()
         else:
             p.fillRect(0, 0, W, H, QColor(8, 10, 16))

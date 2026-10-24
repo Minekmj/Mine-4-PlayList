@@ -56,16 +56,6 @@ QToolTip {
     font-size: 11px;
 }
 
-FloatingOSD {
-    background-color: rgba(15, 20, 32, 0.88);
-    color: #F1F5F9;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 8px 18px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
 QPushButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
         stop:0 rgba(220, 230, 245, 0.08), 

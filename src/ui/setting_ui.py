@@ -244,21 +244,19 @@ class SettingsDialog(AnimatedDialogBase):
         b, e = self.b, self.engine_cfg
 
         c_aurora, f = b.create_card()
-        b.check(f, "오로라 애니메이션 배경 활성화", e, "aurora_enabled", True)
-        b.combo(f, "오로라 유형", e, "aurora_style", ["오로라", "네온 파동", "없음"], "오로라")
-        b.combo(f, "오로라 색상", e, "aurora_palette", ["청록", "벚꽃", "바다", "보라", "노을"], "청록")
+        b.check(f, "오로라 효과 켜기", e, "aurora_enabled", True)
+        b.combo(f, "오로라 형태", e, "aurora_style", ["오로라", "물결", "없음"], "오로라")
+        b.combo(f, "오로라 색상", e, "aurora_palette", ["청록", "분홍", "파랑", "보라", "주황"], "청록")
         b.slider(f, "오로라 강도", e, "aurora_intensity", 0, 100, scale=0.01, default=0.55)
         l.addWidget(c_aurora)
 
         c_pt, f = b.create_card()
-        b.check(f, "파티클 효과 활성화", e, "particle_enabled", True)
-        b.combo(f, "파티클 종류", e, "particle_type",
-                ["소프트 더스트", "사쿠라", "스타더스트", "보케 글로우", "라이트 레인", "하트", "페더", "음표", "크로스 스타", "기하학 큐브"],
-                "소프트 더스트", val_map={"눈 / 먼지": "소프트 더스트", "벚꽃": "사쿠라", "별빛": "스타더스트", "빛망울": "보케 글로우", "비": "라이트 레인", "깃털": "페더", "반짝이": "크로스 스타", "네온 큐브": "기하학 큐브"})
-        b.combo(f, "이동 방향", e, "particle_direction", ["아래로", "위로", "왼쪽 대각선", "오른쪽 대각선", "부유 / 흩날림"], "아래로")
+        b.check(f, "파티클 효과 켜기", e, "particle_enabled", True)
+        b.combo(f, "파티클 모양", e, "particle_type",
+                ["먼지", "벚꽃", "별", "빛망울", "비", "하트", "깃털", "음표", "반짝이", "큐브"], "먼지")
+        b.combo(f, "이동 방향", e, "particle_direction", ["아래로", "위로", "왼쪽 대각선", "오른쪽 대각선", "흩날림"], "아래로")
         b.combo(f, "파티클 색상", e, "particle_palette",
-                ["에메랄드 틸", "사쿠라 로즈", "딥 오션", "네뷸라 바이올렛", "선셋 앰버", "퓨어 화이트", "샴페인 골드", "사이버 네온", "소프트 핑크"],
-                "에메랄드 틸", val_map={"청록": "에메랄드 틸", "벚꽃": "사쿠라 로즈", "바다": "딥 오션", "보라": "네뷸라 바이올렛", "노을": "선셋 앰버", "화이트": "퓨어 화이트", "골드": "샴페인 골드", "마법소녀": "소프트 핑크"})
+                ["청록", "분홍", "파랑", "보라", "주황", "흰색", "노랑", "형광", "연분홍"], "청록")
         b.slider(f, "입자 밀도", e, "particle_density", 0, 100, scale=0.01, default=0.45)
         b.slider(f, "이동 속도", e, "particle_speed", 10, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=1.0)
         l.addWidget(c_pt); l.addStretch()
@@ -269,12 +267,11 @@ class SettingsDialog(AnimatedDialogBase):
         b, e = self.b, self.engine_cfg
 
         c_b, f = b.create_card()
-        b.check(f, "화면 테두리 오버레이 활성화", e, "border_enabled", True)
-        b.combo(f, "프레임 스타일", e, "border_style", [
-            "엣지 글로우", "미니멀 보더", "더블 라인", "테크니컬 브래킷",
-            "인셋 프레임", "스튜디오 챔퍼", "도트 매트릭스", "사이버 그루브",
-            "옵티컬 비네트", "시네마틱 레터 림", "코너 크로스", "게이머 네온", "없음"
-        ], "엣지 글로우")
+        b.check(f, "화면 테두리 켜기", e, "border_enabled", True)
+        b.combo(f, "테두리 모양", e, "border_style", [
+            "네온", "기본", "이중선", "브래킷", "액자", "모따기",
+            "도트", "분할선", "비네트", "상하 바", "십자", "강조 네온", "없음"
+        ], "네온")
 
         self.row_b_cols = QWidget()
         row_l = QHBoxLayout(self.row_b_cols)
@@ -284,16 +281,16 @@ class SettingsDialog(AnimatedDialogBase):
         row_l.addWidget(self.btn_col1); row_l.addWidget(self.btn_col2)
 
         def on_cmode_change(m):
-            vis = m in ["단색", "듀얼 그라디언트"]
+            vis = m in ["단색", "그라디언트"]
             self.row_b_cols.setVisible(vis)
             self.btn_col1.setVisible(vis)
-            self.btn_col2.setVisible(m == "듀얼 그라디언트")
+            self.btn_col2.setVisible(m == "그라디언트")
 
-        b.combo(f, "컬러 모드", e, "border_color_mode", ["단색", "듀얼 그라디언트", "스펙트럼"], "단색", on_change=on_cmode_change)
+        b.combo(f, "색상 방식", e, "border_color_mode", ["단색", "그라디언트", "무지개"], "단색", on_change=on_cmode_change)
         f.addRow("지정 색상", self.row_b_cols)
         on_cmode_change(e.get("border_color_mode", "단색"))
 
-        b.combo(f, "애니메이션 효과", e, "border_anim_mode", ["정적", "브리딩 펄스", "로테이팅 체이스", "네온 플리커"], "브리딩 펄스")
+        b.combo(f, "효과", e, "border_anim_mode", ["정지", "숨쉬기", "회전", "깜빡임"], "숨쉬기")
         b.slider(f, "펄스 호흡 깊이", e, "border_pulse_depth", 0, 80, scale=0.01, default=0.35)
         b.slider(f, "효과 속도", e, "border_anim_speed", 20, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=1.0)
         b.slider(f, "선 두께", e, "border_width", 1, 24, fmt="{} px", default=3)

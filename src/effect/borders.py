@@ -10,11 +10,13 @@ from PyQt6.QtGui import (
 class ScreenBorderSystem:
     def __init__(self):
         self.enabled = True
-        self.style = "엣지 글로우"
+        
+        self.style = "네온"
         self.color_mode = "단색"
+        self.anim_mode = "숨쉬기"
+
         self.color1 = QColor("#38BDF8")
         self.color2 = QColor("#818CF8")
-        self.anim_mode = "브리딩 펄스"
         self.anim_speed = 1.0
         self.pulse_depth = 0.35
         self.width = 3
@@ -78,7 +80,7 @@ class ScreenBorderSystem:
         self.phase = (self.phase + dt) % (math.pi * 2)
         self.sweep_angle = (self.sweep_angle + 2.4 * self.anim_speed) % 360.0
 
-        if self.anim_mode == "네온 플리커":
+        if self.anim_mode == "깜빡임":
             flicker_noise = math.sin(self.phase * 11.2) * math.cos(self.phase * 19.4)
             self.flicker_val = 0.65 + 0.35 * max(0.0, flicker_noise)
         else:
@@ -86,16 +88,16 @@ class ScreenBorderSystem:
 
     def _get_active_alpha(self, base_alpha: int) -> int:
         mult = 1.0
-        if self.anim_mode == "브리딩 펄스":
+        if self.anim_mode == "숨쉬기":
             mult = 1.0 - (self.pulse_depth * 0.5) + (math.sin(self.phase * 2.0) * 0.5 * self.pulse_depth)
-        elif self.anim_mode == "네온 플리커":
+        elif self.anim_mode == "깜빡임":
             mult = self.flicker_val
 
         final_a = int(base_alpha * self.opacity * max(0.05, min(1.0, mult)))
         return max(0, min(255, final_a))
 
     def _create_brush_gradient(self, w: int, h: int, alpha: int) -> QLinearGradient | QConicalGradient:
-        angle = int(round(self.sweep_angle / 5.0) * 5) % 360 if self.color_mode == "스펙트럼" or self.anim_mode == "로테이팅 체이스" else 0
+        angle = int(round(self.sweep_angle / 5.0) * 5) % 360 if self.color_mode == "무지개" or self.anim_mode == "회전" else 0
         key = (w, h, alpha, self.color_mode, self.color1.rgba(), self.color2.rgba(), self.anim_mode, angle)
         cached = self._gradient_cache.get(key)
         if cached is not None:
@@ -110,7 +112,7 @@ class ScreenBorderSystem:
     def _build_brush_gradient(self, w: int, h: int, alpha: int, cached_angle: int) -> QLinearGradient | QConicalGradient:
         cx, cy = w * 0.5, h * 0.5
 
-        if self.color_mode == "스펙트럼":
+        if self.color_mode == "무지개":
             cg = QConicalGradient(cx, cy, cached_angle)
             hues = [
                 (0.0, 0),
@@ -126,14 +128,14 @@ class ScreenBorderSystem:
                 cg.setColorAt(pos, sc)
             return cg
 
-        if self.color_mode == "듀얼 그라디언트":
+        if self.color_mode == "그라디언트":
             c1 = QColor(self.color1.red(), self.color1.green(), self.color1.blue(), alpha)
             c2 = QColor(self.color2.red(), self.color2.green(), self.color2.blue(), alpha)
         else:
             c1 = QColor(self.color1.red(), self.color1.green(), self.color1.blue(), alpha)
             c2 = c1
 
-        if self.anim_mode == "로테이팅 체이스":
+        if self.anim_mode == "회전":
             rad = math.radians(cached_angle)
             diag = math.hypot(w, h) * 0.65
             dx = math.cos(rad) * diag
@@ -252,29 +254,29 @@ class ScreenBorderSystem:
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         active_alpha = self._get_active_alpha(255)
 
-        if self.style == "엣지 글로우":
+        if self.style == "네온":
             self._draw_edge_glow(p, w, h, active_alpha)
-        elif self.style == "미니멀 보더":
+        elif self.style == "기본":
             self._draw_minimal_border(p, w, h, active_alpha)
-        elif self.style == "더블 라인":
+        elif self.style == "이중선":
             self._draw_double_line(p, w, h, active_alpha)
-        elif self.style == "테크니컬 브래킷":
+        elif self.style == "브래킷":
             self._draw_technical_bracket(p, w, h, active_alpha)
-        elif self.style == "인셋 프레임":
+        elif self.style == "액자":
             self._draw_inset_frame(p, w, h, active_alpha)
-        elif self.style == "스튜디오 챔퍼":
+        elif self.style == "모따기":
             self._draw_studio_chamfer(p, w, h, active_alpha)
-        elif self.style == "도트 매트릭스":
+        elif self.style == "도트":
             self._draw_dot_matrix(p, w, h, active_alpha)
-        elif self.style == "사이버 그루브":
+        elif self.style == "분할선":
             self._draw_cyber_groove(p, w, h, active_alpha)
-        elif self.style == "옵티컬 비네트":
+        elif self.style == "비네트":
             self._draw_optical_vignette(p, w, h, active_alpha)
-        elif self.style == "시네마틱 레터 림":
+        elif self.style == "상하 바":
             self._draw_cinematic_rim(p, w, h, active_alpha)
-        elif self.style == "코너 크로스":
+        elif self.style == "십자":
             self._draw_corner_cross(p, w, h, active_alpha)
-        elif self.style == "게이머 네온":
+        elif self.style == "강조 네온":
             self._draw_gamer_neon(p, w, h, active_alpha)
 
         p.restore()

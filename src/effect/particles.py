@@ -16,30 +16,32 @@ ALIAS_MAP = {
 }
 
 TYPE_ENUM = {
-    "소프트 더스트": 0, "사쿠라": 1, "스타더스트": 2, "보케 글로우": 3,
-    "라이트 레인": 4, "하트": 5, "페더": 6, "음표": 7,
-    "크로스 스타": 8, "기하학 큐브": 9
+    "먼지": 0, "벚꽃": 1, "별": 2, "빛망울": 3,
+    "비": 4, "하트": 5, "깃털": 6, "음표": 7,
+    "반짝이": 8, "큐브": 9
 }
 
 DIR_ENUM = {
     "위로": 0,
     "왼쪽 대각선": 1,
     "오른쪽 대각선": 2,
-    "부유 / 흩날림": 3,
+    "흩날림": 3,
     "아래로": 4
 }
 
 TYPE_CONFIG = {
-    "사쿠라": (3.5, 6.0, 1.2, 2.4, 0.6, 0.9),
-    "스타더스트": (2.0, 4.0, 0.4, 1.2, 0.5, 1.0),
-    "보케 글로우": (6.0, 14.0, 0.5, 1.3, 0.3, 0.6),
-    "라이트 레인": (10.0, 18.0, 6.0, 10.0, 0.4, 0.8),
+    "벚꽃": (3.5, 6.0, 1.2, 2.4, 0.6, 0.9),
+    "별": (2.0, 4.0, 0.4, 1.2, 0.5, 1.0),
+    "빛망울": (6.0, 14.0, 0.5, 1.3, 0.3, 0.6),
+    "비": (10.0, 18.0, 6.0, 10.0, 0.4, 0.8),
     "하트": (5.0, 10.0, 0.7, 1.6, 0.6, 0.95),
-    "페더": (8.0, 15.0, 0.5, 1.2, 0.45, 0.85),
+    "깃털": (8.0, 15.0, 0.5, 1.2, 0.45, 0.85),
     "음표": (6.0, 11.0, 0.8, 1.8, 0.55, 0.95),
-    "크로스 스타": (4.5, 9.0, 0.4, 1.2, 0.65, 1.0),
-    "기하학 큐브": (6.0, 12.0, 0.6, 1.5, 0.5, 0.85),
+    "반짝이": (4.5, 9.0, 0.4, 1.2, 0.65, 1.0),
+    "큐브": (6.0, 12.0, 0.6, 1.5, 0.5, 0.85),
 }
+
+
 DEFAULT_CONFIG = (1.8, 3.5, 0.8, 1.8, 0.4, 0.8)
 
 PATH_HEART = QPainterPath()
@@ -85,35 +87,29 @@ class ParticleSystem:
         self._color_cache = {}
 
         raw_palettes = {
-            "에메랄드 틸": [(40, 235, 190), (90, 145, 255), (190, 105, 255)],
-            "사쿠라 로즈": [(255, 155, 195), (255, 205, 225), (240, 135, 200)],
-            "딥 오션": [(35, 180, 255), (60, 130, 250), (95, 240, 230)],
-            "네뷸라 바이올렛": [(170, 105, 255), (110, 110, 255), (255, 110, 215)],
-            "선셋 앰버": [(255, 125, 90), (255, 185, 110), (255, 110, 175)],
-            "퓨어 화이트": [(240, 245, 255), (215, 230, 255), (255, 255, 255)],
-            "샴페인 골드": [(255, 215, 0), (255, 190, 60), (255, 242, 150)],
-            "사이버 네온": [(0, 255, 210), (255, 0, 135), (0, 195, 255)],
-            "소프트 핑크": [(255, 110, 180), (195, 120, 255), (255, 200, 235)],
             "청록": [(40, 235, 190), (90, 145, 255), (190, 105, 255)],
-            "벚꽃": [(255, 155, 195), (255, 205, 225), (240, 135, 200)],
-            "바다": [(35, 180, 255), (60, 130, 250), (95, 240, 230)],
+            "분홍": [(255, 155, 195), (255, 205, 225), (240, 135, 200)],
+            "파랑": [(35, 180, 255), (60, 130, 250), (95, 240, 230)],
             "보라": [(170, 105, 255), (110, 110, 255), (255, 110, 215)],
-            "노을": [(255, 125, 90), (255, 185, 110), (255, 110, 175)],
-            "화이트": [(240, 245, 255), (215, 230, 255), (255, 255, 255)],
+            "주황": [(255, 125, 90), (255, 185, 110), (255, 110, 175)],
+            "흰색": [(240, 245, 255), (215, 230, 255), (255, 255, 255)],
+            "노랑": [(255, 215, 0), (255, 190, 60), (255, 242, 150)],
+            "형광": [(0, 255, 210), (255, 0, 135), (0, 195, 255)],
+            "연분홍": [(255, 110, 180), (195, 120, 255), (255, 200, 235)],
         }
         self.palettes = {k: [QColor(*rgb) for rgb in v] for k, v in raw_palettes.items()}
         self._palette_rgbs = raw_palettes
 
         self._draw_handlers = {
-            "사쿠라": self._draw_sakura,
-            "스타더스트": self._draw_stardust,
-            "보케 글로우": self._draw_bokeh,
-            "라이트 레인": self._draw_rain,
+            "벚꽃": self._draw_sakura,
+            "별": self._draw_stardust,
+            "빛망울": self._draw_bokeh,
+            "비": self._draw_rain,
             "하트": self._draw_heart,
-            "페더": self._draw_feather,
+            "깃털": self._draw_feather,
             "음표": self._draw_note,
-            "크로스 스타": self._draw_cross_star,
-            "기하학 큐브": self._draw_cube,
+            "반짝이": self._draw_cross_star,
+            "큐브": self._draw_cube,
         }
 
     def _reset_particle(self, idx: int, w: int, h: int, randomize_pos: bool = False):
@@ -154,7 +150,7 @@ class ParticleSystem:
             else:
                 p.x = -pad
                 p.y = random.uniform(0.0, h)
-        elif p_dir == "부유 / 흩날림":
+        elif p_dir == "흩날림":
             p.x = random.uniform(0.0, w)
             p.y = random.uniform(0.0, h)
         else:
@@ -162,11 +158,10 @@ class ParticleSystem:
             p.y = -pad
 
     def set_params(self, enabled: bool, p_type: str, direction: str, palette: str, density: float, speed: float):
-        norm_type = ALIAS_MAP.get(p_type, p_type)
-        reset_needed = (self.p_type != norm_type or self.direction != direction)
+        reset_needed = (self.p_type != p_type or self.direction != direction)
         cache_changed = self.palette_name != palette or self.density != max(0.0, min(1.0, density))
         self.enabled = enabled
-        self.p_type = norm_type
+        self.p_type = p_type
         self.direction = direction
         self.palette_name = palette
         self.density = max(0.0, min(1.0, density))
@@ -249,7 +244,7 @@ class ParticleSystem:
         else:
             ex_x1 = ex_y1 = ex_x2 = ex_y2 = 0
 
-        cols = self._palette_rgbs.get(self.palette_name, self._palette_rgbs["퓨어 화이트"])
+        cols = self._palette_rgbs.get(self.palette_name, self._palette_rgbs["흰색"])
         c_count = len(cols)
         alpha_scale = 255.0 * min(1.0, self.density * 1.5)
 

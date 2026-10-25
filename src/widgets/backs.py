@@ -21,10 +21,10 @@ profiler = PerfProfiler(interval_sec=1.0, ENABLE_PROFILER=False)
 
 _AURORA_PALETTES = {
     '청록': ((40, 235, 190), (90, 145, 255), (190, 105, 255)),
-    '벚꽃': ((255, 135, 190), (255, 190, 215), (205, 125, 255)),
-    '바다': ((35, 180, 255), (50, 115, 245), (90, 235, 230)),
+    '분홍': ((255, 135, 190), (255, 190, 215), (205, 125, 255)),
+    '파랑': ((35, 180, 255), (50, 115, 245), (90, 235, 230)),
     '보라': ((170, 100, 255), (100, 100, 255), (255, 100, 210)),
-    '노을': ((255, 120, 85), (255, 175, 100), (255, 100, 165)),
+    '주황': ((255, 120, 85), (255, 175, 100), (255, 100, 165)),
 }
 
 class AmbientVideoContainer(QFrame):
@@ -223,13 +223,34 @@ class AmbientVideoContainer(QFrame):
         self.aurora_enabled = bool(cfg.get('aurora_enabled', True))
         self.aurora_style = str(cfg.get('aurora_style', '오로라'))
         self.aurora_palette = str(cfg.get('aurora_palette', '청록'))
-        self.aurora_intensity = max(0.0, min(1.0, float(cfg.get('aurora_intensity', 0.55))))
-        self.particle_system.set_params(enabled=bool(cfg.get('particle_enabled', True)), p_type=str(cfg.get('particle_type', '소프트 더스트')), direction=str(cfg.get('particle_direction', '아래로')), palette=str(cfg.get('particle_palette', '에메랄드 틸')), density=float(cfg.get('particle_density', 0.45)), speed=float(cfg.get('particle_speed', 1.0)))
+        self.particle_system.set_params(
+            enabled=bool(cfg.get('particle_enabled', True)),
+            p_type=str(cfg.get('particle_type', '먼지')),
+            direction=str(cfg.get('particle_direction', '아래로')),
+            palette=str(cfg.get('particle_palette', '청록')),
+            density=float(cfg.get('particle_density', 0.45)),
+            speed=float(cfg.get('particle_speed', 1.0))
+        )
+        
         col1 = cfg.get('border_color1', cfg.get('border_color', '#38BDF8'))
         col2 = cfg.get('border_color2', '#818CF8')
         border_r = int(cfg.get('border_radius', 0))
         border_en = bool(cfg.get('border_enabled', True))
-        self.border_system.set_params(enabled=border_en, style=str(cfg.get('border_style', '엣지 글로우')), color_mode=str(cfg.get('border_color_mode', '단색')), color1=str(col1), color2=str(col2), anim_mode=str(cfg.get('border_anim_mode', '브리딩 펄스')), anim_speed=float(cfg.get('border_anim_speed', 1.0)), pulse_depth=float(cfg.get('border_pulse_depth', 0.35)), width=int(cfg.get('border_width', 3)), margin=int(cfg.get('border_margin', 0)), radius=border_r, glow_spread=int(cfg.get('border_glow_spread', 14)), opacity=float(cfg.get('border_opacity', 0.75)))
+        self.border_system.set_params(
+            enabled=bool(cfg.get('border_enabled', True)),
+            style=str(cfg.get('border_style', '네온')),
+            color_mode=str(cfg.get('border_color_mode', '단색')),
+            color1=str(col1),
+            color2=str(col2),
+            anim_mode=str(cfg.get('border_anim_mode', '숨쉬기')),
+            anim_speed=float(cfg.get('border_anim_speed', 1.0)),
+            pulse_depth=float(cfg.get('border_pulse_depth', 0.35)),
+            width=int(cfg.get('border_width', 3)),
+            margin=int(cfg.get('border_margin', 0)),
+            radius=border_r,
+            glow_spread=int(cfg.get('border_glow_spread', 14)),
+            opacity=float(cfg.get('border_opacity', 0.75))
+        )
         self.floating_rim_enabled = bool(cfg.get('video_floating_rim', True))
         self.shadow_enabled = bool(cfg.get('video_shadow_enabled', True))
         self.shadow_opacity = max(0.0, min(1.0, float(cfg.get('video_shadow_opacity', 0.25))))
@@ -447,7 +468,7 @@ class AmbientVideoContainer(QFrame):
                 active = True
             if self.border_system.enabled and self.border_system.style != '없음':
                 self.border_system.update()
-                if self.border_system.anim_mode != '없음' or self.border_system.color_mode == '스펙트럼':
+                if self.border_system.anim_mode not in ('정지', '없음') or self.border_system.color_mode == '무지개':
                     active = True
 
         if active:

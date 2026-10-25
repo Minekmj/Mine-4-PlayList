@@ -7,7 +7,7 @@ set "OUTPUT_DIR=dist\Mine 4 PlayList"
 rmdir /S "%OUTPUT_DIR%"
 
 echo [1/5] PyInstaller 빌드 중...
-pyinstaller -w -n "Mine 4 PlayList" -i "./src/icon/icon.ico" --add-data "./src/icon/icon.ico;src/icon" --add-data "./src/C/native_effects.dll;src/C" --add-data "./src/qss/main.qss;src/qss" --add-data "./src/qss/dialog.qss;src/qss" main.py
+pyinstaller -w -n "Mine 4 PlayList" -i "./src/icon/icon.ico" --add-data "./src/icon/icon.ico;src/icon" --add-data "./src/icon/splash.png;src/icon" --add-data "./src/C/native_effects.dll;src/C" --add-data "./src/qss/main.qss;src/qss" --add-data "./src/qss/dialog.qss;src/qss" main.py
 
 if not exist "%OUTPUT_DIR%" (
     echo [오류] 빌드 결과물 폴더를 찾을 수 없습니다: %OUTPUT_DIR%

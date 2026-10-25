@@ -13,35 +13,51 @@ Windows용 감성 영상 플레이어입니다. 영상을 화려하게 볼 수 �
 
 <div align="center">
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/e41f24d3-995d-45b9-b14a-1dc133e4fff3" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/e41f24d3-995d-45b9-b14a-1dc133e4fff3" style="width: 100%; display: block;" />
+</div>
 
 이미지 1
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/5ace0061-a38f-4ec4-8e5b-eae42328b250" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/5ace0061-a38f-4ec4-8e5b-eae42328b250" style="width: 100%; display: block;" />
+</div>
 
 이미지 2
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/146c2043-553f-4460-8160-b4eb19d3a3c0" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/146c2043-553f-4460-8160-b4eb19d3a3c0" style="width: 100%; display: block;" />
+</div>
 
 이미지 3
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/62a2e96a-16c9-436f-bdfa-86bb16774ff9" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/62a2e96a-16c9-436f-bdfa-86bb16774ff9" style="width: 100%; display: block;" />
+</div>
 
 이미지 4
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/441c4984-bfc3-4c04-b507-2a73187cbc9f" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/441c4984-bfc3-4c04-b507-2a73187cbc9f" style="width: 100%; display: block;" />
+</div>
 
 가변 크기 이미지
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/db9675a9-0dfb-4f46-a2ed-7afb031ea9f3" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/db9675a9-0dfb-4f46-a2ed-7afb031ea9f3" style="width: 100%; display: block;" />
+</div>
 
 플레이리스트 숨기기 이미지 1
 
-<img width="500" alt="Image" style="border-radius: 8px; max-width: 100%;" src="https://github.com/user-attachments/assets/61a71958-5b8a-4c94-a193-eb8a6d1c03b7" />
+<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/61a71958-5b8a-4c94-a193-eb8a6d1c03b7" style="width: 100%; display: block;" />
+</div>
 
 플레이리스트 숨기기 이미지 2
 
-<img width="500" alt="Image" style="border-radius: 20px; max-width: 100%;" src="https://github.com/user-attachments/assets/9b69ed2e-de4c-480d-aa59-40e5a49bd293" />
+<div style="border-radius: 20px; overflow: hidden; max-width: 500px;">
+  <img alt="Image" src="https://github.com/user-attachments/assets/9b69ed2e-de4c-480d-aa59-40e5a49bd293" style="width: 100%; display: block;" />
+</div>
 
 미니멀 모드
 

@@ -4,16 +4,15 @@ import json
 from PyQt6.QtCore import QTimer
 from src.base import *
 
-from src.base import *
 
 def get_default_sub_config() -> dict:
     return {
         "font": "HY견고딕",
-        "size": 40,
+        "size": 25,
         "color": "#f9f9f9",
         "outline_color": "#232323",
         "border_size": 4,
-        "blur": 0,
+        "blur": 1,
         "pos": 95,
         "bold": True,
         "typewriter_enabled": False,
@@ -27,7 +26,12 @@ def get_default_sub_config() -> dict:
         "visible": True,
         "outside_video": True,
         "bg_color": "#000000",
-        "bg_opacity": 0.0
+        "bg_opacity": 0.0,
+        "shadow_enabled": True,
+        "shadow_color": "#000000",
+        "shadow_opacity": 0.3,
+        "shadow_offset": 2,
+        "shadow_blur": 3,
     }
 
 
@@ -39,10 +43,10 @@ def get_default_engine_config() -> dict:
         "aurora_palette": "바다",
         "aurora_intensity": 0.65,
         "particle_enabled": True,
-        "particle_type": "눈 / 먼지",
+        "particle_type": "소프트 더스트",
         "particle_direction": "아래로",
-        "particle_palette": "화이트",
-        "particle_density": 0.7,
+        "particle_palette": "퓨어 화이트",
+        "particle_density": 0.3,
         "particle_speed": 1.0,
         "ambient_brightness": 0.6,
         "ambient_black_lift": 0.1,
@@ -50,14 +54,15 @@ def get_default_engine_config() -> dict:
         "ambient_blur_radius": 8,
         "ambient_motion_intensity": 0.42,
         "ambient_motion_speed": 2.5,
+        "ambient_crop_margin": 0,
         "video_floating_rim": True,
         "video_shadow_enabled": True,
         "video_shadow_opacity": 0.1,
         "video_shadow_radius": 35,
         "video_shadow_offset": 6,
         "ambient_tint_enabled": False,
-        "ambient_tint_color": "#FFFFFF",
-        "ambient_tint_ratio": 0.5,
+        "ambient_tint_color": "#fefefe",
+        "ambient_tint_ratio": 0.3,
         "audio_norm": True,
         "hwdec": True,
         "border_margin": 0,
@@ -70,12 +75,17 @@ def get_default_engine_config() -> dict:
         "border_wave_intensity": 0.2,
         "border_pulse_depth": 0.0,
         "border_reactive": True,
-        "border_enabled": False,
-        "border_style": "게이머 네온",
+        "border_enabled": True,
+        "border_style": "미니멀 보더",
         "border_width": 5,
-        "border_radius": 0,
-        "border_opacity": 0.3
+        "border_radius": 25,
+        "border_opacity": 0.3,
+        "window_radius": 25,
+        "video_radius": 25,
+        "window_radius_individual": False,
+        "video_radius_individual": False
     }
+
 
 def read_session_state(filepath: str) -> dict:
     if not os.path.exists(filepath):
@@ -94,7 +104,8 @@ def write_session_state(filepath: str, data: dict) -> None:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"세션 저장 오류: {e}")
-        
+
+
 def save_session(self):
     pos = 0.0
     if self.core and self.core.player and self.core.player.time_pos:
@@ -114,6 +125,7 @@ def save_session(self):
         "engine_config": self.engine_config
     }
     write_session_state(SESSION_FILE, data)
+
 
 def load_session(self):
     try:
@@ -144,16 +156,20 @@ def load_session(self):
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
             self.core.set_hwdec(self.engine_config.get("hwdec", True))
+            self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
             self.core.preload_playlist_gains(self.playlist)
 
         self.ambient_container.set_ambient_params(self.engine_config)
+        if hasattr(self, "update_window_and_video_radius"):
+            self.update_window_and_video_radius()
 
         saved_pos = d.get("time_pos", 0.0)
         if self.playlist and 0 <= self.current_idx < len(self.playlist):
             QTimer.singleShot(250, lambda: restore_playback(self, saved_pos))
-    except:
+    except Exception:
         pass
-        
+
+
 def restore_playback(self, saved_pos: float):
     if 0 <= self.current_idx < len(self.playlist):
         self.play_index(self.current_idx)

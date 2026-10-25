@@ -146,19 +146,23 @@ QSlider::handle:horizontal:pressed {
 }
 
 QScrollBar:vertical {
-    background: transparent;
-    width: 5px;
-    margin: 2px 0px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    width: 8px;
+    margin: 4px 2px 4px 4px;
+    border-radius: 4px;
 }
 
 QScrollBar::handle:vertical {
-    background: rgba(215, 228, 245, 0.15);
-    border-radius: 2px;
-    min-height: 20px;
+    background: rgba(215, 228, 245, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    min-height: 24px;
 }
 
 QScrollBar::handle:vertical:hover {
-    background: rgba(215, 228, 245, 0.35);
+    background: rgba(215, 228, 245, 0.45);
+    border-color: rgba(255, 255, 255, 0.30);
 }
 
 QScrollBar::horizontal {
@@ -185,7 +189,6 @@ QScrollArea > QWidget > QWidget {
     background: transparent;
 }
 
-
 QFrame#playlistOptionBar {
     background: rgba(18, 24, 36, 0.75);
     border: 1px solid rgba(215, 230, 250, 0.18);
@@ -202,7 +205,7 @@ QListWidget {
     background: transparent;
     border: none;
     outline: none;
-    padding: 0px;
+    padding: 0px 4px 0px 0px;
 }
 
 QListWidget::item {
@@ -221,24 +224,16 @@ QFrame#innerPlaylistCard[state="normal"] {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
         stop:0 rgba(26, 34, 48, 0.10), 
         stop:1 rgba(18, 24, 36, 0.15));
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-right: none;
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
 }
 
 QFrame#innerPlaylistCard[state="hover"] {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
         stop:0 rgba(40, 54, 76, 0.20), 
         stop:1 rgba(28, 38, 54, 0.30));
-    border: 1px solid rgba(215, 235, 255, 0.40);
-    border-right: none;
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border: 1px solid rgba(215, 235, 255, 0.45);
+    border-radius: 10px;
 }
 
 QFrame#innerPlaylistCard[state="selected"] {
@@ -246,11 +241,7 @@ QFrame#innerPlaylistCard[state="selected"] {
         stop:0 rgba(140, 185, 245, 0.35), 
         stop:1 rgba(80, 130, 210, 0.25));
     border: 1px solid rgba(190, 225, 255, 0.85);
-    border-right: none;
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-radius: 10px;
 }
 
 QLabel#card_title {
@@ -264,14 +255,16 @@ QFrame#innerPlaylistCard[state="selected"] QLabel#card_title {
     font-weight: 600;
 }
 
-QFrame#right_ppanel{
+QFrame#right_ppanel {
     background: transparent;
-    margin-right: -25px;
+    margin: 0px;
 }
 
 QFrame#topControlBar {
-    background: rgba(48, 48, 61, 0.42);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+        stop:0 rgba(88, 99, 109, 0.04), 
+        stop:1 rgba(79, 87, 102, 0.19));
+    border: 1px solid rgba(150, 150, 150, 0.19);
     border-radius: 15px;
 }
 

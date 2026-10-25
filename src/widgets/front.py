@@ -7,13 +7,17 @@ from PyQt6.QtWidgets import (
     QWidget, QSizePolicy, QHBoxLayout
 )
 
+MAX_FPS = 30
+FRAME_INTERVAL_MS = max(1, int(1000 / MAX_FPS))
+SCROLL_SPEED_PX_PER_SEC = 35.0
+
 
 class ElidedLabel(QLabel):
     def __init__(self, text="", parent=None):
         super().__init__(parent)
         self._full_text = text
         self._is_scrolling = False
-        self._scroll_x = 0
+        self._scroll_x = 0.0
         self._gap = 40
 
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -22,7 +26,7 @@ class ElidedLabel(QLabel):
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
 
         self._timer = QTimer(self)
-        self._timer.setInterval(30)
+        self._timer.setInterval(FRAME_INTERVAL_MS)
         self._timer.timeout.connect(self._on_timer)
 
     def _repaint_underlay(self):
@@ -33,7 +37,7 @@ class ElidedLabel(QLabel):
 
     def set_full_text(self, text: str):
         self._full_text = text
-        self._scroll_x = 0
+        self._scroll_x = 0.0
         self.update_elide()
         self._repaint_underlay()
 
@@ -42,7 +46,7 @@ class ElidedLabel(QLabel):
             return
 
         self._is_scrolling = enabled
-        self._scroll_x = 0
+        self._scroll_x = 0.0
         self.update_elide()
         self._repaint_underlay()
 
@@ -52,13 +56,14 @@ class ElidedLabel(QLabel):
 
         if not self._is_scrolling or text_w <= available_w:
             self._timer.stop()
-            self._scroll_x = 0
+            self._scroll_x = 0.0
             self._repaint_underlay()
             return
 
-        self._scroll_x += 1
+        step = SCROLL_SPEED_PX_PER_SEC / MAX_FPS
+        self._scroll_x += step
         if self._scroll_x >= text_w + self._gap:
-            self._scroll_x = 0
+            self._scroll_x = 0.0
 
         self._repaint_underlay()
 
@@ -71,7 +76,7 @@ class ElidedLabel(QLabel):
                 self._timer.start()
         else:
             self._timer.stop()
-            self._scroll_x = 0
+            self._scroll_x = 0.0
 
         self.update()
 
@@ -93,7 +98,7 @@ class ElidedLabel(QLabel):
         text_w = metrics.horizontalAdvance(self._full_text)
 
         if self._is_scrolling and text_w > max(0, rect.width() - 4):
-            x1 = rect.left() - self._scroll_x
+            x1 = rect.left() - int(self._scroll_x)
             painter.drawText(x1, baseline, self._full_text)
 
             x2 = x1 + text_w + self._gap

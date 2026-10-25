@@ -1,15 +1,11 @@
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFrame
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFrame, QAbstractItemView
+from PyQt6.QtCore import Qt, QObject, QEvent, QPropertyAnimation, QEasingCurve
 
 from src.main_logic.file import save_session
 from src.ui.icons import ModernIcon
 from src.widgets.widgets import FloatingGlassPanel, PlaylistWidget
 from src.widgets.front import PlaylistItemCard
-
 from src.base import *
-
-from PyQt6.QtCore import QObject, QEvent, QPropertyAnimation, QEasingCurve
-from PyQt6.QtWidgets import QAbstractItemView
 
 class SmoothScrollFilter(QObject):
     def __init__(self, target: QAbstractItemView, parent=None):
@@ -22,27 +18,30 @@ class SmoothScrollFilter(QObject):
         self.anim.setDuration(250)
 
     def eventFilter(self, obj, event):
-        if obj == self.target.viewport() and event.type() == QEvent.Type.Wheel:
-            delta = event.angleDelta().y()
-            if delta != 0:
-                scroll_step = 100
-                direction = -1 if delta > 0 else 1
-                
-                current_target = (
-                    self.anim.endValue() if self.anim.state() == QPropertyAnimation.State.Running 
-                    else self.v_scrollbar.value()
-                )
-                
-                new_value = current_target + (direction * scroll_step)
-                new_value = max(self.v_scrollbar.minimum(), min(new_value, self.v_scrollbar.maximum()))
-                
-                self.anim.stop()
-                self.anim.setStartValue(self.v_scrollbar.value())
-                self.anim.setEndValue(new_value)
-                self.anim.start()
-                return True
-                
-        return super().eventFilter(obj, event)
+        try:
+            if obj == self.target.viewport() and event.type() == QEvent.Type.Wheel:
+                delta = event.angleDelta().y()
+                if delta != 0:
+                    scroll_step = 100
+                    direction = -1 if delta > 0 else 1
+                    
+                    current_target = (
+                        self.anim.endValue() if self.anim.state() == QPropertyAnimation.State.Running 
+                        else self.v_scrollbar.value()
+                    )
+                    
+                    new_value = current_target + (direction * scroll_step)
+                    new_value = max(self.v_scrollbar.minimum(), min(new_value, self.v_scrollbar.maximum()))
+                    
+                    self.anim.stop()
+                    self.anim.setStartValue(self.v_scrollbar.value())
+                    self.anim.setEndValue(new_value)
+                    self.anim.start()
+                    return True
+                    
+            return super().eventFilter(obj, event)
+        except:
+            pass
     
 def playlist_panel(self):
     self.right_box = QFrame()
@@ -52,6 +51,7 @@ def playlist_panel(self):
     self.right_box.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
             
     right_vbox = QVBoxLayout(self.right_box)
+    right_vbox.setContentsMargins(6, 6, 6, 6)
     right_vbox.setSpacing(8)
 
     option_bar = FloatingGlassPanel()
@@ -84,20 +84,21 @@ def playlist_panel(self):
 
     self.list_widget = PlaylistWidget()
     self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
     self.list_widget.setVerticalScrollMode(self.list_widget.ScrollMode.ScrollPerPixel)
     self.smooth_scroll = SmoothScrollFilter(self.list_widget)
     self.list_widget.viewport().installEventFilter(self.smooth_scroll)
-    self.list_widget.setSpacing(4)
+    self.list_widget.setSpacing(5)
     self.list_widget.files_dropped.connect(self.handle_dropped_files)
-    self.list_widget.model().rowsMoved.connect(lambda:on_list_rows_moved(self))
+    self.list_widget.model().rowsMoved.connect(lambda: on_list_rows_moved(self))
     self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
     self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
     
     self.currect_item = None
-    self.list_widget.currentItemChanged.connect(lambda x,y:on_list_item_changed(self, x, y))
+    self.list_widget.currentItemChanged.connect(lambda x, y: on_list_item_changed(self, x, y))
     right_vbox.addWidget(self.list_widget)
     
-    self.list_set = lambda i:set_list_by_index(self, i)
+    self.list_set = lambda i: set_list_by_index(self, i)
     
 def set_list_by_index(self, idx):
     prev_item = self.list_widget.currentItem()
@@ -117,7 +118,7 @@ def on_list_rows_moved(self):
     save_session(self)
     
 def on_list_item_changed(self, current, previous, back=False):
-    if previous and (back or  self.currect_item != previous):
+    if previous and (back or self.currect_item != previous):
         prev_card = self.list_widget.itemWidget(previous)
         if isinstance(prev_card, PlaylistItemCard):
             prev_card.set_selected(False)

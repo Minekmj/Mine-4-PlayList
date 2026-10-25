@@ -66,9 +66,8 @@ def _find_vcvarsall():
 
 def _compile_with_msvc(base_dir: str, c_src_name: str, lib_name: str):
     vcvars_bat, arch = _find_vcvarsall()
-
     if shutil.which("cl") is not None:
-        cmd = ["cl", "/O2", "/LD", f"/Fe:{lib_name}", c_src_name]
+        cmd = ["cl", "/O2", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
         res = subprocess.run(cmd, cwd=base_dir, capture_output=True, text=True)
     elif vcvars_bat and os.path.exists(vcvars_bat):
         cmd = f'call "{vcvars_bat}" {arch} && cl /O2 /LD /Fe:"{lib_name}" "{c_src_name}"'
@@ -128,7 +127,8 @@ def get_native_engine():
             ctypes.POINTER(ctypes.c_uint32), ctypes.c_int, ctypes.c_int,
             ctypes.POINTER(ctypes.c_uint32), ctypes.c_int, ctypes.c_int,
             ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
-            ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float
+            ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+            ctypes.c_int
         ]
         lib.c_render_vanishing_perspective.restype = None
 
@@ -137,6 +137,14 @@ def get_native_engine():
             ctypes.c_int, ctypes.c_int, ctypes.c_int
         ]
         lib.c_apply_optical_gaussian_blur.restype = None
+
+        lib.c_render_rounded_box_shadow.argtypes = [
+            ctypes.POINTER(ctypes.c_uint32), ctypes.c_int, ctypes.c_int,
+            ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+            ctypes.c_float, ctypes.c_float,
+            ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8, ctypes.c_float
+        ]
+        lib.c_render_rounded_box_shadow.restype = None
 
         lib.c_update_particles.argtypes = [
             ctypes.POINTER(NativeParticle), ctypes.c_int,

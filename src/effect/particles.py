@@ -1,7 +1,7 @@
 import math
 import random
 from PyQt6.QtCore import Qt, QRectF, QLineF
-from PyQt6.QtGui import QPainter, QColor, QPen, QPainterPath
+from PyQt6.QtGui import QPainter, QColor, QPen, QPainterPath, QRegion
 from src.C.native_bridge import get_native_engine, NativeParticle
 
 ALIAS_MAP = {
@@ -232,7 +232,7 @@ class ParticleSystem:
                 if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
                     self._reset_particle(i, w, h, False)
 
-    def draw(self, painter: QPainter, w: int, h: int):
+    def draw(self, painter: QPainter, w: int, h: int, exclude_rect: QRectF = None):
         if not self.enabled or self.active_count == 0 or w <= 0 or h <= 0:
             return
 
@@ -240,14 +240,34 @@ class ParticleSystem:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter.setPen(Qt.PenStyle.NoPen)
 
+        has_exclude = exclude_rect is not None and not exclude_rect.isEmpty()
+        if has_exclude:
+            ex_x1 = exclude_rect.left()
+            ex_y1 = exclude_rect.top()
+            ex_x2 = exclude_rect.right()
+            ex_y2 = exclude_rect.bottom()
+        else:
+            ex_x1 = ex_y1 = ex_x2 = ex_y2 = 0
+
         cols = self._palette_rgbs.get(self.palette_name, self._palette_rgbs["퓨어 화이트"])
         c_count = len(cols)
         alpha_scale = 255.0 * min(1.0, self.density * 1.5)
 
         draw_handler = self._draw_handlers.get(self.p_type, self._draw_default)
-        draw_handler(painter, cols, c_count, alpha_scale)
+        
+        if has_exclude:
+            self._draw_with_culling(painter, draw_handler, cols, c_count, alpha_scale, ex_x1, ex_y1, ex_x2, ex_y2)
+        else:
+            draw_handler(painter, cols, c_count, alpha_scale)
 
         painter.restore()
+
+    def _draw_with_culling(self, painter, draw_handler, cols, c_count, alpha_scale, ex_x1, ex_y1, ex_x2, ex_y2):
+        full_reg = QRegion(0, 0, int(painter.device().width()), int(painter.device().height()))
+        video_reg = QRegion(int(ex_x1), int(ex_y1), int(ex_x2 - ex_x1), int(ex_y2 - ex_y1))
+        painter.setClipRegion(full_reg.subtracted(video_reg))
+        
+        draw_handler(painter, cols, c_count, alpha_scale)
 
     def _color(self, r: int, g: int, b: int, a: int) -> QColor:
         key = (r, g, b, a)

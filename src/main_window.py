@@ -2,23 +2,25 @@ import os
 import sys
 
 from PyQt6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QMenu, QListWidgetItem
-from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent, QSize, QPropertyAnimation
+from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent, QSize
 
 from src.main_ui.dock import dock_panel
 from src.main_ui.playlist import playlist_panel
 from src.main_ui.top import top_bar
 from src.ui.icons import ModernIcon
-from src.widgets.widgets import AmbientVideoContainer, PlaylistItemCard
+from src.widgets.widgets import PlaylistItemCard
+from src.widgets.backs import AmbientVideoContainer
 from src.core.player_core import PlayerCore
 from src.ui.dialogs import SettingsDialog, UrlDialog
 from src.mini_mode.mini import (
-    reset_all_cursors, toggle_mini_mode, enter_mini_mode, exit_mini_mode,
+    reset_all_cursors, toggle_mini_mode, exit_mini_mode,
     reposition_mini_bar, get_resize_edge, update_cursor_for_edge,
     is_in_play_click_zone
 )
 
 from src.main_logic.file import *
 from src.main_logic.timer import *
+
 
 class EchoMediaPlayer(QMainWindow):
     def __init__(self):
@@ -28,6 +30,7 @@ class EchoMediaPlayer(QMainWindow):
         self.setMinimumSize(960, 600)
         self.setMouseTracking(True)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
         self._drag_pos = None
 
@@ -46,6 +49,7 @@ class EchoMediaPlayer(QMainWindow):
         self.init_ui()
         top_bar(self)
         self.init_engine()
+        self.update_window_and_video_radius()
         load_session(self)
         save_session(self)
         load_session(self)
@@ -59,6 +63,7 @@ class EchoMediaPlayer(QMainWindow):
 
         self.video_frame = QWidget()
         self.video_frame.setStyleSheet("background-color: transparent; border: none;")
+        self.video_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.video_frame.installEventFilter(self)
         self.video_frame.setMouseTracking(True)
 
@@ -76,11 +81,25 @@ class EchoMediaPlayer(QMainWindow):
 
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
+            self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
             self.core.set_volume(self.vol_slider.value())
             self.core.preload_playlist_gains(self.playlist)
         except Exception as e:
             QMessageBox.critical(self, "엔진 로드 실패", f"미디어 엔진을 초기화하지 못했습니다: {e}")
             self.core = None
+
+    def update_window_and_video_radius(self):
+        cfg = self.engine_config
+        vr = float(cfg.get("video_radius", 8))
+        wr = 0.0 if self.isFullScreen() else float(cfg.get("window_radius", 12))
+
+        self.ambient_container.set_video_radius(vr)
+        self.ambient_container.set_window_radius(wr)
+
+        if hasattr(self, 'core') and self.core:
+            self.core.set_video_radius(vr)
+
+        self.clearMask()
 
     def play_index(self, idx: int):
         if not self.core or not (0 <= idx < len(self.playlist)):
@@ -157,8 +176,10 @@ class EchoMediaPlayer(QMainWindow):
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
             self.core.set_hwdec(self.engine_config.get("hwdec", True))
+            self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
 
         self.ambient_container.set_ambient_params(self.engine_config)
+        self.update_window_and_video_radius()
         save_session(self)
 
     def refresh_playlist_view(self):
@@ -254,7 +275,7 @@ class EchoMediaPlayer(QMainWindow):
                     self.current_idx -= 1
                 self.refresh_playlist_view()
                 save_session(self)
-                
+
     def open_settings(self):
         if hasattr(self, 'settings_panel') and self.settings_panel is not None and self.settings_panel.isVisible():
             self.settings_panel.raise_()
@@ -278,16 +299,19 @@ class EchoMediaPlayer(QMainWindow):
 
         if self.isFullScreen():
             self.showNormal()
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
             self.ambient_container.set_playlist_visibility(True)
             self.fs_timer.stop()
             self.show_floating_controls()
             self.btn_fs.setIcon(ModernIcon.create("fullscreen", "#FFFFFF", 20))
         else:
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
             self.showFullScreen()
             self.ambient_container.set_playlist_visibility(False)
             self.btn_fs.setIcon(ModernIcon.create("restore", "#FFFFFF", 20))
             self.show_floating_controls()
 
+        self.update_window_and_video_radius()
         QTimer.singleShot(60, lambda: self.core.reposition_subtitle() if self.core else None)
 
     def show_floating_controls(self):
@@ -325,9 +349,10 @@ class EchoMediaPlayer(QMainWindow):
         self._top_anim.setStartValue(self._top_opacity.opacity())
         self._top_anim.setEndValue(0.0)
         self._top_anim.start()
-        
+
     def toggle_mini_mode(self):
         toggle_mini_mode(self)
+        self.update_window_and_video_radius()
 
     def keyPressEvent(self, event):
         k = event.key()
@@ -338,13 +363,14 @@ class EchoMediaPlayer(QMainWindow):
         elif k == Qt.Key.Key_Down:
             self.vol_slider.setValue(max(0, self.vol_slider.value() - 5))
         elif k == Qt.Key.Key_P:
-            toggle_mini_mode(self)
+            self.toggle_mini_mode()
         elif k == Qt.Key.Key_F:
             if not getattr(self, "is_mini_mode", False):
                 self.toggle_fullscreen()
         elif k == Qt.Key.Key_Escape:
             if getattr(self, "is_mini_mode", False):
                 exit_mini_mode(self)
+                self.update_window_and_video_radius()
             elif self.isFullScreen():
                 self.toggle_fullscreen()
         elif k == Qt.Key.Key_L and not getattr(self, "is_mini_mode", False):
@@ -364,6 +390,7 @@ class EchoMediaPlayer(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        self.update_window_and_video_radius()
         if hasattr(self, 'top_control_bar'):
             bx = (self.width() - self.top_control_bar.width()) // 2
             self.top_control_bar.move(bx, 12)
@@ -516,7 +543,6 @@ class EchoMediaPlayer(QMainWindow):
             self._drag_pos = None
         return False
 
-
     def _is_video_object(self, obj) -> bool:
         target_view = getattr(self.core, 'view', None) if getattr(self, 'core', None) else None
         target_viewport = target_view.viewport() if target_view else None
@@ -542,6 +568,7 @@ class EchoMediaPlayer(QMainWindow):
 
             elif t == QEvent.Type.MouseButtonDblClick:
                 exit_mini_mode(self)
+                self.update_window_and_video_radius()
                 return True
 
             elif t == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
@@ -579,7 +606,7 @@ class EchoMediaPlayer(QMainWindow):
             self.vol_slider.setValue(max(0, min(100, self.vol_slider.value() + step)))
             return True
         return False
-    
+
     def _handle_mini_resizing(self, gpos: QPoint):
         diff = gpos - self._resize_start_pos
         geo = self._resize_start_geo
@@ -605,7 +632,7 @@ class EchoMediaPlayer(QMainWindow):
                 new_y = geo.y() + diff.y()
 
         self.setGeometry(new_x, new_y, new_w, new_h)
-        
+
     def leaveEvent(self, event):
         if getattr(self, "is_mini_mode", False):
             if hasattr(self, "mini_top_bar") and self.mini_top_bar:

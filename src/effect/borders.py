@@ -161,12 +161,95 @@ class ScreenBorderSystem:
         pen = QPen(grad, pen_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
         return pen
 
+    def _get_base_rounded_path(self, w: int, h: int) -> QPainterPath:
+        half_w = float(self.width) * 0.5
+        m = float(self.margin) + half_w
+        r_outer = float(self.radius)
+        r = max(0.0, r_outer - half_w) if r_outer > 0.5 else 0.0
+        r = min(r, (float(w) - m * 2.0) / 2.0, (float(h) - m * 2.0) / 2.0)
+
+        path_key = (w, h, int(self.margin * 10), int(self.width * 10), int(r * 10))
+        path = self._path_cache.get(path_key)
+        if path is None:
+            path = QPainterPath()
+            if r > 0.5:
+                path.addRoundedRect(QRectF(m, m, float(w) - m * 2.0, float(h) - m * 2.0), r, r)
+            else:
+                path.addRect(QRectF(m, m, float(w) - m * 2.0, float(h) - m * 2.0))
+            self._path_cache[path_key] = path
+            if len(self._path_cache) > 16:
+                self._path_cache.popitem(last=False)
+        else:
+            self._path_cache.move_to_end(path_key)
+        return path
+
+    def _create_curved_corner_brackets(self, w: float, h: float, m: float, r: float, arm: float) -> list[QPainterPath]:
+        brackets = []
+        half_w = float(self.width) * 0.5
+        x_l = float(m) + half_w
+        y_t = float(m) + half_w
+        x_r = float(w) - x_l
+        y_b = float(h) - y_t
+        max_r = min((x_r - x_l) / 2.0, (y_b - y_t) / 2.0)
+        r_c = max(0.0, min(float(r) - half_w, max_r)) if r > 0.5 else 0.0
+
+        p_tl = QPainterPath()
+        if r_c > 0.5:
+            p_tl.moveTo(x_l + r_c + arm, y_t)
+            p_tl.lineTo(x_l + r_c, y_t)
+            p_tl.arcTo(QRectF(x_l, y_t, 2.0 * r_c, 2.0 * r_c), 90.0, 90.0)
+            p_tl.lineTo(x_l, y_t + r_c + arm)
+        else:
+            p_tl.moveTo(x_l + arm, y_t)
+            p_tl.lineTo(x_l, y_t)
+            p_tl.lineTo(x_l, y_t + arm)
+        brackets.append(p_tl)
+
+        p_tr = QPainterPath()
+        if r_c > 0.5:
+            p_tr.moveTo(x_r - r_c - arm, y_t)
+            p_tr.lineTo(x_r - r_c, y_t)
+            p_tr.arcTo(QRectF(x_r - 2.0 * r_c, y_t, 2.0 * r_c, 2.0 * r_c), 90.0, -90.0)
+            p_tr.lineTo(x_r, y_t + r_c + arm)
+        else:
+            p_tr.moveTo(x_r - arm, y_t)
+            p_tr.lineTo(x_r, y_t)
+            p_tr.lineTo(x_r, y_t + arm)
+        brackets.append(p_tr)
+
+        p_br = QPainterPath()
+        if r_c > 0.5:
+            p_br.moveTo(x_r, y_b - r_c - arm)
+            p_br.lineTo(x_r, y_b - r_c)
+            p_br.arcTo(QRectF(x_r - 2.0 * r_c, y_b - 2.0 * r_c, 2.0 * r_c, 2.0 * r_c), 0.0, -90.0)
+            p_br.lineTo(x_r - r_c - arm, y_b)
+        else:
+            p_br.moveTo(x_r, y_b - arm)
+            p_br.lineTo(x_r, y_b)
+            p_br.lineTo(x_r - arm, y_b)
+        brackets.append(p_br)
+
+        p_bl = QPainterPath()
+        if r_c > 0.5:
+            p_bl.moveTo(x_l, y_b - r_c - arm)
+            p_bl.lineTo(x_l, y_b - r_c)
+            p_bl.arcTo(QRectF(x_l, y_b - 2.0 * r_c, 2.0 * r_c, 2.0 * r_c), 180.0, 90.0)
+            p_bl.lineTo(x_l + r_c + arm, y_b)
+        else:
+            p_bl.moveTo(x_l, y_b - arm)
+            p_bl.lineTo(x_l, y_b)
+            p_bl.lineTo(x_l + arm, y_b)
+        brackets.append(p_bl)
+
+        return brackets
+
     def draw(self, p: QPainter, w: int, h: int):
         if not self.enabled or w <= 0 or h <= 0 or self.opacity <= 0.001 or self.style == "없음":
             return
 
         p.save()
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         active_alpha = self._get_active_alpha(255)
 
         if self.style == "엣지 글로우":
@@ -197,122 +280,139 @@ class ScreenBorderSystem:
         p.restore()
 
     def _draw_edge_glow(self, p: QPainter, w: int, h: int, alpha: int):
-        m = float(self.margin)
         pulse_spread = 0.0
         if self.anim_mode == "브리딩 펄스":
             pulse_spread = math.sin(self.phase * 2.0) * (self.glow_spread * 0.25 * self.pulse_depth)
-        spread = float(max(4, self.glow_spread + pulse_spread))
-        r = float(self.radius)
-
-        path_key = (w, h, self.margin, self.radius)
-        path = self._path_cache.get(path_key)
-        if path is None:
-            path = QPainterPath()
-            path.addRoundedRect(QRectF(m, m, w - m * 2, h - m * 2), r, r)
-            self._path_cache[path_key] = path
-            if len(self._path_cache) > 8:
-                self._path_cache.popitem(last=False)
-        else:
-            self._path_cache.move_to_end(path_key)
+        spread = float(max(4.0, self.glow_spread + pulse_spread))
+        path = self._get_base_rounded_path(w, h)
 
         p.setBrush(Qt.BrushStyle.NoBrush)
-        steps = 2
+        steps = 8
+        base_w = float(self.width)
         for i in range(steps, 0, -1):
-            cur_w = float(self.width) + (spread * (i / steps))
-            glow_a = max(0, min(255, int(alpha * (1.0 - (i / (steps + 1))) * 0.42)))
-            pen = self._create_styled_pen(w, h, cur_w, glow_a)
-            p.setPen(pen)
-            p.drawPath(path)
+            ratio = i / float(steps)
+            cur_w = base_w + spread * ratio * 2.2
+            glow_a = max(0, min(255, int(alpha * math.exp(-3.0 * (ratio ** 2)) * 0.42)))
+            if glow_a > 0:
+                pen = self._create_styled_pen(w, h, cur_w, glow_a)
+                p.setPen(pen)
+                p.drawPath(path)
 
-        core_pen = self._create_styled_pen(w, h, float(self.width), alpha)
+        core_pen = self._create_styled_pen(w, h, base_w, alpha)
         p.setPen(core_pen)
         p.drawPath(path)
 
     def _draw_minimal_border(self, p: QPainter, w: int, h: int, alpha: int):
-        m = float(self.margin)
-        half_w = float(self.width) * 0.5
-        rect = QRectF(m + half_w, m + half_w, w - (m + half_w) * 2, h - (m + half_w) * 2)
-        r = float(self.radius)
+        path = self._get_base_rounded_path(w, h)
         p.setBrush(Qt.BrushStyle.NoBrush)
         pen = self._create_styled_pen(w, h, float(self.width), alpha)
         p.setPen(pen)
-        p.drawRoundedRect(rect, r, r)
+        p.drawPath(path)
 
     def _draw_double_line(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(self.margin)
-        half_w = float(self.width) * 0.5
-        rect1 = QRectF(m + half_w, m + half_w, w - (m + half_w) * 2, h - (m + half_w) * 2)
-        r1 = float(self.radius)
+        r = float(self.radius)
         p.setBrush(Qt.BrushStyle.NoBrush)
+
+        path1 = self._get_base_rounded_path(w, h)
         pen1 = self._create_styled_pen(w, h, float(self.width), alpha)
         p.setPen(pen1)
-        p.drawRoundedRect(rect1, r1, r1)
+        p.drawPath(path1)
 
         offset = max(4.0, float(self.width) + 2.0)
-        rect2 = rect1.adjusted(offset, offset, -offset, -offset)
-        r2 = max(0.0, r1 - offset)
-        if rect2.width() > 10 and rect2.height() > 10:
+        m2 = m + offset
+        r2 = max(0.0, r - offset)
+        if w - m2 * 2 > 10 and h - m2 * 2 > 10:
+            path2 = QPainterPath()
+            if r2 > 0.5:
+                path2.addRoundedRect(QRectF(m2, m2, w - m2 * 2, h - m2 * 2), r2, r2)
+            else:
+                path2.addRect(QRectF(m2, m2, w - m2 * 2, h - m2 * 2))
             pen2 = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.5))))
             p.setPen(pen2)
-            p.drawRoundedRect(rect2, r2, r2)
+            p.drawPath(path2)
 
     def _draw_technical_bracket(self, p: QPainter, w: int, h: int, alpha: int):
-        m = float(self.margin) + 2.0
-        arm = min(72.0, max(24.0, min(w, h) * 0.08))
         thick = float(self.width)
+        half_w = thick * 0.5
+        m_inner = float(self.margin) + half_w + 3.0
+        r_inner = max(0.0, float(self.radius) - half_w - 3.0)
+        arm = min(72.0, max(24.0, min(w, h) * 0.08))
         p.setBrush(Qt.BrushStyle.NoBrush)
 
-        sub_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.22))))
+        sub_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.25))))
         sub_pen.setStyle(Qt.PenStyle.DashLine)
         p.setPen(sub_pen)
-        p.drawRect(QRectF(m + 4, m + 4, w - (m + 4) * 2, h - (m + 4) * 2))
+        p_inner = QPainterPath()
+        if r_inner > 0.5:
+            p_inner.addRoundedRect(QRectF(m_inner, m_inner, float(w) - m_inner * 2.0, float(h) - m_inner * 2.0), r_inner, r_inner)
+        else:
+            p_inner.addRect(QRectF(m_inner, m_inner, float(w) - m_inner * 2.0, float(h) - m_inner * 2.0))
+        p.drawPath(p_inner)
 
         pen = self._create_styled_pen(w, h, thick, alpha)
-        pen.setCapStyle(Qt.PenCapStyle.SquareCap)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         p.setPen(pen)
-
-        p.drawLine(QPointF(m, m + arm), QPointF(m, m))
-        p.drawLine(QPointF(m, m), QPointF(m + arm, m))
-        p.drawLine(QPointF(w - m - arm, m), QPointF(w - m, m))
-        p.drawLine(QPointF(w - m, m), QPointF(w - m, m + arm))
-        p.drawLine(QPointF(m, h - m - arm), QPointF(m, h - m))
-        p.drawLine(QPointF(m, h - m), QPointF(m + arm, h - m))
-        p.drawLine(QPointF(w - m - arm, h - m), QPointF(w - m, h - m))
-        p.drawLine(QPointF(w - m, h - m), QPointF(w - m, h - m - arm))
+        for b_path in self._create_curved_corner_brackets(w, h, self.margin, self.radius, arm):
+            p.drawPath(b_path)
 
         accent_sz = max(4.0, thick + 2.0)
+        half_acc = accent_sz * 0.5
         p.setPen(Qt.PenStyle.NoPen)
-        grad = self._create_brush_gradient(w, h, alpha)
-        p.setBrush(grad)
-        p.drawRect(QRectF(m - thick * 0.5, m - thick * 0.5, accent_sz, accent_sz))
-        p.drawRect(QRectF(w - m - accent_sz + thick * 0.5, m - thick * 0.5, accent_sz, accent_sz))
-        p.drawRect(QRectF(m - thick * 0.5, h - m - accent_sz + thick * 0.5, accent_sz, accent_sz))
-        p.drawRect(QRectF(w - m - accent_sz + thick * 0.5, h - m - accent_sz + thick * 0.5, accent_sz, accent_sz))
+        p.setBrush(self._create_brush_gradient(w, h, alpha))
 
-        cx = w * 0.5
+        x_l = float(self.margin) + half_w
+        y_t = float(self.margin) + half_w
+        x_r = float(w) - x_l
+        y_b = float(h) - y_t
+        r_c = max(0.0, float(self.radius) - half_w) if self.radius > 0.5 else 0.0
+        diag_off = r_c * 0.2929 if r_c > 0.5 else 0.0
+
+        corners = [
+            QPointF(x_l + diag_off, y_t + diag_off),
+            QPointF(x_r - diag_off, y_t + diag_off),
+            QPointF(x_r - diag_off, y_b - diag_off),
+            QPointF(x_l + diag_off, y_b - diag_off)
+        ]
+        for pt in corners:
+            p.drawRect(QRectF(pt.x() - half_acc, pt.y() - half_acc, accent_sz, accent_sz))
+
+        cx, cy = float(w) * 0.5, float(h) * 0.5
+        top_y = float(self.margin) + half_w
+        bot_y = float(h) - top_y
         p.setPen(self._create_styled_pen(w, h, 1.0, alpha))
-        p.drawLine(QPointF(cx - 24, m), QPointF(cx + 24, m))
-        p.drawLine(QPointF(cx, m - 3), QPointF(cx, m + 3))
-        p.drawLine(QPointF(cx - 24, h - m), QPointF(cx + 24, h - m))
-        p.drawLine(QPointF(cx, h - m - 3), QPointF(cx, h - m + 3))
+        p.drawLine(QPointF(cx - 24, top_y), QPointF(cx + 24, top_y))
+        p.drawLine(QPointF(cx, top_y - 3), QPointF(cx, top_y + 3))
+        p.drawLine(QPointF(cx - 24, bot_y), QPointF(cx + 24, bot_y))
+        p.drawLine(QPointF(cx, bot_y - 3), QPointF(cx, bot_y + 3))
 
     def _draw_inset_frame(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(max(6, self.margin))
-        r = float(max(4, self.radius))
-        rect = QRectF(m, m, w - m * 2, h - m * 2)
+        r = float(max(0, self.radius))
+        path = self._get_base_rounded_path(w, h)
 
         shadow_c = QColor(0, 0, 0, max(0, min(255, int(alpha * 0.55))))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(shadow_c, float(self.width + 3), Qt.PenStyle.SolidLine))
-        p.drawRoundedRect(rect.translated(0, 2.5), r, r)
+        p.save()
+        p.translate(0, 2.5)
+        p.drawPath(path)
+        p.restore()
 
         pen = self._create_styled_pen(w, h, float(self.width), alpha)
         p.setPen(pen)
-        p.drawRoundedRect(rect, r, r)
+        p.drawPath(path)
 
         hi_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.45))))
         p.setPen(hi_pen)
-        p.drawRoundedRect(rect.adjusted(2.0, 2.0, -2.0, -2.0), max(0.0, r - 2.0), max(0.0, r - 2.0))
+        inner_r = max(0.0, r - 2.0)
+        p_hi = QPainterPath()
+        if inner_r > 0.5:
+            p_hi.addRoundedRect(QRectF(m + 2.0, m + 2.0, w - (m + 2.0) * 2, h - (m + 2.0) * 2), inner_r, inner_r)
+        else:
+            p_hi.addRect(QRectF(m + 2.0, m + 2.0, w - (m + 2.0) * 2, h - (m + 2.0) * 2))
+        p.drawPath(p_hi)
 
     def _draw_studio_chamfer(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(self.margin) + float(self.width) * 0.5
@@ -343,42 +443,110 @@ class ScreenBorderSystem:
         p.drawPolygon(poly_inner)
 
     def _draw_dot_matrix(self, p: QPainter, w: int, h: int, alpha: int):
-        m = float(self.margin) + 4.0
+        half_w = float(self.width) * 0.5
+        m = float(self.margin) + half_w + 2.0
+        r_c = max(0.0, float(self.radius) - half_w - 2.0) if self.radius > 0.5 else 0.0
         dot_sz = max(2.0, float(self.width) * 0.8)
-        step = 16.0
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(self._create_brush_gradient(w, h, alpha))
 
-        x = m
-        while x <= w - m:
-            p.drawRect(QRectF(x - dot_sz * 0.5, m - dot_sz * 0.5, dot_sz, dot_sz))
-            p.drawRect(QRectF(x - dot_sz * 0.5, h - m - dot_sz * 0.5, dot_sz, dot_sz))
-            x += step
+        step = 18.0
+        if r_c <= 1.0:
+            avail_w = max(10.0, float(w) - m * 2.0)
+            avail_h = max(10.0, float(h) - m * 2.0)
+            count_x = max(2, int(round(avail_w / step)))
+            count_y = max(2, int(round(avail_h / step)))
+            step_x = avail_w / count_x
+            step_y = avail_h / count_y
 
-        y = m + step
-        while y < h - m:
+            for i in range(count_x + 1):
+                x = m + i * step_x
+                p.drawRect(QRectF(x - dot_sz * 0.5, m - dot_sz * 0.5, dot_sz, dot_sz))
+                p.drawRect(QRectF(x - dot_sz * 0.5, float(h) - m - dot_sz * 0.5, dot_sz, dot_sz))
+
+            for j in range(1, count_y):
+                y = m + j * step_y
+                p.drawRect(QRectF(m - dot_sz * 0.5, y - dot_sz * 0.5, dot_sz, dot_sz))
+                p.drawRect(QRectF(float(w) - m - dot_sz * 0.5, y - dot_sz * 0.5, dot_sz, dot_sz))
+            return
+
+        straight_w = max(0.0, (float(w) - m * 2.0) - r_c * 2.0)
+        straight_h = max(0.0, (float(h) - m * 2.0) - r_c * 2.0)
+        count_sx = max(1, int(round(straight_w / step)))
+        count_sy = max(1, int(round(straight_h / step)))
+        step_sx = straight_w / count_sx if count_sx > 0 else 0
+        step_sy = straight_h / count_sy if count_sy > 0 else 0
+
+        for i in range(count_sx + 1):
+            x = m + r_c + i * step_sx
+            p.drawRect(QRectF(x - dot_sz * 0.5, m - dot_sz * 0.5, dot_sz, dot_sz))
+            p.drawRect(QRectF(x - dot_sz * 0.5, float(h) - m - dot_sz * 0.5, dot_sz, dot_sz))
+
+        for j in range(count_sy + 1):
+            y = m + r_c + j * step_sy
             p.drawRect(QRectF(m - dot_sz * 0.5, y - dot_sz * 0.5, dot_sz, dot_sz))
-            p.drawRect(QRectF(w - m - dot_sz * 0.5, y - dot_sz * 0.5, dot_sz, dot_sz))
-            y += step
+            p.drawRect(QRectF(float(w) - m - dot_sz * 0.5, y - dot_sz * 0.5, dot_sz, dot_sz))
+
+        arc_len = (math.pi * 0.5) * r_c
+        arc_dots = max(1, int(round(arc_len / step)))
+        for k in range(1, arc_dots):
+            theta = (math.pi * 0.5) * (k / float(arc_dots))
+            cos_t, sin_t = math.cos(theta), math.sin(theta)
+            p.drawRect(QRectF((m + r_c - r_c * sin_t) - dot_sz * 0.5, (m + r_c - r_c * cos_t) - dot_sz * 0.5, dot_sz, dot_sz))
+            p.drawRect(QRectF((float(w) - m - r_c + r_c * sin_t) - dot_sz * 0.5, (m + r_c - r_c * cos_t) - dot_sz * 0.5, dot_sz, dot_sz))
+            p.drawRect(QRectF((float(w) - m - r_c + r_c * sin_t) - dot_sz * 0.5, (float(h) - m - r_c + r_c * cos_t) - dot_sz * 0.5, dot_sz, dot_sz))
+            p.drawRect(QRectF((m + r_c - r_c * sin_t) - dot_sz * 0.5, (float(h) - m - r_c + r_c * cos_t) - dot_sz * 0.5, dot_sz, dot_sz))
 
     def _draw_cyber_groove(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(self.margin) + 2.0
+        r = float(self.radius)
         pen = self._create_styled_pen(w, h, float(self.width), alpha)
-        pen.setCapStyle(Qt.PenCapStyle.FlatCap)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         p.setPen(pen)
         p.setBrush(Qt.BrushStyle.NoBrush)
 
         gap = 40.0
         cx, cy = w * 0.5, h * 0.5
+        
+        p_tl = QPainterPath()
+        p_tl.moveTo(cx - gap, m)
+        if r > 0.5:
+            p_tl.lineTo(m + r, m)
+            p_tl.arcTo(m, m, 2 * r, 2 * r, 90, 90)
+        else:
+            p_tl.lineTo(m, m)
+        p_tl.lineTo(m, cy - gap)
+        p.drawPath(p_tl)
 
-        p.drawLine(QPointF(m, m), QPointF(cx - gap, m))
-        p.drawLine(QPointF(cx + gap, m), QPointF(w - m, m))
-        p.drawLine(QPointF(m, h - m), QPointF(cx - gap, h - m))
-        p.drawLine(QPointF(cx + gap, h - m), QPointF(w - m, h - m))
-        p.drawLine(QPointF(m, m), QPointF(m, cy - gap))
-        p.drawLine(QPointF(m, cy + gap), QPointF(m, h - m))
-        p.drawLine(QPointF(w - m, m), QPointF(w - m, cy - gap))
-        p.drawLine(QPointF(w - m, cy + gap), QPointF(w - m, h - m))
+        p_tr = QPainterPath()
+        p_tr.moveTo(cx + gap, m)
+        if r > 0.5:
+            p_tr.lineTo(w - m - r, m)
+            p_tr.arcTo(w - m - 2 * r, m, 2 * r, 2 * r, 90, -90)
+        else:
+            p_tr.lineTo(w - m, m)
+        p_tr.lineTo(w - m, cy - gap)
+        p.drawPath(p_tr)
+
+        p_br = QPainterPath()
+        p_br.moveTo(w - m, cy + gap)
+        if r > 0.5:
+            p_br.lineTo(w - m, h - m - r)
+            p_br.arcTo(w - m - 2 * r, h - m - 2 * r, 2 * r, 2 * r, 0, -90)
+        else:
+            p_br.lineTo(w - m, h - m)
+        p_br.lineTo(cx + gap, h - m)
+        p.drawPath(p_br)
+
+        p_bl = QPainterPath()
+        p_bl.moveTo(cx - gap, h - m)
+        if r > 0.5:
+            p_bl.lineTo(m + r, h - m)
+            p_bl.arcTo(m, h - m - 2 * r, 2 * r, 2 * r, 270, -90)
+        else:
+            p_bl.lineTo(m, h - m)
+        p_bl.lineTo(m, cy + gap)
+        p.drawPath(p_bl)
 
         sub_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.4))))
         p.setPen(sub_pen)
@@ -389,25 +557,33 @@ class ScreenBorderSystem:
 
     def _draw_optical_vignette(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(self.margin)
-        rect = QRectF(m, m, w - m * 2, h - m * 2)
         r = float(self.radius)
+        path = self._get_base_rounded_path(w, h)
 
         p.setBrush(Qt.BrushStyle.NoBrush)
         pen = self._create_styled_pen(w, h, float(self.width), alpha)
         p.setPen(pen)
-        p.drawRoundedRect(rect, r, r)
+        p.drawPath(path)
 
+        p.save()
+        p.setClipPath(path)
         inner_rect = QRectF(m + 4.0, m + 4.0, w - (m + 4.0) * 2, h - (m + 4.0) * 2)
         p.fillRect(inner_rect, self._scanline_brush)
+        p.restore()
 
     def _draw_cinematic_rim(self, p: QPainter, w: int, h: int, alpha: int):
         m = float(self.margin)
+        r = float(self.radius)
         bar_h = max(3.0, float(self.width) * 1.5)
 
+        p.save()
+        path = self._get_base_rounded_path(w, h)
+        p.setClipPath(path)
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(self._create_brush_gradient(w, h, alpha))
         p.drawRect(QRectF(m, m, w - m * 2, bar_h))
         p.drawRect(QRectF(m, h - m - bar_h, w - m * 2, bar_h))
+        p.restore()
 
         sub_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.25))))
         p.setPen(sub_pen)
@@ -416,43 +592,81 @@ class ScreenBorderSystem:
         p.drawLine(QPointF(w - m, m + bar_h), QPointF(w - m, h - m - bar_h))
 
     def _draw_corner_cross(self, p: QPainter, w: int, h: int, alpha: int):
-        m = float(self.margin) + 8.0
-        pen = self._create_styled_pen(w, h, float(self.width), alpha)
+        thick = float(self.width)
+        half_w = thick * 0.5
+        x_l = float(self.margin) + half_w
+        y_t = float(self.margin) + half_w
+        x_r = float(w) - x_l
+        y_b = float(h) - y_t
+        r_c = max(0.0, float(self.radius) - half_w) if self.radius > 0.5 else 0.0
+
+        pen = self._create_styled_pen(w, h, thick, alpha)
         p.setPen(pen)
         p.setBrush(Qt.BrushStyle.NoBrush)
 
-        cs = 16.0
-        corners = [(m, m), (w - m, m), (m, h - m), (w - m, h - m)]
-        for cx, cy in corners:
-            p.drawLine(QPointF(cx - cs, cy), QPointF(cx + cs, cy))
-            p.drawLine(QPointF(cx, cy - cs), QPointF(cx, cy + cs))
+        path = self._get_base_rounded_path(w, h)
+        p.drawPath(path)
 
-        sub_pen = self._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.35))))
+        cs = 14.0
+        diag_off = r_c * 0.2929 if r_c > 0.5 else 0.0
+        corners = [
+            (x_l + diag_off, y_t + diag_off),
+            (x_r - diag_off, y_t + diag_off),
+            (x_r - diag_off, y_b - diag_off),
+            (x_l + diag_off, y_b - diag_off)
+        ]
+        sub_pen = self._create_styled_pen(w, h, 1.5, alpha)
         p.setPen(sub_pen)
-        p.drawRect(QRectF(m, m, w - m * 2, h - m * 2))
+        for cx, cy in corners:
+            p.drawLine(QPointF(cx - cs * 0.5, cy), QPointF(cx + cs * 0.5, cy))
+            p.drawLine(QPointF(cx, cy - cs * 0.5), QPointF(cx, cy + cs * 0.5))
 
     def _draw_gamer_neon(self, p: QPainter, w: int, h: int, alpha: int):
-        m = float(self.margin)
-        r = float(self.radius)
-        rect = QRectF(m, m, w - m * 2, h - m * 2)
-
+        path = self._get_base_rounded_path(w, h)
         p.setBrush(Qt.BrushStyle.NoBrush)
-        outer_pen = self._create_styled_pen(w, h, float(self.width * 2.5), max(0, min(255, int(alpha * 0.25))))
-        p.setPen(outer_pen)
-        p.drawRoundedRect(rect, r, r)
 
-        core_pen = self._create_styled_pen(w, h, float(self.width), alpha)
+        steps = 5
+        base_w = float(self.width)
+        for i in range(steps, 0, -1):
+            ratio = i / float(steps)
+            gw = base_w + (base_w * 2.2) * ratio
+            ga = max(0, min(255, int(alpha * 0.28 * math.exp(-2.2 * (ratio ** 2)))))
+            if ga > 0:
+                outer_pen = self._create_styled_pen(w, h, gw, ga)
+                p.setPen(outer_pen)
+                p.drawPath(path)
+
+        core_pen = self._create_styled_pen(w, h, base_w, alpha)
         p.setPen(core_pen)
-        p.drawRoundedRect(rect, r, r)
+        p.drawPath(path)
 
         corner_len = min(40.0, max(14.0, min(w, h) * 0.05))
-        accent_pen = QPen(QColor(255, 255, 255, alpha), float(self.width + 1.0))
+        accent_pen = QPen(QColor(255, 255, 255, alpha), float(self.width + 1.2))
+        accent_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        accent_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         p.setPen(accent_pen)
-        p.drawLine(QPointF(m, m), QPointF(m + corner_len, m))
-        p.drawLine(QPointF(m, m), QPointF(m, m + corner_len))
-        p.drawLine(QPointF(w - m, m), QPointF(w - m - corner_len, m))
-        p.drawLine(QPointF(w - m, m), QPointF(w - m, m + corner_len))
-        p.drawLine(QPointF(m, h - m), QPointF(m + corner_len, h - m))
-        p.drawLine(QPointF(m, h - m), QPointF(m, h - m - corner_len))
-        p.drawLine(QPointF(w - m, h - m), QPointF(w - m - corner_len, h - m))
-        p.drawLine(QPointF(w - m, h - m), QPointF(w - m, h - m - corner_len))
+
+        for b_path in self._create_curved_corner_brackets(w, h, self.margin, self.radius, corner_len):
+            p.drawPath(b_path)
+
+        half_w = float(self.width) * 0.5
+        x_l = float(self.margin) + half_w
+        y_t = float(self.margin) + half_w
+        x_r = float(w) - x_l
+        y_b = float(h) - y_t
+        max_r = min((x_r - x_l) / 2.0, (y_b - y_t) / 2.0)
+        r_c = max(0.0, min(float(self.radius) - half_w, max_r)) if self.radius > 0.5 else 0.0
+
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(255, 255, 255, min(255, int(alpha * 1.1))))
+        pip_sz = float(self.width + 2.0)
+        half_pip = pip_sz * 0.5
+
+        pips = [
+            QPointF(x_l + r_c + corner_len, y_t), QPointF(x_l, y_t + r_c + corner_len),
+            QPointF(x_r - r_c - corner_len, y_t), QPointF(x_r, y_t + r_c + corner_len),
+            QPointF(x_r - r_c - corner_len, y_b), QPointF(x_r, y_b - r_c - corner_len),
+            QPointF(x_l + r_c + corner_len, y_b), QPointF(x_l, y_b - r_c - corner_len)
+        ]
+        for pt in pips:
+            p.drawEllipse(QRectF(pt.x() - half_pip, pt.y() - half_pip, pip_sz, pip_sz))

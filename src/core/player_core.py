@@ -1,33 +1,46 @@
 import os
 import time
 from PyQt6.QtCore import Qt, QUrl, QObject, QTimer, QRectF, QSizeF
-from PyQt6.QtGui import QImage, QPainter
-from PyQt6.QtWidgets import QVBoxLayout, QFrame, QGraphicsView, QGraphicsScene
+from PyQt6.QtGui import QImage, QPainter, QPainterPath, QPen, QBrush
+from PyQt6.QtWidgets import QVBoxLayout, QFrame, QGraphicsView, QGraphicsScene, QGraphicsPathItem, QGraphicsItem
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QVideoFrame
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from src.core.module import *
 from src.core.subtitle_core import SubtitleFrame, SubtitleManager
 
+SUBTITLE_MAX_FPS = 30
 
 class VideoViewWidget(QGraphicsView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.gl_viewport = QOpenGLWidget(self)
-        self.setViewport(self.gl_viewport)
+        self.corner_radius = 8.0
+        self.on_aspect_ratio_changed = None
+
+        self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
-        self.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True)
-        self.setStyleSheet("background-color: black; border: none;")
+        
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet("background: transparent; border: none;")
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setMouseTracking(True)
+
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
+
+        self.clip_item = QGraphicsPathItem()
+        self.clip_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape, True)
+        self.clip_item.setPen(QPen(Qt.PenStyle.NoPen))
+        self.clip_item.setBrush(QBrush(Qt.BrushStyle.NoBrush))
+        self.scene.addItem(self.clip_item)
+
         self.video_item = QGraphicsVideoItem()
-        self.video_item.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
-        self.scene.addItem(self.video_item)
+        self.video_item.setAspectRatioMode(Qt.AspectRatioMode.IgnoreAspectRatio)
+        self.video_item.setParentItem(self.clip_item)
+
         self.sub_frame = SubtitleFrame(self.viewport())
         self.aspect_ratio = 16.0 / 9.0
         self.video_item.nativeSizeChanged.connect(self._on_native_size_changed)
@@ -37,7 +50,21 @@ class VideoViewWidget(QGraphicsView):
             ratio = float(size.width()) / float(size.height())
             if abs(self.aspect_ratio - ratio) > 0.001:
                 self.aspect_ratio = ratio
+                self._update_clipping_shape()
                 self.reposition_subtitle()
+                if self.on_aspect_ratio_changed and callable(self.on_aspect_ratio_changed):
+                    self.on_aspect_ratio_changed(ratio)
+
+    def get_video_presentation_rect(self) -> QRectF:
+        w, h = self.viewport().width(), self.viewport().height()
+        if w <= 0 or h <= 0:
+            return QRectF()
+        return QRectF(0, 0, w, h)
+
+    def set_corner_radius(self, radius: float):
+        if abs(self.corner_radius - radius) > 0.01:
+            self.corner_radius = max(0.0, float(radius))
+            self._update_clipping_shape()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -46,17 +73,21 @@ class VideoViewWidget(QGraphicsView):
         self.scene.setSceneRect(0, 0, w, h)
         self.video_item.setPos(0, 0)
         self.video_item.setSize(QSizeF(w, h))
+        self._update_clipping_shape()
         self.reposition_subtitle()
 
-    def get_video_presentation_rect(self) -> QRectF:
-        w, h = self.viewport().width(), self.viewport().height()
+    def _update_clipping_shape(self):
+        w = self.viewport().width()
+        h = self.viewport().height()
         if w <= 0 or h <= 0:
-            return QRectF()
-        ratio = self.aspect_ratio if self.aspect_ratio > 0 else 16.0 / 9.0
-        tw, th = w, int(w / ratio)
-        if th > h:
-            th, tw = h, int(h * ratio)
-        return QRectF((w - tw) // 2, (h - th) // 2, tw, th)
+            return
+        path = QPainterPath()
+        if self.corner_radius > 0.5:
+            r = min(self.corner_radius, w / 2.0, h / 2.0)
+            path.addRoundedRect(QRectF(0, 0, w, h), r, r)
+        else:
+            path.addRect(QRectF(0, 0, w, h))
+        self.clip_item.setPath(path)
 
     def reposition_subtitle(self):
         w, h = self.viewport().width(), self.viewport().height()
@@ -75,10 +106,15 @@ class PlayerCore(QObject):
     def __init__(self, parent_video_frame):
         super().__init__()
         self.parent_frame = parent_video_frame
-        
+        self.parent_frame.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+
         self.hwdec_enabled = True
-        
+        self.ambient_crop_margin = 0.05
+        self.fps_subtitle = SUBTITLE_MAX_FPS
+
         self.view = VideoViewWidget(self.parent_frame)
+        self.view.on_aspect_ratio_changed = self._on_aspect_ratio_changed
+
         layout = QVBoxLayout(self.parent_frame)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -92,12 +128,15 @@ class PlayerCore(QObject):
             "blur": 3, "pos": 94, "bold": True, "typewriter_enabled": False,
             "typewriter_speed": 28, "fade_in_enabled": True, "fade_duration": 200,
             "slide_direction": "아래에서 위로", "slide_distance": 16,
-            "anim_style": "슬라이드 & 페이드", "max_width_ratio": 0.88
+            "anim_style": "슬라이드 & 페이드", "max_width_ratio": 0.88,
+            "shadow_enabled": True, "shadow_color": "#000000", "shadow_opacity": 0.75,
+            "shadow_offset": 4, "shadow_blur": 4
         }
         self._latest_frame = None
         self._cached_ambient_img = QImage()
         self._last_ambient_capture_time = 0.0
         self._ambient_capture_interval = 0.04
+        self._last_sub_update_time = 0.0
         self.user_volume = 80
         self.target_gain = 1.0
         self.current_gain = 1.0
@@ -119,6 +158,21 @@ class PlayerCore(QObject):
         self.player = MPVProxy(self)
         self.set_volume(80)
 
+    def _on_aspect_ratio_changed(self, ratio: float):
+        container = self.parent_frame.parent()
+        if container and hasattr(container, "set_aspect_ratio"):
+            container.set_aspect_ratio(ratio)
+
+    def set_video_radius(self, radius: float):
+        if self.view:
+            self.view.set_corner_radius(radius)
+
+    def set_ambient_crop_margin(self, pct: float):
+        self.ambient_crop_margin = max(0.0, min(0.30, float(pct)))
+
+    def set_subtitle_fps(self, fps: int):
+        self.fps_subtitle = max(1, min(60, int(fps)))
+
     def preload_playlist_gains(self, playlist):
         if not self.audio_norm_enabled:
             return
@@ -132,12 +186,26 @@ class PlayerCore(QObject):
     def _on_position_changed(self, pos_ms: int):
         self.update_subtitle_display(pos_ms / 1000.0)
 
-    def update_subtitle_display(self, sec: float):
+    def update_subtitle_display(self, sec: float, force: bool = False):
         if not self.sub_visible:
             if self.view.sub_frame.text:
                 self.view.sub_frame.set_text("")
             return
-        self.view.sub_frame.set_text(self.sub_manager.get_text_at(sec))
+
+        now = time.monotonic()
+        target_text = self.sub_manager.get_text_at(sec)
+        
+        if target_text != self.view.sub_frame.text:
+            self.view.sub_frame.set_text(target_text)
+            self._last_sub_update_time = now
+            return
+
+        min_sub_interval = 1.0 / max(1, self.fps_subtitle)
+        if not force and (now - self._last_sub_update_time < min_sub_interval):
+            return
+
+        self._last_sub_update_time = now
+        self.view.sub_frame.set_text(target_text)
 
     def reposition_subtitle(self):
         if getattr(self, "view", None):
@@ -153,29 +221,30 @@ class PlayerCore(QObject):
             now = time.monotonic()
             if now - self._last_ambient_capture_time < self._ambient_capture_interval and not self._cached_ambient_img.isNull():
                 return self._cached_ambient_img
+
+            margin_pct = getattr(self, "ambient_crop_margin", 0.05)
+
             frame = self._latest_frame
             if frame is not None and frame.isValid():
                 img = frame.toImage()
                 if not img.isNull():
+                    if margin_pct > 0.001:
+                        cw, ch = img.width(), img.height()
+                        mx = int(cw * margin_pct)
+                        my = int(ch * margin_pct)
+                        if cw - 2 * mx > 10 and ch - 2 * my > 10:
+                            img = img.copy(mx, my, cw - 2 * mx, ch - 2 * my)
                     self._cached_ambient_img = img.scaled(48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
                     self._last_ambient_capture_time = now
                     return self._cached_ambient_img
-            target = fallback_widget or self.view
-            if target and target.isVisible() and target.width() > 10 and target.height() > 10:
-                pix = target.grab()
-                if not pix.isNull():
-                    img = pix.toImage()
-                    if not img.isNull():
-                        self._cached_ambient_img = img.scaled(48, 27, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
-                        self._last_ambient_capture_time = now
-                        return self._cached_ambient_img
+
+            return self._cached_ambient_img
         except Exception:
             pass
         return self._cached_ambient_img
 
     def set_hwdec(self, enabled: bool):
         self.hwdec_enabled = enabled
-
         if enabled:
             os.environ.pop("QT_FFMPEG_DECODING_HW_DEVICE_TYPES", None)
             os.environ.pop("QT_DISABLE_HW_TEXTURES_CONVERSION", None)
@@ -236,16 +305,19 @@ class PlayerCore(QObject):
         self.sub_visible = visible
         self.sub_delay = cfg.get("delay", 0.0)
         self.sub_manager.sub_delay = self.sub_delay
+        if "fps_subtitle" in cfg:
+            self.fps_subtitle = max(1, min(60, int(cfg["fps_subtitle"])))
         self.view.sub_frame.set_config(self.sub_config, self.sub_visible)
         self.view.reposition_subtitle()
         if self.player:
-            self.update_subtitle_display(self.player.time_pos)
+            self.update_subtitle_display(self.player.time_pos, force=True)
 
     def play(self, filepath: str):
         self.current_file = filepath
         self._latest_frame = None
         self._cached_ambient_img = QImage()
         self._last_ambient_capture_time = 0.0
+        self._last_sub_update_time = 0.0
         sub_file = self._find_subtitle_file(filepath)
         if sub_file:
             self.sub_manager.load_file(sub_file)
@@ -327,7 +399,7 @@ class PlayerCore(QObject):
         if dur > 0:
             target_ms = min(target_ms, dur)
         self.qplayer.setPosition(target_ms)
-        self.update_subtitle_display(sec)
+        self.update_subtitle_display(sec, force=True)
 
     def set_volume(self, val: int):
         self.user_volume = max(0, min(100, val))

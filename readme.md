@@ -4,19 +4,48 @@
 
 # Mine 4 PlayList
 
-Windows용 영상·음악 플레이어입니다. 영상을 화려하게 볼 수 있습니다(?)
+Windows용 감성 영상 플레이어입니다. 영상을 화려하게 볼 수 있습니다.\
+주로 애니 OP, ED, MV를 보기 좋습니다.
 
 </div>
 
 ## 스크린샷
 
-<img width="1300" height="820" alt="Image" src="https://github.com/user-attachments/assets/41341319-a135-4c25-8c20-9e13998e3a5b" />
+<div align="center">
 
-<img width="1300" height="820" alt="Image" src="https://github.com/user-attachments/assets/b67deec6-f9bf-4442-a805-a0b1c7936f73" />
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/e41f24d3-995d-45b9-b14a-1dc133e4fff3" />
 
-<img width="1300" height="820" alt="Image" src="https://github.com/user-attachments/assets/f2f592d4-1454-4c6a-8b4d-8c243286a9a7" />
+이미지 1
 
-<img width="1300" height="820" alt="Image" src="https://github.com/user-attachments/assets/17908f91-4943-41d8-8e75-5653bce874f9" />
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/5ace0061-a38f-4ec4-8e5b-eae42328b250" />
+
+이미지 2
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/146c2043-553f-4460-8160-b4eb19d3a3c0" />
+
+이미지 3
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/62a2e96a-16c9-436f-bdfa-86bb16774ff9" />
+
+이미지 4
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/441c4984-bfc3-4c04-b507-2a73187cbc9f" />
+
+가변 크기 이미지
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/db9675a9-0dfb-4f46-a2ed-7afb031ea9f3" />
+
+플레이리스트 숨기기 이미지 1
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/61a71958-5b8a-4c94-a193-eb8a6d1c03b7" />
+
+플레이리스트 숨기기 이미지 2
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/9b69ed2e-de4c-480d-aa59-40e5a49bd293" />
+
+미니멀 모드
+
+</div>
 
 ## 주요 기능
 
@@ -24,6 +53,7 @@ Windows용 영상·음악 플레이어입니다. 영상을 화려하게 볼 수 
 - **실시간 주변광**: 영상 프레임 색상을 분석하여 배경으로 자연스럽게 번져나가는 조명 효과
 - **배경 이펙트 시스템**: 오로라 웨이브, 부유 파티클, 스크린 테두리 지원
 - **글래스모피즘 인터페이스**: 반투명 프로스티드 글래스 패널 기반의 미니멀 UI
+- **둥근 모서리**: 둥근 모서리로 한층더 예쁘게
 
 ### 2. 재생 및 미디어 제어
 - **음량 자동 평준화**: 영상/음원마다 들쭉날쭉한 볼륨 편차를 자동으로 보정

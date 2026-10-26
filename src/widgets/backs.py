@@ -62,23 +62,32 @@ class AmbientVideoContainer(QFrame):
 
         self._ambient_front_img = QImage(self.c_w, self.c_h, QImage.Format.Format_RGB32)
         self._ambient_front_img.fill(0)
+        self._ambient_mid_img = QImage(self.c_w, self.c_h, QImage.Format.Format_RGB32)
+        self._ambient_mid_img.fill(0)
         self._ambient_back_img = QImage(self.c_w, self.c_h, QImage.Format.Format_RGB32)
         self._ambient_back_img.fill(0)
         self._ambient_temp_buf = (ctypes.c_uint32 * (self.c_w * self.c_h))()
+        
         self._ambient_lock = threading.Lock()
-        self._ambient_rendering = False
-        self._ambient_dirty = False
+        self._job_lock = threading.Lock()
+        self._has_new_ambient = False
+        self._pending_job = None
         self._last_ambient_render_time = 0.0
-        self._last_ambient_trigger_time = 0.0
-        self._ambient_params_key = None
-        self._pending_ambient_job = None
         self.raw_frame_image = None
+        
         self.ambient_enabled = True
         self.brightness = 1.65
         self.black_lift = 0.25
         self.gamma = 1.35
         self.decay_scale = 1.0
         self.blur_radius = 12
+
+        self.vignette_enabled = True
+        self.vignette_max_dist = 85.0
+        self.vignette_intensity = 1.65
+        self.vignette_shape_depth = 0.85
+        self.vignette_darkness = 0.80
+
         self.motion_intensity = 0.35
         self.motion_speed = 1.0
         self.tint_enabled = False
@@ -119,7 +128,6 @@ class AmbientVideoContainer(QFrame):
         
         self._worker_event = threading.Event()
         self._worker_running = True
-        self._current_job = None
         self._worker_thread = threading.Thread(target=self._ambient_worker_loop, daemon=True)
         self._worker_thread.start()
 
@@ -137,14 +145,22 @@ class AmbientVideoContainer(QFrame):
         with self._ambient_lock:
             self._ambient_front_img = QImage(self.c_w, self.c_h, QImage.Format.Format_RGB32)
             self._ambient_front_img.fill(0)
+            self._ambient_mid_img = QImage(self.c_w, self.c_h, QImage.Format.Format_RGB32)
+            self._ambient_mid_img.fill(0)
             self._ambient_back_img = QImage(self.c_w, self.c_h, QImage.Format.Format_RGB32)
             self._ambient_back_img.fill(0)
             self._ambient_temp_buf = (ctypes.c_uint32 * (self.c_w * self.c_h))()
+            self._has_new_ambient = False
 
         self._trigger_ambient_prerender(force=True)
 
     def _ambient_render_settings_key(self):
-        return (self.ambient_enabled, self.brightness, self.black_lift, self.gamma, self.decay_scale, self.blur_radius, self.ambient_quality_percent)
+        return (
+            self.ambient_enabled, self.brightness, self.black_lift, self.gamma,
+            self.decay_scale, self.blur_radius, self.ambient_quality_percent,
+            self.vignette_enabled, self.vignette_max_dist, self.vignette_intensity,
+            self.vignette_shape_depth, self.vignette_darkness
+        )
 
     @staticmethod
     def _set_widget_geometry(widget: QWidget, x: int, y: int, width: int, height: int):
@@ -174,7 +190,7 @@ class AmbientVideoContainer(QFrame):
         self.dock_widget.setParent(self)
         self.playlist_widget.setParent(self)
         self.update_sub_geometries()
-        self._trigger_ambient_prerender()
+        self._trigger_ambient_prerender(force=True)
 
     def set_playlist_visibility(self, visible: bool):
         visible = bool(visible)
@@ -184,7 +200,7 @@ class AmbientVideoContainer(QFrame):
         if self.playlist_widget:
             self.playlist_widget.setVisible(visible)
         self.update_sub_geometries()
-        self._trigger_ambient_prerender()
+        self._trigger_ambient_prerender(force=True)
         self.update()
 
     def set_ambient_params(self, cfg: dict):
@@ -196,7 +212,7 @@ class AmbientVideoContainer(QFrame):
             self.fps_effect = max(10, min(60, int(cfg.get("fps_effect", 24))))
             self.anim_timer.setInterval(max(10, int(1000 / max(1, self.fps_effect))))
         if "fps_ambient" in cfg:
-            self.fps_ambient = max(10, min(60, int(cfg.get("fps_ambient", 30))))
+            self.fps_ambient = max(10, min(120, int(cfg.get("fps_ambient", 60))))
         if "fps_shadow" in cfg:
             self.fps_shadow = max(5, min(60, int(cfg.get("fps_shadow", 24))))
 
@@ -209,6 +225,13 @@ class AmbientVideoContainer(QFrame):
         self.black_lift = float(cfg.get('ambient_black_lift', 0.25))
         self.gamma = float(cfg.get('ambient_gamma', 1.35))
         self.decay_scale = float(cfg.get('ambient_decay_scale', 1.0))
+
+        self.vignette_enabled = bool(cfg.get('ambient_vignette_enabled', True))
+        self.vignette_max_dist = float(cfg.get('ambient_vignette_max_dist', 85.0))
+        self.vignette_intensity = float(cfg.get('ambient_vignette_intensity', 1.65))
+        self.vignette_shape_depth = float(cfg.get('ambient_vignette_shape_depth', 0.85))
+        self.vignette_darkness = float(cfg.get('ambient_vignette_darkness', 0.80))
+
         try:
             self.blur_radius = max(0, min(64, int(round(float(cfg.get('ambient_blur_radius', 12))))))
         except (TypeError, ValueError, OverflowError):
@@ -271,7 +294,7 @@ class AmbientVideoContainer(QFrame):
         self._effect_dirty = True
         self.update_sub_geometries()
         if ambient_changed:
-            self._trigger_ambient_prerender()
+            self._trigger_ambient_prerender(force=True)
         self.update()
         self.restore_child_stacking()
 
@@ -407,14 +430,16 @@ class AmbientVideoContainer(QFrame):
         p.fillRect(0, 0, W, H, self._base_fullscreen_color if is_fs else self._base_window_color)
         
         if self.ambient_enabled and self.video_widget:
-            with profiler.measure("[Paint] Ambient Draw"):
-                with self._ambient_lock:
-                    ambient_image = self._ambient_front_img
-                    has_ambient = not ambient_image.isNull()
-                    if has_ambient:
-                        p.drawImage(QRectF(0, 0, W, H), ambient_image)
-            
+            with self._ambient_lock:
+                if self._has_new_ambient:
+                    self._ambient_front_img, self._ambient_mid_img = self._ambient_mid_img, self._ambient_front_img
+                    self._has_new_ambient = False
+
+            has_ambient = not self._ambient_front_img.isNull()
             if has_ambient:
+                with profiler.measure("[Paint] Ambient Draw"):
+                    p.drawImage(QRectF(0, 0, W, H), self._ambient_front_img)
+            
                 if self.shadow_enabled and self.shadow_opacity > 0.01:
                     with profiler.measure("[Paint] Shadow"):
                         if self._shadow_dirty or self._shadow_cache_pixmap is None:
@@ -437,15 +462,7 @@ class AmbientVideoContainer(QFrame):
                 if self.tint_enabled and self.tint_ratio > 0.01:
                     p.fillRect(0, 0, W, H, self._tint_overlay_color)
 
-        now = time.monotonic()
-        min_frame_time = 1.0 / max(1, self.fps_effect)
-        should_rerender = (
-            self._effect_dirty or 
-            self._effect_cache_pixmap is None or 
-            (now - self._effect_last_render_time >= min_frame_time)
-        )
-
-        if should_rerender:
+        if self._effect_dirty or self._effect_cache_pixmap is None:
             self._render_effect_layer(W, H)
 
         if self._effect_cache_pixmap:
@@ -539,8 +556,6 @@ class AmbientVideoContainer(QFrame):
         if tuple(self.video_widget.geometry().getRect()) != old_video_rect:
             self._shadow_dirty = True
             self._effect_dirty = True
-            if self.ambient_enabled and self.raw_frame_image is not None and (not self.raw_frame_image.isNull()):
-                self._ambient_dirty = True
         self.restore_child_stacking()
 
     def resizeEvent(self, event):
@@ -550,21 +565,11 @@ class AmbientVideoContainer(QFrame):
         self._trigger_ambient_prerender(force=True)
 
     def update_video_frame(self, qimage: QImage):
-        if qimage.isNull():
+        if qimage.isNull() or not self.ambient_enabled or not self.video_widget:
             return
 
-        max_src_w = int(480 * self._ambient_scale)
-        if qimage.width() > max_src_w:
-            max_src_h = max(1, int(max_src_w * (qimage.height() / qimage.width())))
-            image = qimage.scaled(max_src_w, max_src_h, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
-        else:
-            image = qimage
-
-        if image.format() != QImage.Format.Format_RGB32:
-            image = image.convertToFormat(QImage.Format.Format_RGB32)
-
-        self.raw_frame_image = image
-        self._trigger_ambient_prerender()
+        self.raw_frame_image = qimage
+        self._trigger_ambient_prerender(image=qimage, force=False)
 
     def _paint_aurora(self, p: QPainter, w: int, h: int):
         if not self.aurora_enabled or self.aurora_style == '없음' or self.aurora_intensity <= 0.001 or (w <= 0) or (h <= 0):
@@ -623,47 +628,64 @@ class AmbientVideoContainer(QFrame):
             p.drawPath(path)
         p.restore()
 
-    def _trigger_ambient_prerender(self, force: bool = False):
-        image = self.raw_frame_image
-        if not self.ambient_enabled or image is None or image.isNull() or (not self.c_engine):
+    def _trigger_ambient_prerender(self, image: QImage = None, force: bool = False):
+        if not self.ambient_enabled or not self.c_engine:
             return
         
-        now = time.monotonic()
-        min_ambient_interval = 1.0 / max(1, self.fps_ambient)
-        if not force and (now - self._last_ambient_trigger_time < min_ambient_interval):
+        target_img = image if image is not None else self.raw_frame_image
+        if target_img is None or target_img.isNull() or not self.video_widget:
             return
-        self._last_ambient_trigger_time = now
 
         W, H = (self.width(), self.height())
-        if W <= 0 or H <= 0 or (not self.video_widget):
+        if W <= 0 or H <= 0:
             return
         vf_key = tuple(self.video_widget.geometry().getRect())
         
-        with self._ambient_lock:
-            self._current_job = (image, W, H, vf_key)
-            self._worker_event.set()
-            
+        with self._job_lock:
+            self._pending_job = (target_img, W, H, vf_key)
+        self._worker_event.set()
+
     def _ambient_worker_loop(self):
         while self._worker_running:
             self._worker_event.wait()
             self._worker_event.clear()
             
-            with self._ambient_lock:
-                job = self._current_job
-                self._current_job = None
+            with self._job_lock:
+                job = self._pending_job
+                self._pending_job = None
 
             if not job:
                 continue
 
-            image, W, H, vf_key = job
+            raw_image, W, H, vf_key = job
             try:
+                if raw_image.format() not in (
+                    QImage.Format.Format_RGB32,
+                    QImage.Format.Format_ARGB32,
+                    QImage.Format.Format_ARGB32_Premultiplied
+                ):
+                    raw_image = raw_image.convertToFormat(QImage.Format.Format_RGB32)
+
+                max_src_w = int(480 * self._ambient_scale)
+                if raw_image.width() > max_src_w:
+                    max_src_h = max(1, int(max_src_w * (raw_image.height() / raw_image.width())))
+                    image = raw_image.scaled(
+                        max_src_w, max_src_h,
+                        Qt.AspectRatioMode.IgnoreAspectRatio,
+                        Qt.TransformationMode.FastTransformation
+                    )
+                else:
+                    image = raw_image
+
                 rendered = self._render_ambient_to_back_buffer(image, W, H, vf_key)
                 if rendered:
                     with self._ambient_lock:
-                        self._ambient_front_img, self._ambient_back_img = (self._ambient_back_img, self._ambient_front_img)
+                        self._ambient_back_img, self._ambient_mid_img = self._ambient_mid_img, self._ambient_back_img
+                        self._has_new_ambient = True
+                    
                     self._ambient_rendered.emit()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Ambient Worker Error] {e}")
 
     def _render_ambient_to_back_buffer(self, image: QImage, W: int, H: int, vf_key: tuple):
         if not self.c_engine or image is None or image.isNull():
@@ -682,7 +704,12 @@ class AmbientVideoContainer(QFrame):
             self.c_engine.c_render_vanishing_perspective(
                 out_ptr, self.c_w, self.c_h, src_ptr, image.width(), image.height(),
                 c_vx1, c_vy1, c_vx2, c_vy2, self.brightness, self.black_lift, self.gamma, self.decay_scale,
-                scaled_blur
+                scaled_blur,
+                1 if self.vignette_enabled else 0,
+                float(self.vignette_max_dist),
+                float(self.vignette_intensity),
+                float(self.vignette_shape_depth),
+                float(self.vignette_darkness)
             )
 
         if scaled_blur > 0:

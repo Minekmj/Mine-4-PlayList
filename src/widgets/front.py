@@ -312,10 +312,19 @@ class FluidSeekSlider(QSlider):
 
     def leaveEvent(self, event):
         super().leaveEvent(event)
+        QToolTip.hideText()
         self._anim.stop()
         self._anim.setStartValue(self._hover_progress)
         self._anim.setEndValue(0.0)
         self._anim.start()
+
+    def mousePressEvent(self, event):
+        QToolTip.hideText()
+        if event.button() == Qt.MouseButton.LeftButton:
+            val = self.pixel_pos_to_val(event.position().x())
+            self.setValue(val)
+            self.sliderMoved.emit(val)
+        super().mousePressEvent(event)
 
     def set_duration(self, seconds: float):
         self.total_seconds = max(0.0, seconds)
@@ -323,14 +332,6 @@ class FluidSeekSlider(QSlider):
     def pixel_pos_to_val(self, x: float):
         ratio = max(0.0, min(1.0, x / max(1, self.width())))
         return int(self.minimum() + ratio * (self.maximum() - self.minimum()))
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            val = self.pixel_pos_to_val(event.position().x())
-            self.setValue(val)
-            self.sliderMoved.emit(val)
-
-        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self.total_seconds > 0:

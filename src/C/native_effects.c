@@ -11,7 +11,6 @@
 #define PI 3.14159265358979323846f
 #define TWO_PI 6.28318530717958647692f
 
-// 앰비디언
 static inline void render_pixel_fast(
     uint32_t* out_pixel,
     float px,
@@ -23,7 +22,8 @@ static inline void render_pixel_fast(
     float max_u, float max_v,
     const float* gamma_lut,
     float brightness, float lift_scale, float safe_lift,
-    float decay, float decay_sq
+    float decay, float decay_sq,
+    int vignette_enabled, float base_max_dist, float glow_intensity, float shape_depth, float edge_darkness
 ) {
     float dx = px - cx;
     float nx = fabsf(dx) * inv_hw;
@@ -52,21 +52,19 @@ static inline void render_pixel_fast(
 
     float r00 = (float)((c00 >> 16) & 255), r10 = (float)((c10 >> 16) & 255);
     float r01 = (float)((c01 >> 16) & 255), r11 = (float)((c11 >> 16) & 255);
-    float r_top = r00 + fx * (r10 - r00);
-    float r_bot = r01 + fx * (r11 - r01);
-    int ir_samp = (int)(r_top + fy * (r_bot - r_top));
+    int ir_samp = (int)(r00 + fx * (r10 - r00) + fy * ((r01 + fx * (r11 - r01)) - (r00 + fx * (r10 - r00))));
 
     float g00 = (float)((c00 >> 8) & 255), g10 = (float)((c10 >> 8) & 255);
     float g01 = (float)((c01 >> 8) & 255), g11 = (float)((c11 >> 8) & 255);
-    float g_top = g00 + fx * (g10 - g00);
-    float g_bot = g01 + fx * (g11 - g01);
-    int ig_samp = (int)(g_top + fy * (g_bot - g_top));
+    int ig_samp = (int)(g00 + fx * (g10 - g00) + fy * ((g01 + fx * (g11 - g01)) - (g00 + fx * (g10 - g00))));
 
     float b00 = (float)(c00 & 255), b10 = (float)(c10 & 255);
     float b01 = (float)(c01 & 255), b11 = (float)(c11 & 255);
-    float b_top = b00 + fx * (b10 - b00);
-    float b_bot = b01 + fx * (b11 - b01);
-    int ib_samp = (int)(b_top + fy * (b_bot - b_top));
+    int ib_samp = (int)(b00 + fx * (b10 - b00) + fy * ((b01 + fx * (b11 - b01)) - (b00 + fx * (b10 - b00))));
+
+    if (ir_samp < 0) ir_samp = 0; else if (ir_samp > 255) ir_samp = 255;
+    if (ig_samp < 0) ig_samp = 0; else if (ig_samp > 255) ig_samp = 255;
+    if (ib_samp < 0) ib_samp = 0; else if (ib_samp > 255) ib_samp = 255;
 
     float r = gamma_lut[ir_samp];
     float g = gamma_lut[ig_samp];
@@ -76,14 +74,56 @@ static inline void render_pixel_fast(
     if (m > 1.0f) {
         float k = 1.0f - inv_clamp_m;
         float dist = k * sqrtf(dx * dx + dy_sq);
-        float falloff = 1.0f / (1.0f + dist * decay + dist * dist * decay_sq);
-        factor *= (falloff * lift_scale + safe_lift);
+
+        if (vignette_enabled) {
+            // 밝기(Luma) 및 채도(Chroma) 추출
+            int iluma = (ir_samp * 77 + ig_samp * 150 + ib_samp * 29) >> 8;
+            int max_c = (ir_samp > ig_samp) ? ((ir_samp > ib_samp) ? ir_samp : ib_samp) : ((ig_samp > ib_samp) ? ig_samp : ib_samp);
+            int min_c = (ir_samp < ig_samp) ? ((ir_samp < ib_samp) ? ir_samp : ib_samp) : ((ig_samp < ib_samp) ? ig_samp : ib_samp);
+            int chroma = max_c - min_c;
+
+            float luma_f = (float)iluma * (1.0f / 255.0f);
+            float chroma_f = (float)chroma * (1.0f / 255.0f);
+            float color_power = luma_f * 0.70f + chroma_f * 0.30f;
+            if (color_power > 1.0f) color_power = 1.0f;
+
+            // 암부도 최소 40% 도달 보장, 밝은 곳은 140%까지 돌출되는 안전 형상 비율
+            float shape_mod = (1.0f - shape_depth * 0.60f) + (shape_depth * 0.60f) * (0.40f + 1.0f * color_power);
+            float effective_max_dist = base_max_dist * shape_mod;
+            if (effective_max_dist < 12.0f) effective_max_dist = 12.0f;
+
+            if (dist >= effective_max_dist) {
+                *out_pixel = 0xFF000000u;
+                return;
+            }
+
+            float t = dist / effective_max_dist; // 0.0 ~ 1.0
+            float falloff = (1.0f - t * t);
+            falloff = falloff * falloff; // (1 - t^2)^2
+
+            float dark_fade = 1.0f - (t * t) * edge_darkness;
+            if (dark_fade < 0.0f) dark_fade = 0.0f;
+
+            factor = factor * glow_intensity * (0.55f + 0.75f * color_power) * falloff * dark_fade;
+
+            // 채도 보존 (+20%)
+            float avg = (r + g + b) * 0.3333333f;
+            r = avg + (r - avg) * 1.20f;
+            g = avg + (g - avg) * 1.20f;
+            b = avg + (b - avg) * 1.20f;
+            if (r < 0.0f) r = 0.0f;
+            if (g < 0.0f) g = 0.0f;
+            if (b < 0.0f) b = 0.0f;
+        } else {
+            float falloff = 1.0f / (1.0f + dist * decay + dist * dist * decay_sq);
+            factor *= (falloff * lift_scale + safe_lift);
+        }
     }
 
     float max_c = fmaxf(r, fmaxf(g, b));
     if (max_c > 1.0f) {
         float target = max_c * factor;
-        float scale = (305.0f * factor) / (target + 50.0f);
+        float scale = (320.0f * factor) / (target + 45.0f);
         r *= scale;
         g *= scale;
         b *= scale;
@@ -104,7 +144,8 @@ EXPORT void c_render_vanishing_perspective(
     const uint32_t* video_src, int src_w, int src_h,
     float vx1, float vy1, float vx2, float vy2,
     float brightness, float black_lift, float gamma, float decay_scale,
-    int blur_radius
+    int blur_radius,
+    int vignette_enabled, float max_dist_pct, float glow_intensity, float shape_depth, float edge_darkness
 ) {
     if (!out_buf || !video_src || out_w <= 0 || out_h <= 0 || src_w <= 0 || src_h <= 0) return;
     
@@ -139,6 +180,11 @@ EXPORT void c_render_vanishing_perspective(
     float decay = decay_scale * 0.016f;
     float decay_sq = decay_scale * decay_scale * 0.00012f;
 
+    // 대각선 기준 도달 거리(%) 계산 (버퍼 크기 맞춤)
+    float screen_diag = sqrtf((float)(out_w * out_w + out_h * out_h)) * 0.50f;
+    float base_max_dist = screen_diag * (max_dist_pct * 0.01f);
+    if (base_max_dist < 15.0f) base_max_dist = 15.0f;
+
     float safe_margin = (float)(blur_radius > 2 ? blur_radius : 2);
     float core_x1 = vx1 + safe_margin;
     float core_x2 = vx2 - safe_margin;
@@ -164,13 +210,13 @@ EXPORT void c_render_vanishing_perspective(
 
         if (in_core_y) {
             int x;
-            // [0, core_left)
             for (x = 0; x < core_left; ++x) {
                 render_pixel_fast(
                     &out_row[x], (float)x, cx, cy, inv_hw, dy, dy_sq, ny,
                     vx1, vy1, scale_u, scale_v, video_src, src_w, src_h,
                     max_u, max_v, gamma_lut, brightness, lift_scale, safe_lift,
-                    decay, decay_sq
+                    decay, decay_sq,
+                    vignette_enabled, base_max_dist, glow_intensity, shape_depth, edge_darkness
                 );
             }
             for (x = core_left; x <= core_right; ++x) {
@@ -181,7 +227,8 @@ EXPORT void c_render_vanishing_perspective(
                     &out_row[x], (float)x, cx, cy, inv_hw, dy, dy_sq, ny,
                     vx1, vy1, scale_u, scale_v, video_src, src_w, src_h,
                     max_u, max_v, gamma_lut, brightness, lift_scale, safe_lift,
-                    decay, decay_sq
+                    decay, decay_sq,
+                    vignette_enabled, base_max_dist, glow_intensity, shape_depth, edge_darkness
                 );
             }
         } else {
@@ -191,13 +238,15 @@ EXPORT void c_render_vanishing_perspective(
                     &out_row[x], (float)x, cx, cy, inv_hw, dy, dy_sq, ny,
                     vx1, vy1, scale_u, scale_v, video_src, src_w, src_h,
                     max_u, max_v, gamma_lut, brightness, lift_scale, safe_lift,
-                    decay, decay_sq
+                    decay, decay_sq,
+                    vignette_enabled, base_max_dist, glow_intensity, shape_depth, edge_darkness
                 );
             }
         }
     }
 }
 
+// 블러
 EXPORT void c_apply_optical_gaussian_blur(
     uint32_t* buf, 
     uint32_t* temp, 

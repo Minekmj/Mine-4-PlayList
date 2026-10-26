@@ -10,19 +10,6 @@ QWidget {
     selection-color: #FFFFFF;
 }
 
-FloatingGlassPanel {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(88, 99, 109, 0.04), 
-        stop:1 rgba(79, 87, 102, 0.19));
-    border: 1px solid rgba(150, 150, 150, 0.19);
-    border-radius: 20px;
-}
-
-FloatingGlassPanel#playlistContainer {
-    background: transparent;
-    border: none;
-}
-
 QLabel {
     background: transparent;
     color: #CBD7E6;
@@ -56,11 +43,12 @@ QToolTip {
     font-size: 11px;
 }
 
+/* 기본 버튼: 은은한 테두리 추가 및 밝기/밀도 상향 */
 QPushButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(220, 230, 245, 0.08), 
-        stop:1 rgba(195, 210, 235, 0.12));
-    border: none;
+        stop:0 rgba(230, 240, 255, 0.14), 
+        stop:1 rgba(205, 222, 248, 0.20));
+    border: 1px solid rgba(225, 238, 255, 0.18);
     border-radius: 8px;
     padding: 6px 14px;
     color: #DBE6F5;
@@ -69,21 +57,21 @@ QPushButton {
 
 QPushButton:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(225, 235, 250, 0.16), 
-        stop:1 rgba(200, 218, 245, 0.22));
-    border-color: rgba(220, 235, 255, 0.32);
+        stop:0 rgba(240, 248, 255, 0.24), 
+        stop:1 rgba(215, 230, 255, 0.32));
+    border: 1px solid rgba(230, 242, 255, 0.45);
     color: #FFFFFF;
 }
 
 QPushButton:pressed {
-    background: rgba(180, 200, 225, 0.08);
-    border-color: rgba(255, 255, 255, 0.10);
+    background: rgba(180, 200, 225, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.20);
     color: #C8D6E8;
 }
 
 QPushButton:disabled {
     background-color: transparent;
-    border-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.25);
 }
 
@@ -100,7 +88,7 @@ QPushButton#iconBtn {
 }
 
 QPushButton#iconBtn:hover {
-    background: rgba(210, 225, 245, 0.12);
+    background: rgba(210, 225, 245, 0.18);
 }
 
 QPushButton#playBtn {
@@ -115,21 +103,22 @@ QSlider {
 
 QSlider::groove:horizontal {
     height: 4px;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.16);
     border-radius: 2px;
 }
 
+/* 슬라이더 진행 바: 밝기와 채도 약간 증가 및 테두리 강화 */
 QSlider::sub-page:horizontal {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-        stop:0 rgba(144, 173, 211, 0.8), 
-        stop:1 rgba(155, 181, 211, 0.85));
+        stop:0 rgba(160, 192, 235, 0.90), 
+        stop:1 rgba(175, 205, 245, 0.95));
     border-radius: 2px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 QSlider::handle:horizontal {
-    background: #9DC0EB;
-    border: 1px solid rgba(255, 255, 255, 0.43);
+    background: #A8CBF5;
+    border: 1px solid rgba(255, 255, 255, 0.55);
     width: 12px;
     height: 12px;
     margin: -4px 0;
@@ -138,7 +127,7 @@ QSlider::handle:horizontal {
 
 QSlider::handle:horizontal:hover {
     background: #FFFFFF;
-    border: 1px solid #BACFE8;
+    border: 1px solid #CADFF8;
 }
 
 QSlider::handle:horizontal:pressed {
@@ -146,23 +135,23 @@ QSlider::handle:horizontal:pressed {
 }
 
 QScrollBar:vertical {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     width: 8px;
     margin: 4px 2px 4px 4px;
     border-radius: 4px;
 }
 
 QScrollBar::handle:vertical {
-    background: rgba(215, 228, 245, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(215, 228, 245, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 3px;
     min-height: 24px;
 }
 
 QScrollBar::handle:vertical:hover {
-    background: rgba(215, 228, 245, 0.45);
-    border-color: rgba(255, 255, 255, 0.30);
+    background: rgba(215, 228, 245, 0.52);
+    border-color: rgba(255, 255, 255, 0.40);
 }
 
 QScrollBar::horizontal {
@@ -190,14 +179,14 @@ QScrollArea > QWidget > QWidget {
 }
 
 QFrame#playlistOptionBar {
-    background: rgba(18, 24, 36, 0.75);
-    border: 1px solid rgba(215, 230, 250, 0.18);
+    background: rgba(22, 30, 46, 0.82);
+    border: 1px solid rgba(225, 240, 255, 0.26);
     border-radius: 12px;
 }
 
 QFrame#playlistSubBar {
-    background: rgba(18, 24, 36, 0.50);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(22, 30, 46, 0.60);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 10px;
 }
 
@@ -220,30 +209,6 @@ QListWidget::item:hover {
     border: none;
 }
 
-QFrame#innerPlaylistCard[state="normal"] {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(26, 34, 48, 0.10), 
-        stop:1 rgba(18, 24, 36, 0.15));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-}
-
-QFrame#innerPlaylistCard[state="hover"] {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(40, 54, 76, 0.20), 
-        stop:1 rgba(28, 38, 54, 0.30));
-    border: 1px solid rgba(215, 235, 255, 0.45);
-    border-radius: 10px;
-}
-
-QFrame#innerPlaylistCard[state="selected"] {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(140, 185, 245, 0.35), 
-        stop:1 rgba(80, 130, 210, 0.25));
-    border: 1px solid rgba(190, 225, 255, 0.85);
-    border-radius: 10px;
-}
-
 QLabel#card_title {
     color: #D3E2F2;
     font-size: 12px;
@@ -260,13 +225,6 @@ QFrame#right_ppanel {
     margin: 0px;
 }
 
-QFrame#topControlBar {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-        stop:0 rgba(88, 99, 109, 0.04), 
-        stop:1 rgba(79, 87, 102, 0.19));
-    border: 1px solid rgba(150, 150, 150, 0.19);
-    border-radius: 15px;
-}
 
 QPushButton#trafficBtn {
     border: none;
@@ -278,5 +236,51 @@ QPushButton#trafficBtn {
 }
 
 QPushButton#trafficBtn:hover {
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+
+FloatingGlassPanel {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+        stop:0 rgba(255, 255, 255, 0.12), 
+        stop:1 rgba(110, 125, 145, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+}
+
+FloatingGlassPanel#playlistContainer {
+    background: transparent;
+    border: none;
+}
+
+QFrame#innerPlaylistCard[state="normal"] {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+        stop:0 rgba(255, 255, 255, 0.08), 
+        stop:1 rgba(120, 135, 155, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+}
+
+QFrame#innerPlaylistCard[state="hover"] {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+        stop:0 rgba(255, 255, 255, 0.16), 
+        stop:1 rgba(130, 150, 175, 0.07));
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+}
+
+QFrame#innerPlaylistCard[state="selected"] {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+        stop:0 rgba(255, 255, 255, 0.22), 
+        stop:1 rgba(140, 180, 230, 0.12));
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    border-radius: 10px;
+}
+
+QFrame#topControlBar {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+        stop:0 rgba(255, 255, 255, 0.12), 
+        stop:1 rgba(110, 125, 145, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 15px;
 }

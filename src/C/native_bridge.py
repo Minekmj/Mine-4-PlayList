@@ -67,10 +67,10 @@ def _find_vcvarsall():
 def _compile_with_msvc(base_dir: str, c_src_name: str, lib_name: str):
     vcvars_bat, arch = _find_vcvarsall()
     if shutil.which("cl") is not None:
-        cmd = ["cl", "/O2", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
+        cmd = ["cl", "/O2", "/openmp", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
         res = subprocess.run(cmd, cwd=base_dir, capture_output=True, text=True)
     elif vcvars_bat and os.path.exists(vcvars_bat):
-        cmd = f'call "{vcvars_bat}" {arch} && cl /O2 /LD /Fe:"{lib_name}" "{c_src_name}"'
+        cmd = f'call "{vcvars_bat}" {arch} && cl /O2 /openmp /LD /Fe:"{lib_name}" "{c_src_name}"'
         res = subprocess.run(cmd, shell=True, cwd=base_dir, capture_output=True, text=True)
     else:
         raise RuntimeError("MSVC (cl.exe) 또는 vcvarsall.bat를 찾을 수 없습니다. Visual Studio C++ 빌드 도구를 확인하세요.")
@@ -128,7 +128,8 @@ def get_native_engine():
             ctypes.POINTER(ctypes.c_uint32), ctypes.c_int, ctypes.c_int,
             ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
             ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
-            ctypes.c_int
+            ctypes.c_int,
+            ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float
         ]
         lib.c_render_vanishing_perspective.restype = None
 

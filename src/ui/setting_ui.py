@@ -12,7 +12,7 @@ class FxTab(BaseSettingsTab):
     def setup_ui(self):
         e = self.engine_cfg
 
-        g_amb = self.add_group("화면 화질 및 앰비언트 밝기")
+        g_amb = self.add_group("앰비언트")
         q_map = {35: "최소 (35%)", 50: "보통 (50%)", 85: "최대 (85%)", 100: "맥스 (100%)"}
         g_amb.combo("화면 화질 축소 비율", e, "ambient_quality_percent", list(q_map.values()), val_map=q_map, default=35)
         g_amb.slider("배경 밝기", e, "ambient_brightness", 30, 300, scale=0.01, default=1.65)
@@ -20,23 +20,23 @@ class FxTab(BaseSettingsTab):
         g_amb.slider("흐림 반경", e, "ambient_blur_radius", 4, 30, fmt="{} px", default=12)
         g_amb.slider("캡처 안쪽 여백", e, "ambient_crop_margin", 0, 25, default=5)
 
-        g_vig = self.add_group("비네트 효과 활성화", target=e, check_key="ambient_vignette_enabled", check_default=True)
+        g_vig = self.add_group("비네트", target=e, check_key="ambient_vignette_enabled", check_default=True)
         g_vig.slider("광원 최대 도달 거리", e, "ambient_vignette_max_dist", 20, 150, fmt="{}%", default=85)
         g_vig.slider("광원 선명도 및 강도", e, "ambient_vignette_intensity", 50, 300, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.65)
         g_vig.slider("색상별 형상 굴곡 깊이", e, "ambient_vignette_shape_depth", 0, 100, scale=0.01, fmt="{}%", default=0.85)
         g_vig.slider("외곽 암부 페이드 깊이", e, "ambient_vignette_darkness", 0, 100, scale=0.01, fmt="{}%", default=0.80)
 
-        g_crn = self.add_group("모서리 및 외곽 림라이트 효과")
+        g_crn = self.add_group("모서리")
         g_crn.check("비디오 외곽 은은한 림라이트", e, "video_floating_rim", True)
         g_crn.slider("동영상 모서리 둥글기", e, "video_radius", 0, 48, fmt="{} px", default=8)
         g_crn.slider("창 모서리 둥글기", e, "window_radius", 0, 48, fmt="{} px", default=12)
 
-        g_sh = self.add_group("드롭 섀도우 효과 활성화", target=e, check_key="video_shadow_enabled", check_default=True)
+        g_sh = self.add_group("섀도우", target=e, check_key="video_shadow_enabled", check_default=True)
         g_sh.slider("그림자 농도", e, "video_shadow_opacity", 5, 100, scale=0.01, default=0.25)
         g_sh.slider("그림자 번짐", e, "video_shadow_radius", 4, 60, fmt="{} px", default=28)
         g_sh.slider("대각선 거리", e, "video_shadow_offset", 0, 35, fmt="{} px", default=8)
 
-        g_tint = self.add_group("배경 앰비언트 컬러 틴트 추가", target=e, check_key="ambient_tint_enabled", check_default=False)
+        g_tint = self.add_group("컬러 틴트", target=e, check_key="ambient_tint_enabled", check_default=False)
         g_tint.color_btn("틴트 색상", e, "ambient_tint_color", "틴트 색상", "#8FAACD")
         g_tint.slider("틴트 농도", e, "ambient_tint_ratio", 5, 80, scale=0.01, default=0.20)
 
@@ -45,12 +45,12 @@ class AtmosTab(BaseSettingsTab):
     def setup_ui(self):
         e = self.engine_cfg
 
-        g_aurora = self.add_group("오로라 효과 켜기", target=e, check_key="aurora_enabled", check_default=True)
+        g_aurora = self.add_group("오로라", target=e, check_key="aurora_enabled", check_default=True)
         g_aurora.combo("오로라 형태", e, "aurora_style", ["오로라", "물결", "없음"], "오로라")
         g_aurora.combo("오로라 색상", e, "aurora_palette", ["청록", "분홍", "파랑", "보라", "주황"], "청록")
         g_aurora.slider("오로라 강도", e, "aurora_intensity", 0, 100, scale=0.01, default=0.55)
 
-        g_pt = self.add_group("파티클 효과 켜기", target=e, check_key="particle_enabled", check_default=True)
+        g_pt = self.add_group("파티클", target=e, check_key="particle_enabled", check_default=True)
         g_pt.combo("파티클 모양", e, "particle_type",
                    ["먼지", "벚꽃", "별", "빛망울", "비", "하트", "깃털", "음표", "반짝이", "큐브"], "먼지")
         g_pt.combo("이동 방향", e, "particle_direction", ["아래로", "위로", "왼쪽 대각선", "오른쪽 대각선", "흩날림"], "아래로")
@@ -64,7 +64,7 @@ class BorderTab(BaseSettingsTab):
     def setup_ui(self):
         e = self.engine_cfg
 
-        g_b = self.add_group("화면 테두리 켜기", target=e, check_key="border_enabled", check_default=True)
+        g_b = self.add_group("테두리", target=e, check_key="border_enabled", check_default=True)
         g_b.combo("테두리 모양", e, "border_style", [
             "네온", "기본", "이중선", "브래킷", "액자", "모따기",
             "도트", "분할선", "비네트", "상하 바", "십자", "강조 네온", "없음"
@@ -102,7 +102,7 @@ class SubTab(BaseSettingsTab):
     def setup_ui(self):
         s = self.sub_cfg
 
-        g_pre = self.add_group("스타일 및 글꼴")
+        g_pre = self.add_group("글꼴")
         cb_preset = QComboBox()
         cb_preset.addItems(["직접 설정", "기본", "시인성", "네온", "부드러운 자막"])
         cb_preset.currentTextChanged.connect(self.dlg.apply_subtitle_preset)
@@ -125,7 +125,7 @@ class SubTab(BaseSettingsTab):
         g_dt.spin("수직 위치 (%)", s, "pos", 30, 100, 94)
         g_dt.slider("줄바꿈 너비", s, "max_width_ratio", 50, 98, scale=0.01, default=0.88)
 
-        g_sh = self.add_group("텍스트 그림자 효과 활성화", target=s, check_key="shadow_enabled", check_default=True)
+        g_sh = self.add_group("텍스트 그림자 효과", target=s, check_key="shadow_enabled", check_default=True)
         g_sh.color_btn("그림자 색상", s, "shadow_color", "그림자 색상", "#000000")
         g_sh.slider("그림자 농도", s, "shadow_opacity", 0, 100, scale=0.01, default=0.75)
         g_sh.slider("그림자 거리", s, "shadow_offset", 0, 20, fmt="{} px", default=4)
@@ -137,7 +137,7 @@ class SubTab(BaseSettingsTab):
         g_an.slider("이동 거리", s, "slide_distance", 4, 40, fmt="{} px", default=16)
         g_an.check("자연스럽게 나타나기", s, "fade_in_enabled", True)
         g_an.slider("페이드 시간", s, "fade_duration", 50, 600, fmt="{} ms", default=220)
-        g_an.check("글자 차례대로 나타나", s, "typewriter_enabled", False)
+        g_an.check("글자 차례대로 나타나기", s, "typewriter_enabled", False)
         g_an.slider("타이핑 속도", s, "typewriter_speed", 10, 80, fmt="{} ms", default=28)
 
 
@@ -145,11 +145,11 @@ class EngineTab(BaseSettingsTab):
     def setup_ui(self):
         e = self.engine_cfg
 
-        g_eng = self.add_group("엔진 최적화 및 디코딩")
+        g_eng = self.add_group("엔진 최적화")
         g_eng.check("오디오 자동 볼륨 노멀라이제이션", e, "audio_norm", True)
         g_eng.check("하드웨어 GPU 가속 디코딩 (권장)", e, "hwdec", True)
 
-        g_fps = self.add_group("재생 및 효과 프레임 레이트 (FPS)")
+        g_fps = self.add_group("프레임 레이트")
         g_fps.slider("이펙트 애니메이션 FPS", e, "fps_effect", 5, 60, fmt="{} fps", default=15)
         g_fps.slider("앰비언트 백라이트 FPS", e, "fps_ambient", 10, 60, fmt="{} fps", default=30)
         g_fps.slider("그림자 FPS", e, "fps_shadow", 5, 60, fmt="{} fps", default=10)

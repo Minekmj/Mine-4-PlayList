@@ -57,63 +57,6 @@ def draw_double_line(sys: ScreenBorderSystem, p: QPainter, w: int, h: int, alpha
         p.drawPath(p2)
 
 
-@register_border("브래킷")
-def draw_technical_bracket(sys: ScreenBorderSystem, p: QPainter, w: int, h: int, alpha: int):
-    thick = float(sys.width)
-    half_w = thick * 0.5
-    m_inner = float(sys.margin) + half_w + 3.0
-    r_inner = max(0.0, float(sys.radius) - half_w - 3.0)
-    arm = min(72.0, max(24.0, min(w, h) * 0.08))
-    p.setBrush(Qt.BrushStyle.NoBrush)
-
-    sub_pen = sys._create_styled_pen(w, h, 1.0, max(0, min(255, int(alpha * 0.25))))
-    sub_pen.setStyle(Qt.PenStyle.DashLine)
-    p.setPen(sub_pen)
-    p_inner = QPainterPath()
-    if r_inner > 0.5:
-        p_inner.addRoundedRect(QRectF(m_inner, m_inner, float(w) - m_inner * 2.0, float(h) - m_inner * 2.0), r_inner, r_inner)
-    else:
-        p_inner.addRect(QRectF(m_inner, m_inner, float(w) - m_inner * 2.0, float(h) - m_inner * 2.0))
-    p.drawPath(p_inner)
-
-    pen = sys._create_styled_pen(w, h, thick, alpha)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    p.setPen(pen)
-    for b_path in sys._create_curved_corner_brackets(w, h, sys.margin, sys.radius, arm):
-        p.drawPath(b_path)
-
-    accent_sz = max(4.0, thick + 2.0)
-    half_acc = accent_sz * 0.5
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(sys._create_brush_gradient(w, h, alpha))
-
-    x_l = float(sys.margin) + half_w
-    y_t = float(sys.margin) + half_w
-    x_r = float(w) - x_l
-    y_b = float(h) - y_t
-    r_c = max(0.0, float(sys.radius) - half_w) if sys.radius > 0.5 else 0.0
-    diag_off = r_c * 0.2929 if r_c > 0.5 else 0.0
-
-    corners = [
-        QPointF(x_l + diag_off, y_t + diag_off),
-        QPointF(x_r - diag_off, y_t + diag_off),
-        QPointF(x_r - diag_off, y_b - diag_off),
-        QPointF(x_l + diag_off, y_b - diag_off)
-    ]
-    for pt in corners:
-        p.drawRect(QRectF(pt.x() - half_acc, pt.y() - half_acc, accent_sz, accent_sz))
-
-    cx, cy = float(w) * 0.5, float(h) * 0.5
-    top_y = float(sys.margin) + half_w
-    bot_y = float(h) - top_y
-    p.setPen(sys._create_styled_pen(w, h, 1.0, alpha))
-    p.drawLine(QPointF(cx - 24, top_y), QPointF(cx + 24, top_y))
-    p.drawLine(QPointF(cx, top_y - 3), QPointF(cx, top_y + 3))
-    p.drawLine(QPointF(cx - 24, bot_y), QPointF(cx + 24, bot_y))
-    p.drawLine(QPointF(cx, bot_y - 3), QPointF(cx, bot_y + 3))
-
-
 @register_border("액자")
 def draw_inset_frame(sys: ScreenBorderSystem, p: QPainter, w: int, h: int, alpha: int):
     m = float(max(6, sys.margin))

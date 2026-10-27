@@ -67,7 +67,7 @@ class BorderTab(BaseSettingsTab):
         g_b = self.add_group("테두리", target=e, check_key="border_enabled", check_default=True)
         g_b.combo("테두리 모양", e, "border_style", [
             "네온", "기본", "이중선", "브래킷", "액자", "모따기",
-            "도트", "분할선", "비네트", "상하 바", "십자", "강조 네온", "없음"
+            "도트", "분할선", "비네트", "상하 바", "십자", "없음"
         ], "기본")
 
         row_b_cols = QWidget()

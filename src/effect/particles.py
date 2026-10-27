@@ -206,26 +206,13 @@ class ParticleSystem:
         phase_dt = 0.03 * dt
         sway_speed = 0.45 * dt
 
-        if self.c_engine:
-            self.c_engine.c_update_particles(
-                self.particle_array, self.active_count,
-                float(w), float(h), float(dt), float(phase_dt), float(sway_speed)
-            )
-            for i in range(self.active_count):
-                if self.particle_array[i].out_of_bounds:
-                    self._reset_particle(i, w, h, False)
-        else:
-            for i in range(self.active_count):
-                p = self.particle_array[i]
-                p.phase += phase_dt
-                p.rot = (p.rot + p.rot_speed * dt) % 360.0
-                p.vx = math.sin(p.phase) * sway_speed
-                p.vy = p.base_speed * dt
-                p.x += p.vx
-                p.y += p.vy
-                pad = p.pad
-                if p.x < -pad or p.x > w + pad or p.y < -pad or p.y > h + pad:
-                    self._reset_particle(i, w, h, False)
+        self.c_engine.c_update_particles(
+            self.particle_array, self.active_count,
+            float(w), float(h), float(dt), float(phase_dt), float(sway_speed)
+        )
+        for i in range(self.active_count):
+            if self.particle_array[i].out_of_bounds:
+                self._reset_particle(i, w, h, False)
 
     def draw(self, painter: QPainter, w: int, h: int, exclude_rect: QRectF = None):
         if not self.enabled or self.active_count == 0 or w <= 0 or h <= 0:

@@ -160,8 +160,7 @@ def load_session(self):
             self.core.preload_playlist_gains(self.playlist)
 
         self.ambient_container.set_ambient_params(self.engine_config)
-        if hasattr(self, "update_window_and_video_radius"):
-            self.update_window_and_video_radius()
+        self.update_window_and_video_radius()
 
         saved_pos = d.get("time_pos", 0.0)
         if self.playlist and 0 <= self.current_idx < len(self.playlist):

@@ -41,8 +41,7 @@ def sync_state(self):
             else:
                 self.lbl_total_time.setText(format_time(dur))
 
-        if hasattr(self.core, 'reposition_subtitle'):
-            self.core.reposition_subtitle()
+        self.core.reposition_subtitle()
     except Exception:
         pass
     

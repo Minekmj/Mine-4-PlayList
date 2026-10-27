@@ -75,7 +75,7 @@ class EchoMediaPlayer(QMainWindow):
     def init_engine(self):
         try:
             self.core = PlayerCore(self.video_frame)
-            if hasattr(self.core, 'view') and self.core.view:
+            if self.core.view:
                 self.core.view.viewport().installEventFilter(self)
                 self.core.view.installEventFilter(self)
 
@@ -95,7 +95,7 @@ class EchoMediaPlayer(QMainWindow):
 
         self.ambient_container.set_video_radius(vr)
         self.ambient_container.set_window_radius(wr)
-        if hasattr(self, 'core') and self.core:
+        if self.core:
             self.core.set_video_radius(vr)
         self.clearMask()
 
@@ -195,15 +195,14 @@ class EchoMediaPlayer(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.update_window_and_video_radius()
-        if hasattr(self, 'top_control_bar'):
-            bx = (self.width() - self.top_control_bar.width()) // 2
-            self.top_control_bar.move(bx, 12)
-        if getattr(self, "is_mini_mode", False):
-            reposition_mini_bar(self)
-        if hasattr(self, 'core') and self.core:
-            self.core.reposition_subtitle()
-        if hasattr(self, 'dock_panel'):
-            self.dock_panel.raise_()
+        
+        bx = (self.width() - self.top_control_bar.width()) // 2
+        self.top_control_bar.move(bx, 12)
+            
+        reposition_mini_bar(self)
+        
+        self.core.reposition_subtitle()
+        self.dock_panel.raise_()
 
     def mouseMoveEvent(self, event):
         gpos = event.globalPosition().toPoint()

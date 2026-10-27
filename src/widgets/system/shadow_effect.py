@@ -54,14 +54,13 @@ class VideoShadowRenderer:
         pix_w = max(1, int(W + 2 * R))
         pix_h = max(1, int(H + 2 * R))
 
-        if c_engine and hasattr(c_engine, 'c_render_rounded_box_shadow'):
-            img = QImage(pix_w, pix_h, QImage.Format.Format_ARGB32_Premultiplied)
-            img_ptr = ctypes.cast(int(img.bits()), ctypes.POINTER(ctypes.c_uint32))
-            c_engine.c_render_rounded_box_shadow(img_ptr, pix_w, pix_h, R, R, W, H, r, R, 0, 0, 0, float(self.opacity))
-            self.cache_pixmap = QPixmap.fromImage(img)
-            self.cache_pos = QPointF(vf_rect.left() + dx - R, vf_rect.top() + dy - R)
-            self.is_dirty = False
-            return
+        img = QImage(pix_w, pix_h, QImage.Format.Format_ARGB32_Premultiplied)
+        img_ptr = ctypes.cast(int(img.bits()), ctypes.POINTER(ctypes.c_uint32))
+        c_engine.c_render_rounded_box_shadow(img_ptr, pix_w, pix_h, R, R, W, H, r, R, 0, 0, 0, float(self.opacity))
+        self.cache_pixmap = QPixmap.fromImage(img)
+        self.cache_pos = QPointF(vf_rect.left() + dx - R, vf_rect.top() + dy - R)
+        self.is_dirty = False
+        return
 
         pix = QPixmap(pix_w, pix_h)
         pix.fill(Qt.GlobalColor.transparent)

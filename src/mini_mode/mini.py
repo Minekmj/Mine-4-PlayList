@@ -86,14 +86,11 @@ def enter_mini_mode(main_win):
     main_win._pre_mini_geo = main_win.geometry()
     main_win._pre_mini_plist = getattr(main_win.ambient_container, "playlist_visible", True)
 
-    if hasattr(main_win, "top_control_bar"):
-        main_win.top_control_bar.hide()
-    if hasattr(main_win, "dock_panel"):
-        main_win.dock_panel.hide()
+    main_win.top_control_bar.hide()
+    main_win.dock_panel.hide()
 
-    if hasattr(main_win, "ambient_container"):
-        main_win.ambient_container.is_mini_mode = True
-        main_win.ambient_container.set_playlist_visibility(False)
+    main_win.ambient_container.is_mini_mode = True
+    main_win.ambient_container.set_playlist_visibility(False)
 
     main_win.setMinimumSize(240, 140)
     main_win.setMaximumSize(1200, 800)
@@ -115,8 +112,7 @@ def enter_mini_mode(main_win):
     ny = old.y() + (old.height() - target_h) // 2
     main_win.setGeometry(nx, ny, target_w, target_h)
 
-    if not hasattr(main_win, "mini_top_bar") or main_win.mini_top_bar is None:
-        main_win.mini_top_bar = MiniTopBar(main_win)
+    main_win.mini_top_bar = MiniTopBar(main_win)
     main_win.mini_top_bar.show()
     main_win.mini_top_bar.raise_()
     reposition_mini_bar(main_win)
@@ -136,8 +132,7 @@ def exit_mini_mode(main_win):
 
     main_win.is_mini_mode = False
 
-    if hasattr(main_win, "mini_top_bar") and main_win.mini_top_bar:
-        main_win.mini_top_bar.fast_hide()
+    main_win.mini_top_bar.fast_hide()
         
     try:
         hwnd = int(main_win.winId())
@@ -150,18 +145,13 @@ def exit_mini_mode(main_win):
     main_win.setMaximumSize(16777215, 16777215)
     main_win.show()
 
-    if hasattr(main_win, "_pre_mini_geo") and main_win._pre_mini_geo:
-        main_win.setGeometry(main_win._pre_mini_geo)
-    else:
-        main_win.resize(1300, 820)
+    main_win.setGeometry(main_win._pre_mini_geo)
 
-    if hasattr(main_win, "ambient_container"):
-        main_win.ambient_container.is_mini_mode = False
-        prev_plist = getattr(main_win, "_pre_mini_plist", True)
-        main_win.ambient_container.set_playlist_visibility(prev_plist)
+    main_win.ambient_container.is_mini_mode = False
+    prev_plist = getattr(main_win, "_pre_mini_plist", True)
+    main_win.ambient_container.set_playlist_visibility(prev_plist)
 
-    if hasattr(main_win, "dock_panel"):
-        main_win.dock_panel.show()
+    main_win.dock_panel.show()
 
     reset_all_cursors(main_win)
     main_win.ambient_container.update_sub_geometries()
@@ -212,18 +202,17 @@ def update_cursor_for_edge(main_win, edge):
     if edge in cursors:
         cur = cursors[edge]
         main_win.setCursor(cur)
-        if hasattr(main_win, "ambient_container"):
-            main_win.ambient_container.setCursor(cur)
+        main_win.ambient_container.setCursor(cur)
     else:
         reset_all_cursors(main_win)
 
 
 def reset_all_cursors(main_win):
     main_win.unsetCursor()
-    if hasattr(main_win, "ambient_container"):
-        main_win.ambient_container.unsetCursor()
-    if hasattr(main_win, "video_frame"):
-        main_win.video_frame.unsetCursor()
+    
+    main_win.ambient_container.unsetCursor()
+    main_win.video_frame.unsetCursor()
+    
     core = getattr(main_win, "core", None)
     if core and hasattr(core, "view") and core.view:
         core.view.unsetCursor()

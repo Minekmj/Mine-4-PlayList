@@ -15,14 +15,13 @@ def handle_ambient_events(self, event) -> bool:
     if t not in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonRelease):
         return False
 
-    pos = self.mapFromGlobal(event.globalPosition().toPoint()) if hasattr(event, "globalPosition") else event.position().toPoint()
+    pos = self.mapFromGlobal(event.globalPosition().toPoint())
 
     if getattr(self, "is_mini_mode", False):
-        if hasattr(self, "mini_top_bar") and self.mini_top_bar:
-            if pos.y() <= 36:
-                self.mini_top_bar.on_top_activity()
-            else:
-                self.mini_top_bar.fast_hide()
+        if pos.y() <= 36:
+            self.mini_top_bar.on_top_activity()
+        else:
+            self.mini_top_bar.fast_hide()
 
         if t == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
             edge = get_resize_edge(self, pos)
@@ -76,8 +75,8 @@ def handle_video_events(self, event) -> bool:
 
     if getattr(self, "is_mini_mode", False):
         if t == QEvent.Type.MouseMove:
-            if hasattr(self, "mini_top_bar") and self.mini_top_bar:
-                self.mini_top_bar.fast_hide()
+            self.mini_top_bar.fast_hide()
+            
             if self._drag_pos and (event.buttons() & Qt.MouseButton.LeftButton):
                 cur_pos = event.globalPosition().toPoint()
                 if getattr(self, "_click_start_pos", None) and (cur_pos - self._click_start_pos).manhattanLength() > 4:

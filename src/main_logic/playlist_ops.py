@@ -28,8 +28,7 @@ def refresh_playlist_view(self):
     self.lbl_list_count.setText(f"({len(self.playlist)})")
     self.highlight_playing_row()
 
-    if hasattr(self, 'core') and self.core:
-        self.core.preload_playlist_gains(self.playlist)
+    self.core.preload_playlist_gains(self.playlist)
 
 def highlight_playing_row(self):
     if 0 <= self.current_idx < len(self.playlist):
@@ -37,8 +36,7 @@ def highlight_playing_row(self):
         for i in range(self.list_widget.count()):
             it = self.list_widget.item(i)
             if it.data(Qt.ItemDataRole.UserRole) == cur:
-                if hasattr(self, 'list_set'):
-                    self.list_set(i)
+                self.list_set(i)
                 break
 
 def handle_dropped_files(self, paths):

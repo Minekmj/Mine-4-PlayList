@@ -160,8 +160,7 @@ class PlayerCore(QObject):
 
     def _on_aspect_ratio_changed(self, ratio: float):
         container = self.parent_frame.parent()
-        if container and hasattr(container, "set_aspect_ratio"):
-            container.set_aspect_ratio(ratio)
+        container.set_aspect_ratio(ratio)
 
     def set_video_radius(self, radius: float):
         if self.view:
@@ -252,14 +251,11 @@ class PlayerCore(QObject):
             os.environ["QT_FFMPEG_DECODING_HW_DEVICE_TYPES"] = ""
             os.environ["QT_DISABLE_HW_TEXTURES_CONVERSION"] = "1"
 
-        if hasattr(self, "player") and self.player is not None:
+        if self.player is not None:
             try:
-                if hasattr(self.player, "set_hwdec") and callable(self.player.set_hwdec):
-                    self.player.set_hwdec(enabled)
-                elif hasattr(self.player, "hwdec"):
-                    self.player.hwdec = "auto" if enabled else "no"
-                elif hasattr(self.player, "set_property") and callable(self.player.set_property):
-                    self.player.set_property("hwdec", "auto" if enabled else "no")
+                self.player.set_hwdec(enabled)
+                self.player.hwdec = "auto" if enabled else "no"
+                self.player.set_property("hwdec", "auto" if enabled else "no")
             except Exception:
                 pass
 

@@ -71,7 +71,7 @@ class AuroraRenderer:
         p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         p.setPen(Qt.PenStyle.NoPen)
         step_w = w / self.steps
-        use_c = c_engine is not None and hasattr(c_engine, 'c_compute_aurora_wave')
+        use_c = c_engine
 
         for i, grad in enumerate(gradients):
             base = 0.12 + i * 0.07

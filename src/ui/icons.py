@@ -1,3 +1,5 @@
+import os
+
 from PyQt6.QtCore import Qt, QPoint, QRectF
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QPainterPath, QPen, QBrush, QColor
 
@@ -5,6 +7,9 @@ from PyQt6.QtGui import QIcon, QPixmap, QPainter, QPainterPath, QPen, QBrush, QC
 class ModernIcon:
     @staticmethod
     def create(name: str, color: str = "#E2E8F0", size: int = 24) -> QIcon:
+        
+        color = os.environ.get("M4P_COLOR", color)
+        
         pixmap = QIcon()
         img = QPixmap(size, size)
         img.fill(Qt.GlobalColor.transparent)

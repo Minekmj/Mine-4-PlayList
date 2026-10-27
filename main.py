@@ -3,6 +3,8 @@ import sys
 from PyQt6.QtWidgets import QApplication, QSplashScreen
 from PyQt6.QtGui import QIcon, QPixmap
 
+from src.tools.theme import get_theme
+
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.environ["SCRIPT_DIR"] = script_dir
@@ -15,9 +17,7 @@ if __name__ == "__main__":
     app.processEvents()
 
     qss_path = os.path.join(script_dir, "src", "qss", "main.qss")
-    if os.path.exists(qss_path):
-        with open(qss_path, "r", encoding="UTF-8") as f:
-            app.setStyleSheet(f.read())
+    app.setStyleSheet(get_theme(qss_path))
 
     icon_path = os.path.join(script_dir, "src", "icon", "icon.ico")
     if os.path.exists(icon_path):

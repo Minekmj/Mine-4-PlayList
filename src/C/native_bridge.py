@@ -67,7 +67,7 @@ def _find_vcvarsall():
 def _compile_with_msvc(base_dir: str, c_src_name: str, lib_name: str):
     vcvars_bat, arch = _find_vcvarsall()
     if shutil.which("cl") is not None:
-        cmd = ["cl", "/O2", "/openmp", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
+        cmd = ["cl", "/O2", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
         res = subprocess.run(cmd, cwd=base_dir, capture_output=True, text=True)
     elif vcvars_bat and os.path.exists(vcvars_bat):
         cmd = f'call "{vcvars_bat}" {arch} && cl /O2 /openmp /LD /Fe:"{lib_name}" "{c_src_name}"'

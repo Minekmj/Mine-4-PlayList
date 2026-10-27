@@ -1,302 +1,13 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QFormLayout,
-    QPushButton, QSpinBox, QSlider, QCheckBox, QColorDialog,
-    QFontComboBox, QLabel, QScrollArea, QFrame, QComboBox,
-    QSizePolicy
+    QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QPushButton,
+    QFontComboBox, QLabel, QFrame, QComboBox
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtGui import QFont
+
 from src.ui.base import *
+from src.ui.setting.setting_class import BaseSettingsTab, ConfigBinder
 
-
-class ConfigBinder:
-    def __init__(self, dialog: QWidget):
-        self.dlg = dialog
-        self.bindings: list[tuple[dict, str, callable]] = []
-        self.setters: dict[str, callable] = {}
-
-    def slider(self, form: QFormLayout, label: str, target: dict, key: str,
-               v_min: int, v_max: int, scale: float = 1.0,
-               fmt="{}%", default=0) -> QWidget:
-        val = target.get(key, default)
-        slider = QSlider(Qt.Orientation.Horizontal)
-        slider.setRange(v_min, v_max)
-        slider.setValue(int(val / scale if scale != 1.0 else val))
-
-        lbl = QLabel()
-        lbl.setFixedWidth(64)
-        lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        lbl.setStyleSheet("color: #475569; font-weight: 600; font-size: 11px;")
-
-        def update(v):
-            lbl.setText(fmt(v) if callable(fmt) else fmt.format(v))
-
-        slider.valueChanged.connect(update)
-        update(slider.value())
-
-        container = QWidget()
-        h = QHBoxLayout(container)
-        h.setContentsMargins(0, 0, 0, 0)
-        h.addWidget(slider, 1)
-        h.addWidget(lbl)
-        form.addRow(label, container)
-
-        self.bindings.append((
-            target, key,
-            lambda: slider.value() * scale if scale != 1.0 else slider.value()
-        ))
-        self.setters[key] = lambda v: slider.setValue(
-            int(v / scale if scale != 1.0 else v)
-        )
-        return container
-
-    def combo(self, form: QFormLayout, label: str, target: dict, key: str,
-              items: list[str], default: str = "", val_map: dict = None,
-              on_change=None) -> QComboBox:
-        cb = QComboBox()
-        cb.addItems(items)
-        curr = target.get(key, default)
-        curr_text = val_map.get(curr, str(curr)) if val_map else str(curr)
-
-        if curr_text in items:
-            cb.setCurrentText(curr_text)
-        elif items:
-            cb.setCurrentIndex(0)
-
-        if on_change:
-            cb.currentTextChanged.connect(on_change)
-
-        form.addRow(label, cb)
-        rev_map = {v: k for k, v in val_map.items()} if val_map else None
-
-        self.bindings.append((
-            target, key,
-            lambda: rev_map.get(cb.currentText(), cb.currentText())
-            if rev_map else cb.currentText()
-        ))
-        self.setters[key] = lambda v: cb.setCurrentText(
-            val_map.get(v, str(v)) if val_map else str(v)
-        )
-        return cb
-
-    def check(self, form: QFormLayout, text: str, target: dict, key: str,
-              default: bool = False, on_change=None) -> QCheckBox:
-        chk = QCheckBox(text)
-        chk.setChecked(bool(target.get(key, default)))
-        chk.setMinimumSize(0, 30)
-        chk.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed
-        )
-        chk.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-
-        if on_change:
-            chk.toggled.connect(on_change)
-
-        if form is not None:
-            row = QWidget()
-            row.setMinimumHeight(32)
-            row.setSizePolicy(
-                QSizePolicy.Policy.Expanding,
-                QSizePolicy.Policy.Fixed
-            )
-            layout = QHBoxLayout(row)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(0)
-            layout.addWidget(chk)
-            layout.addStretch(1)
-            form.addRow(row)
-
-        self.bindings.append((target, key, chk.isChecked))
-        self.setters[key] = chk.setChecked
-        return chk
-
-    def spin(self, form: QFormLayout, label: str, target: dict, key: str,
-             v_min: int, v_max: int, default: int = 0) -> QSpinBox:
-        sp = QSpinBox()
-        sp.setRange(v_min, v_max)
-        sp.setValue(int(target.get(key, default)))
-        form.addRow(label, sp)
-        self.bindings.append((target, key, sp.value))
-        self.setters[key] = sp.setValue
-        return sp
-
-    def color_btn(self, target: dict, key: str, text: str = "색상 선택",
-                  default: str = "#FFFFFF", on_change=None) -> QPushButton:
-        btn = QPushButton(text)
-        btn.color = QColor(target.get(key, default))
-        self._update_color_style(btn, btn.color.name())
-
-        def pick():
-            c = QColorDialog.getColor(btn.color, self.dlg, f"{text} 선택")
-            if c.isValid():
-                self.set_color(btn, c.name())
-                if on_change:
-                    on_change(c)
-
-        btn.clicked.connect(pick)
-        self.bindings.append((target, key, lambda: btn.color.name()))
-        self.setters[key] = lambda hex_val: self.set_color(btn, hex_val)
-        return btn
-
-    def set_color(self, btn: QPushButton, hex_val: str):
-        btn.color = QColor(hex_val)
-        self._update_color_style(btn, hex_val)
-
-    def _update_color_style(self, btn: QPushButton, color_hex: str):
-        c = QColor(color_hex)
-        text_col = "#0F172A" if c.lightness() > 150 else "#F8FAFC"
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {color_hex};
-                color: {text_col};
-                border: 1px solid rgba(0,0,0,0.15);
-                border-radius: 6px;
-                padding: 4px 10px;
-                font-size: 11px;
-                font-weight: 600;
-            }}
-            QPushButton:hover {{
-                border-color: #2563EB;
-            }}
-        """)
-
-    def set_val(self, key: str, val):
-        if key in self.setters:
-            self.setters[key](val)
-
-    def save(self):
-        for target, key, getter in self.bindings:
-            target[key] = getter()
-
-
-class SettingsGroup(QFrame):
-    def __init__(self, binder: ConfigBinder, title: str = "",
-                 target: dict = None, check_key: str = None,
-                 check_default: bool = False, parent: QWidget = None):
-        super().__init__(parent)
-        self.setObjectName("cardFrame")
-        self.b = binder
-        self.form = QFormLayout(self)
-        self.form.setContentsMargins(14, 12, 14, 12)
-        self.form.setSpacing(10)
-        self.form.setLabelAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-        )
-
-        self.inner_fields: list[QWidget] = []
-        self.chk_toggle: QCheckBox | None = None
-
-        if check_key is not None and target is not None:
-            self.chk_toggle = self.b.check(
-                self.form, title or "활성화", target, check_key,
-                check_default, self._on_toggle
-            )
-        elif title:
-            lbl = QLabel(title)
-            lbl.setStyleSheet("font-weight: 700;")
-            self.form.addRow(lbl)
-
-    def _register_field(self, field: QWidget):
-        self.inner_fields.append(field)
-        visible = self.chk_toggle is None or self.chk_toggle.isChecked()
-        field.setVisible(visible)
-        label = self.form.labelForField(field)
-        if label:
-            label.setVisible(visible)
-
-    def _on_toggle(self, checked: bool):
-        for field in self.inner_fields:
-            field.setVisible(checked)
-            label = self.form.labelForField(field)
-            if label:
-                label.setVisible(checked)
-
-    def slider(self, label: str, target: dict, key: str,
-               v_min: int, v_max: int, scale: float = 1.0,
-               fmt="{}%", default=0) -> QWidget:
-        w = self.b.slider(
-            self.form, label, target, key, v_min, v_max,
-            scale, fmt, default
-        )
-        self._register_field(w)
-        return w
-
-    def combo(self, label: str, target: dict, key: str,
-              items: list[str], default: str = "",
-              val_map: dict = None, on_change=None) -> QComboBox:
-        cb = self.b.combo(
-            self.form, label, target, key, items, default, val_map, on_change
-        )
-        self._register_field(cb)
-        return cb
-
-    def check(self, text: str, target: dict, key: str,
-              default: bool = False, on_change=None) -> QCheckBox:
-        chk = self.b.check(
-            self.form, text, target, key, default, on_change
-        )
-        self._register_field(chk)
-        return chk
-
-    def spin(self, label: str, target: dict, key: str,
-             v_min: int, v_max: int, default: int = 0) -> QSpinBox:
-        sp = self.b.spin(
-            self.form, label, target, key, v_min, v_max, default
-        )
-        self._register_field(sp)
-        return sp
-
-    def color_btn(self, label: str, target: dict, key: str,
-                  text: str = "색상 선택", default: str = "#FFFFFF",
-                  on_change=None) -> QPushButton:
-        btn = self.b.color_btn(target, key, text, default, on_change)
-        self.form.addRow(label, btn)
-        self._register_field(btn)
-        return btn
-
-    def add_row(self, label_or_widget, field: QWidget = None):
-        if field is None:
-            self.form.addRow(label_or_widget)
-            if isinstance(label_or_widget, QWidget):
-                self._register_field(label_or_widget)
-        else:
-            self.form.addRow(label_or_widget, field)
-            self._register_field(field)
-
-
-class BaseSettingsTab(QScrollArea):
-    def __init__(self, dialog: "SettingsDialog", parent=None):
-        super().__init__(parent)
-        self.dlg = dialog
-        self.b = dialog.b
-        self.engine_cfg = dialog.engine_cfg
-        self.sub_cfg = dialog.sub_cfg
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.Shape.NoFrame)
-
-        self.page = QWidget()
-        self.page.setMinimumWidth(0)
-        self.layout = QVBoxLayout(self.page)
-        self.layout.setContentsMargins(4, 8, 4, 8)
-        self.layout.setSpacing(10)
-        self.setWidget(self.page)
-        self.setup_ui()
-        self.layout.addStretch()
-
-    def setup_ui(self):
-        pass
-
-    def add_group(self, title: str = "", target: dict = None,
-                  check_key: str = None,
-                  check_default: bool = False) -> SettingsGroup:
-        grp = SettingsGroup(
-            binder=self.b, title=title, target=target,
-            check_key=check_key, check_default=check_default,
-            parent=self.page
-        )
-        self.layout.addWidget(grp)
-        return grp
 class FxTab(BaseSettingsTab):
     def setup_ui(self):
         e = self.engine_cfg
@@ -424,9 +135,9 @@ class SubTab(BaseSettingsTab):
         g_an.combo("적용 애니메이션", s, "anim_style", ["슬라이드 & 페이드", "자연스러운 페이드", "타자기", "팝업 바운스", "웨이브", "없음"], "슬라이드 & 페이드")
         g_an.combo("나타나는 방향", s, "slide_direction", ["아래에서 위로", "위에서 아래로", "왼쪽에서", "오른쪽에서", "없음"], "아래에서 위로")
         g_an.slider("이동 거리", s, "slide_distance", 4, 40, fmt="{} px", default=16)
-        g_an.check("자연스럽게 나타나기 (Fade-in)", s, "fade_in_enabled", True)
+        g_an.check("자연스럽게 나타나기", s, "fade_in_enabled", True)
         g_an.slider("페이드 시간", s, "fade_duration", 50, 600, fmt="{} ms", default=220)
-        g_an.check("글자 차례대로 나타나기 (타자기 효과)", s, "typewriter_enabled", False)
+        g_an.check("글자 차례대로 나타나", s, "typewriter_enabled", False)
         g_an.slider("타이핑 속도", s, "typewriter_speed", 10, 80, fmt="{} ms", default=28)
 
 
@@ -439,10 +150,11 @@ class EngineTab(BaseSettingsTab):
         g_eng.check("하드웨어 GPU 가속 디코딩 (권장)", e, "hwdec", True)
 
         g_fps = self.add_group("재생 및 효과 프레임 레이트 (FPS)")
-        g_fps.slider("이펙트 애니메이션 FPS", e, "fps_effect", 10, 60, fmt="{} fps", default=24)
+        g_fps.slider("이펙트 애니메이션 FPS", e, "fps_effect", 5, 60, fmt="{} fps", default=15)
         g_fps.slider("앰비언트 백라이트 FPS", e, "fps_ambient", 10, 60, fmt="{} fps", default=30)
-        g_fps.slider("그림자 FPS", e, "fps_shadow", 5, 60, fmt="{} fps", default=24)
+        g_fps.slider("그림자 FPS", e, "fps_shadow", 5, 60, fmt="{} fps", default=10)
         g_fps.slider("자막 갱신 FPS", e, "fps_subtitle", 10, 60, fmt="{} fps", default=self.sub_cfg.get("fps_subtitle", 30))
+        
 class SettingsDialog(AnimatedDialogBase):
     def __init__(self, parent):
         super().__init__(parent)

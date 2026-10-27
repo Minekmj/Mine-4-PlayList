@@ -242,3 +242,29 @@ def is_in_play_click_zone(video_widget, local_pos: QPoint) -> bool:
     inner_rect = QRectF(margin_x, margin_y, vw - margin_x * 2, vh - margin_y * 2)
 
     return inner_rect.contains(local_pos.x(), local_pos.y())
+
+def handle_mini_resizing(self, gpos: QPoint):
+    diff = gpos - self._resize_start_pos
+    geo = self._resize_start_geo
+    edge = self._mini_resize_edge
+
+    new_x, new_y = geo.x(), geo.y()
+    new_w, new_h = geo.width(), geo.height()
+    min_w, min_h = self.minimumWidth(), self.minimumHeight()
+
+    if "right" in edge:
+        new_w = max(min_w, geo.width() + diff.x())
+    if "bottom" in edge:
+        new_h = max(min_h, geo.height() + diff.y())
+    if "left" in edge:
+        calc_w = geo.width() - diff.x()
+        if calc_w >= min_w:
+            new_w = calc_w
+            new_x = geo.x() + diff.x()
+    if "top" in edge:
+        calc_h = geo.height() - diff.y()
+        if calc_h >= min_h:
+            new_h = calc_h
+            new_y = geo.y() + diff.y()
+
+    self.setGeometry(new_x, new_y, new_w, new_h)

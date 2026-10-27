@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QFrame, QGraphicsOpacityEffect
-from PyQt6.QtCore import QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import QPoint, QTimer, QPropertyAnimation, QEasingCurve
 from src.base import *
 
 def top_bar(self):
@@ -45,7 +45,7 @@ def top_bar(self):
     self.top_bar_timer = QTimer(self)
     self.top_bar_timer.setSingleShot(True)
     self.top_bar_timer.setInterval(1500)
-    self.top_bar_timer.timeout.connect(self._hide_top_bar)
+    self.top_bar_timer.timeout.connect(lambda: hide_top_bar(self))
 
 
 def toggle_maximize_restore(self):
@@ -54,3 +54,27 @@ def toggle_maximize_restore(self):
     else:
         self.showMaximized()
     QTimer.singleShot(60, lambda: self.core.reposition_subtitle() if self.core else None)
+    
+def hide_top_bar(self):
+    self._top_anim.stop()
+    self._top_anim.setStartValue(self._top_opacity.opacity())
+    self._top_anim.setEndValue(0.0)
+    self._top_anim.start()
+
+def check_top_bar_hover(self, pos: QPoint):
+    if self.isFullScreen() or getattr(self, "is_mini_mode", False):
+        hide_top_bar(self)
+        return
+
+    if pos.y() <= 50:
+        if self._top_opacity.opacity() < 0.95:
+            self.top_control_bar.show()
+            self.top_control_bar.raise_()
+            self._top_anim.stop()
+            self._top_anim.setStartValue(self._top_opacity.opacity())
+            self._top_anim.setEndValue(1.0)
+            self._top_anim.start()
+        self.top_bar_timer.start(1500)
+    else:
+        if self._top_opacity.opacity() > 0.05:
+            hide_top_bar(self)

@@ -89,7 +89,7 @@ class BorderTab(BaseSettingsTab):
         g_b.add_row("지정 색상", row_b_cols)
         on_cmode_change(e.get("border_color_mode", "단색"))
 
-        g_b.combo("효과", e, "border_anim_mode", ["정지", "숨쉬기", "회전", "깜빡임"], "숨쉬기")
+        g_b.combo("효과", e, "border_anim_mode", ["정지", "숨쉬기", "회전", "깜빡임", "브리딩 펄스"], "숨쉬기")
         g_b.slider("펄스 호흡 깊이", e, "border_pulse_depth", 0, 80, scale=0.01, default=0.35)
         g_b.slider("효과 속도", e, "border_anim_speed", 20, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=1.0)
         g_b.slider("선 두께", e, "border_width", 1, 24, fmt="{} px", default=3)

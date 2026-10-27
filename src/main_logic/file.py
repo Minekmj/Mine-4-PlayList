@@ -32,6 +32,7 @@ def get_default_sub_config() -> dict:
         "shadow_opacity": 0.3,
         "shadow_offset": 2,
         "shadow_blur": 3,
+        "fps_subtitle": 30
     }
 
 
@@ -49,7 +50,7 @@ def get_default_engine_config() -> dict:
         "particle_density": 0.3,
         "particle_speed": 1.0,
         "ambient_brightness": 0.6,
-        "ambient_black_lift": 0.1,
+        "ambient_black_lift": 0.2,
         "ambient_gamma": 1.07,
         "ambient_blur_radius": 8,
         "ambient_motion_intensity": 0.42,
@@ -57,9 +58,9 @@ def get_default_engine_config() -> dict:
         "ambient_crop_margin": 0,
         "video_floating_rim": True,
         "video_shadow_enabled": True,
-        "video_shadow_opacity": 0.1,
-        "video_shadow_radius": 35,
-        "video_shadow_offset": 6,
+        "video_shadow_opacity": 0.05,
+        "video_shadow_radius": 25,
+        "video_shadow_offset": 2,
         "ambient_tint_enabled": False,
         "ambient_tint_color": "#fefefe",
         "ambient_tint_ratio": 0.3,
@@ -83,7 +84,17 @@ def get_default_engine_config() -> dict:
         "window_radius": 25,
         "video_radius": 25,
         "window_radius_individual": False,
-        "video_radius_individual": False
+        "video_radius_individual": False,
+        "ambient_quality_percent": 35,
+        "ambient_vignette_enabled": True,
+        "ambient_vignette_max_dist": 60,
+        "ambient_vignette_intensity": 1.0,
+        "ambient_vignette_shape_depth": 1.0,
+        "ambient_vignette_darkness": 1.0,
+        "fps_effect": 15,
+        "fps_ambient": 30,
+        "fps_shadow": 10,
+        "fps_subtitle": 30
     }
 
 
@@ -156,7 +167,7 @@ def load_session(self):
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
             self.core.set_hwdec(self.engine_config.get("hwdec", True))
-            self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
+            self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 10) / 100.0)
             self.core.preload_playlist_gains(self.playlist)
 
         self.ambient_container.set_ambient_params(self.engine_config)

@@ -1,6 +1,7 @@
 import os
 from PyQt6.QtWidgets import QMainWindow, QWidget, QMessageBox
-from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent
+from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent, QRect
+from PyQt6.QtGui import QCursor  # [추가] 마우스 전역 위치 확인용
 
 from src.main_ui.dock import dock_panel
 from src.main_ui.playlist import playlist_panel
@@ -23,6 +24,8 @@ import src.main_logic.event_handler as evt_handler
 
 
 class EchoMediaPlayer(QMainWindow):
+    EDGE_MARGIN = 8
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Mine 4 PlayList")
@@ -33,6 +36,10 @@ class EchoMediaPlayer(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
         self._drag_pos = None
+        self._resize_edge = 0
+        self._resize_start_pos = QPoint()
+        self._resize_start_geo = None
+
         self.playlist = []
         self.current_idx = -1
         self.playback_mode = 0
@@ -55,6 +62,101 @@ class EchoMediaPlayer(QMainWindow):
         fi.load_session(self)
         
         ti.timers(self)
+
+        self.dock_hide_timer = QTimer(self)
+        self.dock_hide_timer.setSingleShot(True)
+        self.dock_hide_timer.setInterval(5000)
+        self.dock_hide_timer.timeout.connect(self._on_dock_hide_timeout)
+
+    def _on_dock_hide_timeout(self):
+        if getattr(self, "is_mini_mode", False):
+            return
+        if not self.geometry().contains(QCursor.pos()):
+            if hasattr(self, "dock_panel") and self.dock_panel:
+                self.dock_panel.hide()
+
+    def _show_dock(self):
+        if hasattr(self, "dock_hide_timer") and self.dock_hide_timer.isActive():
+            self.dock_hide_timer.stop()
+
+        if getattr(self, "is_mini_mode", False):
+            return
+
+        if hasattr(self, "dock_panel") and self.dock_panel:
+            if not self.dock_panel.isVisible():
+                self.dock_panel.show()
+                self.dock_panel.raise_()
+
+    def _get_resize_edge(self, pos: QPoint) -> int:
+        if self.isFullScreen() or getattr(self, "is_mini_mode", False):
+            return 0
+
+        m = self.EDGE_MARGIN
+        w, h = self.width(), self.height()
+        x, y = pos.x(), pos.y()
+
+        edge = 0
+        if x <= m:
+            edge |= 1
+        elif x >= w - m:
+            edge |= 2
+
+        if y <= m:
+            edge |= 4
+        elif y >= h - m:
+            edge |= 8
+
+        return edge
+
+    def _update_resize_cursor(self, edge: int):
+        if edge in (1, 2):
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        elif edge in (4, 8):
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+        elif edge in (1 | 4, 2 | 8):
+            self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        elif edge in (2 | 4, 1 | 8): 
+            self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+        else:
+            self.unsetCursor()
+
+    def _handle_resizing(self, gpos: QPoint):
+        if not self._resize_edge or not self._resize_start_geo:
+            return
+
+        dx = gpos.x() - self._resize_start_pos.x()
+        dy = gpos.y() - self._resize_start_pos.y()
+        geo = self._resize_start_geo
+
+        min_w = self.minimumWidth()
+        min_h = self.minimumHeight()
+
+        new_x, new_y = geo.x(), geo.y()
+        new_w, new_h = geo.width(), geo.height()
+
+        if self._resize_edge & 1:
+            calc_w = geo.width() - dx
+            if calc_w >= min_w:
+                new_x = geo.x() + dx
+                new_w = calc_w
+            else:
+                new_x = geo.right() - min_w + 1
+                new_w = min_w
+        elif self._resize_edge & 2:
+            new_w = max(min_w, geo.width() + dx)
+
+        if self._resize_edge & 4:
+            calc_h = geo.height() - dy
+            if calc_h >= min_h:
+                new_y = geo.y() + dy
+                new_h = calc_h
+            else:
+                new_y = geo.bottom() - min_h + 1
+                new_h = min_h
+        elif self._resize_edge & 8:
+            new_h = max(min_h, geo.height() + dy)
+
+        self.setGeometry(new_x, new_y, new_w, new_h)
 
     def init_ui(self):
         self.ambient_container = AmbientVideoContainer(self)
@@ -167,7 +269,7 @@ class EchoMediaPlayer(QMainWindow):
         QTimer.singleShot(60, lambda: self.core.reposition_subtitle() if self.core else None)
 
     def show_floating_controls(self):
-        self.dock_panel.show()
+        self._show_dock()
         self.unsetCursor()
         self.video_frame.unsetCursor()
         self.ambient_container.unsetCursor()
@@ -179,6 +281,8 @@ class EchoMediaPlayer(QMainWindow):
         QTimer.singleShot(60, lambda: self.core.reposition_subtitle() if self.core else None)
 
     def toggle_mini_mode(self):
+        if hasattr(self, "dock_hide_timer"):
+            self.dock_hide_timer.stop()
         toggle_mini_mode(self)
         self.update_window_and_video_radius()
 
@@ -187,6 +291,8 @@ class EchoMediaPlayer(QMainWindow):
             super().keyPressEvent(event)
 
     def closeEvent(self, event):
+        if hasattr(self, "dock_hide_timer"):
+            self.dock_hide_timer.stop()
         fi.save_session(self)
         if self.core:
             self.core.terminate()
@@ -200,13 +306,15 @@ class EchoMediaPlayer(QMainWindow):
         self.top_control_bar.move(bx, 12)
             
         reposition_mini_bar(self)
-        
-        self.core.reposition_subtitle()
+        if self.core:
+            self.core.reposition_subtitle()
         self.dock_panel.raise_()
 
     def mouseMoveEvent(self, event):
         gpos = event.globalPosition().toPoint()
         pos = self.mapFromGlobal(gpos)
+
+        self._show_dock()
 
         if getattr(self, "is_mini_mode", False):
             if hasattr(self, "mini_top_bar") and self.mini_top_bar:
@@ -231,31 +339,63 @@ class EchoMediaPlayer(QMainWindow):
             super().mouseMoveEvent(event)
             return
 
-        check_top_bar_hover(self, pos)
+        if self._resize_edge and (event.buttons() & Qt.MouseButton.LeftButton):
+            self._handle_resizing(gpos)
+            event.accept()
+            return
+
+        if not (event.buttons() & Qt.MouseButton.LeftButton):
+            edge = self._get_resize_edge(pos)
+            self._update_resize_cursor(edge)
+
         if self._drag_pos and (event.buttons() & Qt.MouseButton.LeftButton) and not self.isFullScreen():
             self.move(gpos - self._drag_pos)
             event.accept()
             return
+
+        check_top_bar_hover(self, pos)
         super().mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
-        if getattr(self, "is_mini_mode", False) and event.button() == Qt.MouseButton.LeftButton:
-            edge = get_resize_edge(self, event.position().toPoint())
-            if edge:
-                self._mini_resize_edge = edge
-                self._resize_start_pos = event.globalPosition().toPoint()
+        self._show_dock()
+        if event.button() == Qt.MouseButton.LeftButton:
+            gpos = event.globalPosition().toPoint()
+            pos = self.mapFromGlobal(gpos)
+
+            if getattr(self, "is_mini_mode", False):
+                edge = get_resize_edge(self, pos)
+                if edge:
+                    self._mini_resize_edge = edge
+                    self._resize_start_pos = gpos
+                    self._resize_start_geo = self.geometry()
+                else:
+                    self._drag_pos = gpos - self.frameGeometry().topLeft()
+                event.accept()
+                return
+
+            edge = self._get_resize_edge(pos)
+            if edge and not self.isFullScreen():
+                self._resize_edge = edge
+                self._resize_start_pos = gpos
                 self._resize_start_geo = self.geometry()
+                event.accept()
+                return
             else:
-                self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
-            return
+                if not self.isFullScreen():
+                    self._drag_pos = gpos - self.frameGeometry().topLeft()
+
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         self._mini_resize_edge = None
+        self._resize_edge = 0
         self._drag_pos = None
         self.unsetCursor()
         super().mouseReleaseEvent(event)
+
+    def enterEvent(self, event):
+        self._show_dock()
+        super().enterEvent(event)
 
     def leaveEvent(self, event):
         if getattr(self, "is_mini_mode", False):
@@ -263,10 +403,55 @@ class EchoMediaPlayer(QMainWindow):
                 self.mini_top_bar.fast_hide()
         else:
             hide_top_bar(self)
+            if hasattr(self, "dock_hide_timer") and not self.isFullScreen():
+                self.dock_hide_timer.start(5000)
+
         reset_all_cursors(self)
+        self.unsetCursor()
         super().leaveEvent(event)
 
     def eventFilter(self, obj, event):
+        if event.type() in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.Enter):
+            self._show_dock()
+
+        if not self.isFullScreen() and not getattr(self, "is_mini_mode", False):
+            if event.type() == QEvent.Type.MouseMove:
+                gpos = event.globalPosition().toPoint()
+                pos = self.mapFromGlobal(gpos)
+
+                if self._resize_edge and (event.buttons() & Qt.MouseButton.LeftButton):
+                    self._handle_resizing(gpos)
+                    return True
+
+                if not (event.buttons() & Qt.MouseButton.LeftButton):
+                    edge = self._get_resize_edge(pos)
+                    if edge:
+                        self._update_resize_cursor(edge)
+                    else:
+                        if self.cursor().shape() in (
+                            Qt.CursorShape.SizeHorCursor,
+                            Qt.CursorShape.SizeVerCursor,
+                            Qt.CursorShape.SizeFDiagCursor,
+                            Qt.CursorShape.SizeBDiagCursor,
+                        ):
+                            self.unsetCursor()
+
+            elif event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                gpos = event.globalPosition().toPoint()
+                pos = self.mapFromGlobal(gpos)
+                edge = self._get_resize_edge(pos)
+                if edge:
+                    self._resize_edge = edge
+                    self._resize_start_pos = gpos
+                    self._resize_start_geo = self.geometry()
+                    return True
+
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                if self._resize_edge:
+                    self._resize_edge = 0
+                    self.unsetCursor()
+                    return True
+
         if event.type() == QEvent.Type.KeyPress:
             return evt_handler.handle_key_press(self, event)
 
@@ -280,6 +465,6 @@ class EchoMediaPlayer(QMainWindow):
             return True
 
         return super().eventFilter(obj, event)
-    
+
     def _update_sub_icon(self):
         pb.update_sub_icon(self)

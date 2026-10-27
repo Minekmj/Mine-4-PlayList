@@ -13,53 +13,61 @@ Windows용 감성 영상 플레이어입니다. 영상을 화려하게 볼 수 �
 
 <div align="center">
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/e41f24d3-995d-45b9-b14a-1dc133e4fff3" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/164abd65-ab12-43e3-9cd4-de540e228ddf" />
 
 이미지 1
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/5ace0061-a38f-4ec4-8e5b-eae42328b250" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/f2d631c8-b90c-44ec-849e-fba80fee1069" />
 
 이미지 2
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/146c2043-553f-4460-8160-b4eb19d3a3c0" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/8b651910-e3cb-4dba-90dc-aef8eecf042d" />
 
 이미지 3
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/62a2e96a-16c9-436f-bdfa-86bb16774ff9" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/2e6629df-db72-4b63-b87c-eb15909be317" />
 
 이미지 4
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/441c4984-bfc3-4c04-b507-2a73187cbc9f" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/4af37750-d5f8-47b4-95ef-70566400e9cf" />
+
+이미지 5
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/7b19291e-b1a5-4941-aeb3-64ec7a742a74" />
+
+이미지 6
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/c318fa33-13b7-4e4f-8e8c-f1079744dc2f" />
+
+이미지 7
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/416e006c-f7e8-4073-a005-1d8eabe5bfdf" />
 
 가변 크기 이미지
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/db9675a9-0dfb-4f46-a2ed-7afb031ea9f3" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/5c5dd178-62c0-4e79-87eb-42e767177692" />
 
-플레이리스트 숨기기 이미지 1
+전체 화면 이미지
 
-<div style="border-radius: 10px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/61a71958-5b8a-4c94-a193-eb8a6d1c03b7" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/08741113-dc54-45c5-978a-07d01c3bc7c4" />
 
-플레이리스트 숨기기 이미지 2
+전체 화면 비교 (전체)
 
-<div style="border-radius: 20px; overflow: hidden; max-width: 500px;">
-  <img alt="Image" src="https://github.com/user-attachments/assets/9b69ed2e-de4c-480d-aa59-40e5a49bd293" style="width: 100%; display: block;" />
-</div>
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/bf43717b-8782-4940-bfa7-829a63ba5c1f" />
+
+전체 화면 비교 (축소)
+
+<img width="500"  alt="Image" src="https://github.com/user-attachments/assets/0ef85c05-36cc-4046-8dd8-5d6fbaab1111" />
 
 미니멀 모드
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/ede4af19-1462-4b95-959a-8bb5ceea0bb5" />
+
+작동 이미지 1
+
+<img width="500" alt="Image" src="https://github.com/user-attachments/assets/01a3fd24-d119-473f-abd9-fa3b225b84fe" />
+
+작동 이미지 2
 
 </div>
 

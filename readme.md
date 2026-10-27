@@ -7,6 +7,21 @@
 Windows용 감성 영상 플레이어입니다. 영상을 화려하게 볼 수 있습니다.\
 주로 애니 OP, ED, MV를 보기 좋습니다.
 
+<p>
+  <a href="https://github.com/Minekmj/Mine-4-PlayList/releases/latest">
+    <img src="https://img.shields.io/github/v/release/Minekmj/Mine-4-PlayList?display_name=tag&sort=date" alt="Latest Release">
+  </a>
+
+  <a href="https://github.com/Minekmj/Mine-4-PlayList/releases">
+    <img src="https://img.shields.io/github/downloads/Minekmj/Mine-4-PlayList/total" alt="Downloads">
+  </a>
+
+  <a href="https://github.com/Minekmj/Mine-4-PlayList">
+    <img src="https://img.shields.io/github/license/Minekmj/Mine-4-PlayList" alt="License">
+  </a>
+
+</p>
+
 </div>
 
 ## 스크린샷

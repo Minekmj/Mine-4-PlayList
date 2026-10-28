@@ -138,9 +138,12 @@ def on_list_item_changed(self, current, previous, back=False):
             prev_card.set_selected(False)
         
         if back and self.currect_item:
-            prev_cur_card = self.list_widget.itemWidget(self.currect_item)
-            if isinstance(prev_cur_card, PlaylistItemCard):
-                prev_cur_card.set_selected(False)
+            try:
+                prev_cur_card = self.list_widget.itemWidget(self.currect_item)
+                if isinstance(prev_cur_card, PlaylistItemCard):
+                    prev_cur_card.set_selected(False)
+            except:
+                pass
             
     if current:
         cur_card = self.list_widget.itemWidget(current)

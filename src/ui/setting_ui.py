@@ -1,3 +1,4 @@
+import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QFontComboBox, QLabel, QFrame, QComboBox
@@ -16,25 +17,25 @@ class FxTab(BaseSettingsTab):
         g_amb = self.add_group("앰비언트")
         q_map = {15: "최저 (15%)", 35: "최소 (35%)", 50: "보통 (50%)", 85: "최대 (85%)", 100: "맥스 (100%)"}
         g_amb.combo("화면 화질 축소 비율", e, "ambient_quality_percent", list(q_map.values()), val_map=q_map, default=50)
-        g_amb.slider("배경 밝기", e, "ambient_brightness", 30, 300, scale=0.01, default=0.6)
+        g_amb.slider("배경 밝기", e, "ambient_brightness", 30, 300, scale=0.01, default=0.8)
         g_amb.slider("캡처 안쪽 여백", e, "ambient_crop_margin", 0, 25, default=0)
         
         g_amb_b = self.add_group("앰비언트 보정")
-        g_amb_b.slider("색상 채도", e, "ambient_saturation", 0, 300, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.2)
-        g_amb_b.slider("감마 보정", e, "ambient_gamma", 50, 250, scale=0.01, fmt=lambda v: f"{v/100:.2f}", default=1.35)
-        g_amb_b.slider("암부 보정", e, "ambient_black_lift", 0, 50, scale=0.01, default=0.2)
+        g_amb_b.slider("색상 채도", e, "ambient_saturation", 0, 300, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.1)
+        g_amb_b.slider("감마 보정", e, "ambient_gamma", 50, 250, scale=0.01, fmt=lambda v: f"{v/100:.2f}", default=1.0)
+        g_amb_b.slider("암부 보정", e, "ambient_black_lift", 0, 50, scale=0.01, default=0.0)
         g_amb_b.slider("색수차 효과", e, "ambient_ca_strength", 0, 40, scale=0.1, fmt="{:.1f} px", default=0.0)
-        g_amb_b.slider("흐림 반경", e, "ambient_blur_radius", 4, 30, fmt="{} px", default=8)
+        g_amb_b.slider("흐림 반경", e, "ambient_blur_radius", 4, 30, fmt="{} px", default=16)
         
         g_tint = self.add_group("컬러 틴트", target=e, check_key="ambient_tint_enabled", check_default=False)
-        g_tint.color_btn("틴트 색상", e, "ambient_tint_color", "틴트 색상", "#fefefe")
+        g_tint.color_btn("틴트 색상", e, "ambient_tint_color", "틴트 색상", "#ffffff")
         g_tint.slider("틴트 농도", e, "ambient_tint_ratio", 5, 80, scale=0.01, default=0.3)
 
         g_vig = self.add_group("비네트", target=e, check_key="ambient_vignette_enabled", check_default=True)
-        g_vig.slider("광원 최대 도달 거리", e, "ambient_vignette_max_dist", 20, 150, fmt="{}%", default=60)
+        g_vig.slider("광원 최대 도달 거리", e, "ambient_vignette_max_dist", 20, 150, fmt="{}%", default=45)
         g_vig.slider("광원 선명도 및 강도", e, "ambient_vignette_intensity", 50, 300, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.0)
-        g_vig.slider("색상별 형상 굴곡 깊이", e, "ambient_vignette_shape_depth", 0, 100, scale=0.01, fmt="{}%", default=1.0)
-        g_vig.slider("외곽 암부 페이드 깊이", e, "ambient_vignette_darkness", 0, 100, scale=0.01, fmt="{}%", default=1.0)
+        g_vig.slider("색상별 형상 굴곡 깊이", e, "ambient_vignette_shape_depth", 0, 100, scale=0.01, fmt="{}%", default=0.8)
+        g_vig.slider("외곽 암부 페이드 깊이", e, "ambient_vignette_darkness", 0, 100, scale=0.01, fmt="{}%", default=0.8)
 
         g_crn = self.add_group("모서리")
         g_crn.check("비디오 외곽 은은한 림라이트", e, "video_floating_rim", True)
@@ -54,8 +55,8 @@ class AtmosTab(BaseSettingsTab):
         g_aurora = self.add_group("오로라", target=e, check_key="aurora_enabled", check_default=True)
         g_aurora.combo("오로라 형태", e, "aurora_style", ["오로라", "물결", "없음"], "물결")
         g_aurora.combo("오로라 색상", e, "aurora_palette", ["청록", "분홍", "파랑", "보라", "주황"], "파랑")
-        g_aurora.slider("오로라 강도", e, "aurora_intensity", 0, 100, scale=0.01, default=0.65)
-        g_aurora.slider("오로라 속도", e, "aurora_speed", 10, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=1.0)
+        g_aurora.slider("오로라 강도", e, "aurora_intensity", 0, 100, scale=0.01, default=0.35)
+        g_aurora.slider("오로라 속도", e, "aurora_speed", 10, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=0.33)
         g_aurora.slider("오로라 크기", e, "aurora_size", 40, 250, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.0)
 
         g_pt = self.add_group("파티클", target=e, check_key="particle_enabled", check_default=True)
@@ -64,9 +65,9 @@ class AtmosTab(BaseSettingsTab):
         g_pt.combo("이동 방향", e, "particle_direction", ["아래로", "위로", "왼쪽 대각선", "오른쪽 대각선", "흩날림"], "아래로")
         g_pt.combo("파티클 색상", e, "particle_palette",
                    ["청록", "분홍", "파랑", "보라", "주황", "흰색", "노랑", "형광", "연분홍"], "흰색")
-        g_pt.slider("입자 밀도", e, "particle_density", 0, 100, scale=0.01, default=0.3)
-        g_pt.slider("이동 속도", e, "particle_speed", 10, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=1.0)
-        g_pt.slider("입자 크기", e, "particle_size", 40, 300, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.0)
+        g_pt.slider("입자 밀도", e, "particle_density", 0, 100, scale=0.01, default=0.2)
+        g_pt.slider("이동 속도", e, "particle_speed", 10, 300, scale=0.01, fmt=lambda v: f"{v/100:.1f}x", default=0.42)
+        g_pt.slider("입자 크기", e, "particle_size", 40, 300, scale=0.01, fmt=lambda v: f"{v/100:.2f}x", default=1.8)
 
 
 class BorderTab(BaseSettingsTab):
@@ -102,7 +103,7 @@ class BorderTab(BaseSettingsTab):
         g_b_d.slider("선 두께", e, "border_width", 1, 24, fmt="{} px", default=5)
         g_b_d.slider("화면 여백", e, "border_margin", 0, 50, fmt=lambda v: "화면 밀착" if v == 0 else f"{v} px", default=0)
         g_b_d.slider("글로우 번짐", e, "border_glow_spread", 0, 40, fmt="{} px", default=20)
-        g_b_d.slider("불투명도", e, "border_opacity", 10, 100, scale=0.01, default=0.3)
+        g_b_d.slider("불투명도", e, "border_opacity", 10, 100, scale=0.01, default=0.15)
 
         g_b_a = self.add_group("테두리 효과", parent_item=g_b)
         g_b_a.combo("효과", e, "border_anim_mode", ["정지", "숨쉬기", "회전", "깜빡임", "브리딩 펄스"], "정지")
@@ -167,24 +168,25 @@ class EngineTab(BaseSettingsTab):
         g_eng.label("OpenGL을 이용하여 동영상을 렌더링\n둥근 모서리를 지원하지 않습니다.")
         
         g_fps = self.add_group("프레임 레이트")
-        g_fps.slider("이펙트 애니메이션 FPS", e, "fps_effect", 1, 60, fmt="{} fps", default=15)
+        g_fps.slider("이펙트 애니메이션 FPS", e, "fps_effect", 1, 60, fmt="{} fps", default=24)
         g_fps.slider("앰비언트 백라이트 FPS", e, "fps_ambient", 1, 60, fmt="{} fps", default=30)
-        g_fps.slider("그림자 FPS", e, "fps_shadow", 1, 60, fmt="{} fps", default=10)
-        g_fps.slider("자막 갱신 FPS", e, "fps_subtitle", 1, 60, fmt="{} fps", default=30)
+        g_fps.slider("그림자 FPS", e, "fps_shadow", 1, 60, fmt="{} fps", default=5)
+        g_fps.slider("자막 갱신 FPS", e, "fps_subtitle", 1, 60, fmt="{} fps", default=20)
         
+
 class AboutTab(BaseSettingsTab):
     def setup_ui(self):
-        
         v_path = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..", "ver.txt")
         ver = "(확인불가)"
         if os.path.exists(v_path):
             with open(v_path, "r", encoding="UTF-8") as f:
-                ver = f.readline()
+                ver = f.readline().strip()
                         
         about = self.add_group(f"Mine 4 PlayList - {ver}")
         about.button("홈페이지", "GitHub", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Minekmj/Mine-4-PlayList")))
         about.button("최신버전", "Releases", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Minekmj/Mine-4-PlayList/releases")))
         about.button("업데이트 내역", "Releases", lambda: QDesktopServices.openUrl(QUrl(f"https://github.com/Minekmj/Mine-4-PlayList/releases/tag/{ver}")))
+
 
 class SettingsDialog(AnimatedDialogBase):
     def __init__(self, parent):
@@ -277,7 +279,7 @@ class SettingsDialog(AnimatedDialogBase):
         self.b.save()
         self.engine_cfg["ambient_glow"] = True
         self.engine_cfg["border_radius"] = self.engine_cfg.get("window_radius", 25)
-        self.sub_cfg["fps_subtitle"] = self.engine_cfg.get("fps_subtitle", 30)
+        self.sub_cfg["fps_subtitle"] = self.engine_cfg.get("fps_subtitle", 20)
 
         self.p.apply_settings(self.sub_cfg, self.engine_cfg)
         self.animated_close()

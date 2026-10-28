@@ -25,6 +25,14 @@ class NativeParticle(ctypes.Structure):
 
 _cached_lib = None
 
+C_SOURCE_FILES = [
+    "perspective.c",
+    "blur.c",
+    "particle.c",
+    "aurora.c",
+    "audio.c",
+    "shadow.c",
+]
 
 def _find_vcvarsall():
     arch = "x64" if sys.maxsize > 2**32 else "x86"
@@ -64,28 +72,40 @@ def _find_vcvarsall():
     return None, arch
 
 
-def _compile_with_msvc(base_dir: str, c_src_name: str, lib_name: str):
+def _compile_with_msvc(src_dir: str, c_sources: list, out_path: str):
     vcvars_bat, arch = _find_vcvarsall()
-    msvc_flags = ["/O2", "/Ot", "/fp:fast", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
+    
+    msvc_flags = [
+        "/O2", "/Ot", "/fp:fast", "/arch:AVX2", "/LD",
+        f"/Fe:{out_path}",
+    ] + c_sources
 
     if shutil.which("cl") is not None:
         cmd = ["cl"] + msvc_flags
-        res = subprocess.run(cmd, cwd=base_dir, capture_output=True, text=True)
+        res = subprocess.run(cmd, cwd=src_dir, capture_output=True, text=True)
     elif vcvars_bat and os.path.exists(vcvars_bat):
         cmd = f'call "{vcvars_bat}" {arch} && cl {" ".join(msvc_flags)}'
-        res = subprocess.run(cmd, shell=True, cwd=base_dir, capture_output=True, text=True)
+        res = subprocess.run(cmd, shell=True, cwd=src_dir, capture_output=True, text=True)
     else:
         raise RuntimeError("MSVC (cl.exe) 또는 vcvarsall.bat를 찾을 수 없습니다. Visual Studio C++ 빌드 도구를 확인하세요.")
 
     if res.returncode != 0:
         raise RuntimeError(f"MSVC Compile failed:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
 
-    base_name = os.path.splitext(lib_name)[0]
-    for ext in [".obj", ".exp", ".lib"]:
-        temp_file = os.path.join(base_dir, base_name + ext)
+    base_name = os.path.splitext(out_path)[0]
+    for ext in [".exp", ".lib"]:
+        temp_file = base_name + ext
         if os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
+            except OSError:
+                pass
+
+    for c_file in c_sources:
+        obj_file = os.path.join(src_dir, os.path.splitext(c_file)[0] + ".obj")
+        if os.path.exists(obj_file):
+            try:
+                os.remove(obj_file)
             except OSError:
                 pass
 
@@ -95,27 +115,26 @@ def get_native_engine():
     if _cached_lib is not None:
         return _cached_lib
 
-    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-    c_src_name = "native_effects.c"
-    c_src = os.path.join(base_dir, c_src_name)
-
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.join(base_dir, "native")
+    
     system = platform.system()
     if system == "Windows":
-        lib_name = "native_effects.dll"
+        lib_name = "native_effects.pyd"
     elif system == "Darwin":
         lib_name = "libnative_effects.dylib"
     else:
-        lib_name = "libnative_effects.so"
+        lib_name = "native_effects.so"
 
     lib_path = os.path.join(base_dir, lib_name)
 
-    if not os.path.exists(lib_path) and os.path.exists(c_src):
+    if not os.path.exists(lib_path):
         try:
             if system == "Windows":
-                _compile_with_msvc(base_dir, c_src_name, lib_name)
+                _compile_with_msvc(src_dir, C_SOURCE_FILES, lib_path)
             else:
-                cmd = ["gcc", "-O3", "-ffast-math", "-mavx2", "-shared", "-fPIC", "-o", lib_path, c_src, "-lm"]
-                subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                cmd = ["gcc", "-O3", "-ffast-math", "-mavx2", "-shared", "-fPIC", "-o", lib_path] + C_SOURCE_FILES + ["-lm"]
+                subprocess.run(cmd, cwd=src_dir, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             print(f"[NativeBridge] Compilation failed: {e}")
 

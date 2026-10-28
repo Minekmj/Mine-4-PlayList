@@ -130,6 +130,23 @@ def save_session(self):
         except Exception:
             pass
 
+    cur_pl_preset = getattr(self, "current_playlist_preset", "기본")
+    playlist_presets = getattr(self, "playlist_preset", {})
+    if not isinstance(playlist_presets, dict):
+        playlist_presets = {}
+
+    playlist_presets[cur_pl_preset] = [os.path.abspath(p) for p in self.playlist]
+    if "기본" not in playlist_presets:
+        playlist_presets["기본"] = [os.path.abspath(p) for p in self.playlist]
+    self.playlist_preset = playlist_presets
+
+    setting_presets = getattr(self, "setting_preset", {})
+    if "기본" not in setting_presets:
+        setting_presets["기본"] = {
+            "sub_config": dict(self.sub_config),
+            "engine_config": dict(self.engine_config)
+        }
+
     data = {
         "playlist": [os.path.abspath(p) for p in self.playlist],
         "current_idx": self.current_idx,
@@ -138,7 +155,11 @@ def save_session(self):
         "volume": self.vol_slider.value(),
         "sub_visible": self.sub_visible,
         "sub_config": self.sub_config,
-        "engine_config": self.engine_config
+        "engine_config": self.engine_config,
+        "setting_preset": setting_presets,
+        "playlist_preset": playlist_presets,
+        "current_setting_preset": getattr(self, "current_setting_preset", "기본"),
+        "current_playlist_preset": cur_pl_preset
     }
     write_session_state(SESSION_FILE, data)
 
@@ -147,6 +168,17 @@ def load_session(self):
     try:
         d = read_session_state(SESSION_FILE)
         if not d:
+            self.setting_preset = {
+                "기본": {
+                    "sub_config": dict(self.sub_config),
+                    "engine_config": dict(self.engine_config)
+                }
+            }
+            self.playlist_preset = {
+                "기본": list(self.playlist)
+            }
+            self.current_setting_preset = "기본"
+            self.current_playlist_preset = "기본"
             return
 
         raw_list = d.get("playlist", [])
@@ -164,6 +196,30 @@ def load_session(self):
             self.sub_config.update(d.get("sub_config"))
         if isinstance(d.get("engine_config"), dict):
             self.engine_config.update(d.get("engine_config"))
+
+        loaded_setting_presets = d.get("setting_preset", {})
+        if not isinstance(loaded_setting_presets, dict):
+            loaded_setting_presets = {}
+        if "기본" not in loaded_setting_presets:
+            loaded_setting_presets["기본"] = {
+                "sub_config": dict(self.sub_config),
+                "engine_config": dict(self.engine_config)
+            }
+        self.setting_preset = loaded_setting_presets
+
+        loaded_playlist_presets = d.get("playlist_preset", {})
+        if not isinstance(loaded_playlist_presets, dict):
+            loaded_playlist_presets = {}
+        cleaned_pl_presets = {}
+        for k, v in loaded_playlist_presets.items():
+            if isinstance(v, list):
+                cleaned_pl_presets[k] = [os.path.abspath(p) for p in v if os.path.exists(p)]
+        if "기본" not in cleaned_pl_presets:
+            cleaned_pl_presets["기본"] = list(self.playlist)
+        self.playlist_preset = cleaned_pl_presets
+
+        self.current_setting_preset = d.get("current_setting_preset", "기본")
+        self.current_playlist_preset = d.get("current_playlist_preset", "기본")
 
         self.btn_mode.setText(PLAYBACK_MODE_NAMES[self.playback_mode])
         self.refresh_playlist_view()

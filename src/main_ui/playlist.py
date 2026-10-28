@@ -74,11 +74,25 @@ def playlist_panel(self):
     btn_files.setObjectName("iconBtn")
     btn_files.clicked.connect(self.open_media_files)
 
+    btn_preset = QPushButton()
+    try:
+        preset_icon = ModernIcon.create("preset", "#FFFFFF", 16)
+    except Exception:
+        try:
+            preset_icon = ModernIcon.create("list", "#FFFFFF", 16)
+        except Exception:
+            preset_icon = ModernIcon.create("folder", "#FFFFFF", 16)
+    btn_preset.setIcon(preset_icon)
+    btn_preset.setObjectName("iconBtn")
+    btn_preset.setToolTip("재생목록 프리셋")
+    btn_preset.clicked.connect(self.open_preset_dialog)
+
     option_layout.addWidget(lbl_list)
     option_layout.addWidget(self.lbl_list_count)
     option_layout.addStretch(3)
     option_layout.addWidget(btn_url)
     option_layout.addWidget(btn_files)
+    option_layout.addWidget(btn_preset)
     option_layout.addStretch(1)
     right_vbox.addWidget(option_bar)
 

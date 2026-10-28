@@ -17,7 +17,7 @@ from src.main_ui.top import top_bar, hide_top_bar, check_top_bar_hover
 from src.ui.icons import ModernIcon
 from src.widgets.backs import AmbientVideoContainer
 from src.core.player_core import PlayerCore
-from src.ui.dialogs import SettingsDialog, UrlDialog
+from src.ui.dialogs import SettingsDialog, UrlDialog, PlaylistPresetDialog
 from src.mini_mode.mini import (
     reset_all_cursors, toggle_mini_mode,
     reposition_mini_bar, get_resize_edge, update_cursor_for_edge,
@@ -48,6 +48,11 @@ class EchoMediaPlayer(QMainWindow):
         self.speed_list = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
         self.speed_idx = 2
         self.show_remaining_time = False
+
+        self.setting_preset = {}
+        self.playlist_preset = {}
+        self.current_setting_preset = "기본"
+        self.current_playlist_preset = "기본"
 
         self.sub_visible = True
         self.sub_config = fi.get_default_sub_config()
@@ -245,6 +250,14 @@ class EchoMediaPlayer(QMainWindow):
         d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..")
         self.url_panel = UrlDialog(self, d)
         self.url_panel.show()
+        
+    def open_preset_dialog(self):
+        if hasattr(self, 'preset_panel') and self.preset_panel and self.preset_panel.isVisible():
+            self.preset_panel.raise_()
+            self.preset_panel.activateWindow()
+            return
+        self.preset_panel = PlaylistPresetDialog(self)
+        self.preset_panel.show()
 
     def toggle_fullscreen(self):
         if getattr(self, "is_mini_mode", False):

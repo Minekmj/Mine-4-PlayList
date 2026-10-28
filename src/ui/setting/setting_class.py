@@ -234,6 +234,13 @@ class ConfigBinder:
     def save(self):
         for target, key, getter in self.bindings:
             target[key] = getter()
+            
+    def set_val(self, key: str, val):
+        if key in self.setters:
+            try:
+                self.setters[key](val)
+            except Exception:
+                pass
 
 class SettingsGroup(QFrame):
     def __init__(self, binder: ConfigBinder, title: str = "",

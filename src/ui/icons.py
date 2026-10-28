@@ -1,15 +1,13 @@
 import os
 
-from PyQt6.QtCore import Qt, QPoint, QRectF
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QPainterPath, QPen, QBrush, QColor
+from PyQt6.QtCore import QPointF, Qt, QPoint, QRectF
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QPainterPath, QPen, QBrush, QColor, QPolygonF
 
 
 class ModernIcon:
     @staticmethod
     def create(name: str, color: str = "#E2E8F0", size: int = 24) -> QIcon:
-        
         color = os.environ.get("M4P_COLOR", color)
-        
         pixmap = QIcon()
         img = QPixmap(size, size)
         img.fill(Qt.GlobalColor.transparent)
@@ -97,6 +95,20 @@ class ModernIcon:
             p.drawLine(int(4 * s), int(7 * s), int(20 * s), int(7 * s))
             p.drawLine(int(4 * s), int(12 * s), int(20 * s), int(12 * s))
             p.drawLine(int(4 * s), int(17 * s), int(14 * s), int(17 * s))
+
+        elif name == "preset":
+            p.drawLine(int(4 * s), int(6 * s), int(20 * s), int(6 * s))
+            p.drawLine(int(4 * s), int(11 * s), int(14 * s), int(11 * s))
+            p.drawLine(int(4 * s), int(16 * s), int(10 * s), int(16 * s))
+
+            play_triangle = QPolygonF([
+                QPointF(14 * s, 11 * s),
+                QPointF(20 * s, 14.5 * s),
+                QPointF(14 * s, 18 * s)
+            ])
+            p.setBrush(QBrush(QColor(color)))
+            p.drawPolygon(play_triangle)
+            p.setBrush(Qt.BrushStyle.NoBrush)
 
         elif name == "gear":
             p.drawEllipse(QRectF(8 * s, 8 * s, 8 * s, 8 * s))

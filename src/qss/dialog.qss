@@ -1,3 +1,9 @@
+QMainWindow {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+        stop:0 rgba(244, 248, 252, 0.85), 
+        stop:1 rgba(226, 237, 248, 0.78));
+}
+
 #dialogContainer {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
         stop:0 rgba(244, 248, 252, 0.85), 
@@ -18,7 +24,7 @@
 }
 
 #dialogCloseBtn {
-    background: transparent;
+    background: rgba(220, 80, 80, 0.3);
     color: #617588;
     border: none;
     border-radius: 6px;
@@ -27,11 +33,11 @@
     height: 24px;
 }
 #dialogCloseBtn:hover {
-    background: rgba(220, 80, 80, 0.18);
+    background: rgba(220, 80, 80, 0.5);
     color: #D32F2F;
 }
 #dialogCloseBtn:pressed {
-    background: rgba(220, 80, 80, 0.28);
+    background: rgba(220, 80, 80, 0.6);
 }
 
 #cardFrame {
@@ -40,6 +46,132 @@
         stop:1 rgba(240, 247, 253, 0.45));
     border: 1px solid rgba(255, 255, 255, 0.7);
     border-radius: 10px;
+}
+
+#presetGridCard {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+        stop:0 rgba(255, 255, 255, 0.85), 
+        stop:1 rgba(238, 245, 253, 0.70));
+    border: 1.5px solid rgba(180, 205, 226, 0.70);
+    border-radius: 14px;
+}
+#presetGridCard:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+        stop:0 rgba(255, 255, 255, 0.98), 
+        stop:1 rgba(240, 248, 255, 0.92));
+    border-color: #528DC2;
+}
+
+#presetGridCardActive {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+        stop:0 rgba(230, 243, 255, 0.95), 
+        stop:1 rgba(212, 234, 254, 0.90));
+    border: 2px solid #528DC2;
+    border-radius: 14px;
+}
+
+#presetCardTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1F2D3D;
+    background: transparent;
+    border: none;
+}
+
+#presetCardDecoLine {
+    background: rgba(180, 205, 226, 0.45);
+    border: none;
+}
+
+#presetCardCount {
+    font-size: 11px;
+    color: #64748B;
+    background: transparent;
+    border: none;
+}
+
+#presetCardBadge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #2F6F9F;
+    background: rgba(82, 141, 194, 0.22);
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+#presetCardActionBtn {
+    background: rgba(220, 226, 235, 0.6);
+    color: #4A5568;
+    border: 1px solid rgba(180, 200, 220, 0.5);
+    border-radius: 11px;
+    font-size: 10px;
+    padding: 0px;
+}
+#presetCardActionBtn:hover {
+    background: #528DC2;
+    color: #FFFFFF;
+    border-color: #4176A3;
+}
+
+#presetCardDeleteBtn {
+    background: rgba(220, 226, 235, 0.6);
+    color: #64748B;
+    border: 1px solid rgba(180, 200, 220, 0.5);
+    border-radius: 11px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0px;
+}
+#presetCardDeleteBtn:hover {
+    background: #EF4444;
+    color: #FFFFFF;
+    border-color: #DC2626;
+}
+#presetCardDeleteBtn:pressed {
+    background: #DC2626;
+    color: #FFFFFF;
+}
+
+#presetAddCard {
+    background: rgba(255, 255, 255, 0.40);
+    border: 2px dashed rgba(160, 190, 218, 0.75);
+    border-radius: 14px;
+}
+#presetAddCard:hover {
+    background: rgba(240, 248, 255, 0.85);
+    border-color: #528DC2;
+}
+#presetAddCardIcon {
+    font-size: 40px;
+    font-weight: 300;
+    color: #528DC2;
+    background: transparent;
+    border: none;
+    margin-bottom: -4px;
+}
+#presetAddCardText {
+    font-size: 12px;
+    font-weight: 700;
+    color: #528DC2;
+    background: transparent;
+    border: none;
+}
+
+QMenu {
+    background-color: rgba(250, 253, 255, 0.96);
+    border: 1px solid rgba(180, 205, 226, 0.85);
+    border-radius: 8px;
+    padding: 4px;
+    color: #1F2D3D;
+}
+QMenu::item {
+    padding: 6px 14px;
+    border-radius: 4px;
+}
+QMenu::item:selected {
+    background: rgba(82, 141, 194, 0.2);
+    color: #1F2D3D;
 }
 
 QTabWidget::pane {
@@ -75,7 +207,7 @@ QLabel {
 }
 
 QLabel#pub {
-    color: rgb(104, 104, 104)
+    color: rgb(104, 104, 104);
 }
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QFontComboBox {
@@ -252,43 +384,22 @@ QScrollArea {
     border: none;
 }
 QScrollBar:vertical {
-    background: transparent;
-    width: 6px;
-    margin: 2px 0px;
-}
-QScrollBar::handle:vertical {
-    background: rgba(160, 190, 215, 0.5);
-    border-radius: 3px;
-    min-height: 20px;
-}
-QScrollBar::handle:vertical:hover {
-    background: rgba(120, 165, 200, 0.75);
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0px;
-}
-
-QScrollBar:vertical {
     border: none;
     background: transparent;
-    width: 8px;
+    width: 6px;
     margin: 0px;
 }
-
 QScrollBar::handle:vertical {
     background: rgba(148, 163, 184, 0.4);
     min-height: 24px;
-    border-radius: 4px;
+    border-radius: 3px;
 }
-
 QScrollBar::handle:vertical:hover {
     background: rgba(100, 116, 139, 0.7);
 }
-
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     height: 0px;
 }
-
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     background: none;
 }

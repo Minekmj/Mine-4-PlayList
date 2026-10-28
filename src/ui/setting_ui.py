@@ -1,11 +1,13 @@
-import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QFontComboBox, QLabel, QFrame, QComboBox
+    QFontComboBox, QLabel, QFrame, QComboBox, QMessageBox, QInputDialog
 )
 from PyQt6.QtCore import QUrl, Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QDesktopServices
+from src.main_logic.file import save_session
+
+import os
 
 from src.ui.base import *
 from src.ui.setting.setting_class import BaseSettingsTab, ConfigBinder, TabList
@@ -172,7 +174,119 @@ class EngineTab(BaseSettingsTab):
         g_fps.slider("앰비언트 백라이트 FPS", e, "fps_ambient", 1, 60, fmt="{} fps", default=30)
         g_fps.slider("그림자 FPS", e, "fps_shadow", 1, 60, fmt="{} fps", default=5)
         g_fps.slider("자막 갱신 FPS", e, "fps_subtitle", 1, 60, fmt="{} fps", default=20)
-        
+
+class PresetTab(BaseSettingsTab):
+    def setup_ui(self):
+        self.p = self.dlg.p
+        g = self.add_group("설정 프리셋")
+
+        self.cb_preset = QComboBox()
+        self.update_combo_items()
+        self.cb_preset.currentTextChanged.connect(self.on_preset_selected)
+        g.add_row("프리셋 선택", self.cb_preset)
+
+        row_btns = QWidget()
+        r_layout = QHBoxLayout(row_btns)
+        r_layout.setContentsMargins(0, 4, 0, 0)
+        r_layout.setSpacing(6)
+
+        btn_save_new = QPushButton("새 이름으로 저장")
+        btn_save_new.clicked.connect(self.save_new_preset)
+        btn_overwrite = QPushButton("현재 프리셋 덮어쓰기")
+        btn_overwrite.clicked.connect(self.overwrite_preset)
+        btn_del = QPushButton("프리셋 삭제")
+        btn_del.clicked.connect(self.delete_preset)
+
+        r_layout.addWidget(btn_save_new)
+        r_layout.addWidget(btn_overwrite)
+        r_layout.addWidget(btn_del)
+        g.add_row("", row_btns)
+
+    def update_combo_items(self):
+        presets = getattr(self.p, "setting_preset", {})
+        if "기본" not in presets:
+            presets["기본"] = {
+                "sub_config": dict(self.dlg.sub_cfg),
+                "engine_config": dict(self.dlg.engine_cfg)
+            }
+            self.p.setting_preset = presets
+
+        self.cb_preset.blockSignals(True)
+        self.cb_preset.clear()
+        self.cb_preset.addItems(list(presets.keys()))
+        cur = getattr(self.p, "current_setting_preset", "기본")
+        if cur in presets:
+            self.cb_preset.setCurrentText(cur)
+        self.cb_preset.blockSignals(False)
+
+    def on_preset_selected(self, name: str):
+        presets = getattr(self.p, "setting_preset", {})
+        if name in presets:
+            self.p.current_setting_preset = name
+            self.dlg.apply_preset_dict(presets[name])
+
+    def save_new_preset(self):
+        name, ok = QInputDialog.getText(self, "설정 프리셋 저장", "새 프리셋 이름을 입력하세요:")
+        if not ok or not name.strip():
+            return
+        name = name.strip()
+
+        presets = getattr(self.p, "setting_preset", {})
+        if name in presets:
+            res = QMessageBox.question(
+                self, "덮어쓰기", f"'{name}' 프리셋이 이미 존재합니다. 덮어쓰시겠습니까?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if res != QMessageBox.StandardButton.Yes:
+                return
+
+        self.dlg.b.save()
+        presets[name] = {
+            "sub_config": dict(self.dlg.sub_cfg),
+            "engine_config": dict(self.dlg.engine_cfg)
+        }
+        self.p.setting_preset = presets
+        self.p.current_setting_preset = name
+        save_session(self.p)
+        self.update_combo_items()
+        self.cb_preset.setCurrentText(name)
+
+    def overwrite_preset(self):
+        name = self.cb_preset.currentText()
+        if not name:
+            return
+        self.dlg.b.save()
+        presets = getattr(self.p, "setting_preset", {})
+        presets[name] = {
+            "sub_config": dict(self.dlg.sub_cfg),
+            "engine_config": dict(self.dlg.engine_cfg)
+        }
+        self.p.setting_preset = presets
+        save_session(self.p)
+        QMessageBox.information(self, "저장 완료", f"'{name}' 프리셋에 현재 설정을 덮어썼습니다.")
+
+    def delete_preset(self):
+        name = self.cb_preset.currentText()
+        if not name or name == "기본":
+            QMessageBox.warning(self, "경고", "'기본' 프리셋은 삭제할 수 없습니다.")
+            return
+
+        res = QMessageBox.question(
+            self, "삭제 확인", f"'{name}' 프리셋을 삭제하시겠습니까?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if res != QMessageBox.StandardButton.Yes:
+            return
+
+        presets = getattr(self.p, "setting_preset", {})
+        if name in presets:
+            del presets[name]
+            self.p.setting_preset = presets
+            self.p.current_setting_preset = "기본"
+            save_session(self.p)
+            self.update_combo_items()
+            self.cb_preset.setCurrentText("기본")
+            self.on_preset_selected("기본")        
 
 class AboutTab(BaseSettingsTab):
     def setup_ui(self):
@@ -242,6 +356,7 @@ class SettingsDialog(AnimatedDialogBase):
         self.tabs.add(BorderTab(self), "테두리")
         self.tabs.add(SubTab(self), "자막 스타일")
         self.tabs.add(EngineTab(self), "재생 엔진")
+        self.tabs.add(PresetTab(self), "프리셋")
         self.tabs.add(AboutTab(self), "정보")
         
         last_tab = os.environ.get("mine4play_back_tab", "영상 효과")
@@ -274,6 +389,16 @@ class SettingsDialog(AnimatedDialogBase):
         if p:
             for k, val in p.items():
                 self.b.set_val(k, val)
+                
+    def apply_preset_dict(self, preset_data: dict):
+        sub = preset_data.get("sub_config", {})
+        eng = preset_data.get("engine_config", {})
+        for k, v in sub.items():
+            self.sub_cfg[k] = v
+            self.b.set_val(k, v)
+        for k, v in eng.items():
+            self.engine_cfg[k] = v
+            self.b.set_val(k, v)
 
     def save(self):
         self.b.save()

@@ -1,7 +1,7 @@
 import time
 import ctypes
-from PyQt6.QtCore import Qt, QRectF, QPointF
-from PyQt6.QtGui import QPainter, QColor, QRadialGradient, QLinearGradient, QPixmap, QImage
+from PyQt6.QtCore import QRectF, QPointF
+from PyQt6.QtGui import QPixmap, QImage
 
 class VideoShadowRenderer:
     def __init__(self, fps_shadow: int = 24):
@@ -16,6 +16,10 @@ class VideoShadowRenderer:
         self.cache_pos = QPointF(0, 0)
         self.is_dirty = True
         self._last_rebuild_time = 0.0
+
+        self._cached_img = None
+        self._cached_w = 0
+        self._cached_h = 0
 
     def mark_dirty(self):
         self.is_dirty = True
@@ -34,7 +38,7 @@ class VideoShadowRenderer:
             self.is_dirty = True
 
     def render_cache(self, vf_rect: QRectF, c_engine=None, force: bool = False):
-        if not self.enabled or self.opacity <= 0.01 or vf_rect.width() <= 0 or vf_rect.height() <= 0:
+        if not self.enabled or self.opacity <= 0.01 or vf_rect.width() <= 0 or vf_rect.height() <= 0 or not c_engine:
             self.cache_pixmap = None
             self.is_dirty = False
             return
@@ -54,9 +58,14 @@ class VideoShadowRenderer:
         pix_w = max(1, int(W + 2 * R))
         pix_h = max(1, int(H + 2 * R))
 
-        img = QImage(pix_w, pix_h, QImage.Format.Format_ARGB32_Premultiplied)
-        img_ptr = ctypes.cast(int(img.bits()), ctypes.POINTER(ctypes.c_uint32))
+        if self._cached_img is None or self._cached_w != pix_w or self._cached_h != pix_h:
+            self._cached_img = QImage(pix_w, pix_h, QImage.Format.Format_ARGB32_Premultiplied)
+            self._cached_w = pix_w
+            self._cached_h = pix_h
+
+        img_ptr = ctypes.cast(int(self._cached_img.bits()), ctypes.POINTER(ctypes.c_uint32))
         c_engine.c_render_rounded_box_shadow(img_ptr, pix_w, pix_h, R, R, W, H, r, R, 0, 0, 0, float(self.opacity))
-        self.cache_pixmap = QPixmap.fromImage(img)
+        
+        self.cache_pixmap = QPixmap.fromImage(self._cached_img)
         self.cache_pos = QPointF(vf_rect.left() + dx - R, vf_rect.top() + dy - R)
         self.is_dirty = False

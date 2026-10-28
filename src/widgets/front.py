@@ -91,7 +91,6 @@ class ElidedLabel(QLabel):
         painter.setClipRect(self.contentsRect())
         painter.setFont(self.font())
 
-        # Use the palette color resolved for this label, including QSS styling.
         text_color = self.palette().color(self.foregroundRole())
         painter.setPen(text_color)
 
@@ -230,13 +229,11 @@ class PlaylistItemCard(QWidget):
 
         if self.inner_card.property("state") != state:
             self.inner_card.setProperty("state", state)
-            self.lbl_title.setProperty("state", state)  # <-- 라벨에도 state 부여
+            self.lbl_title.setProperty("state", state)
 
-            # 부모(inner_card) 리프레시
             self.inner_card.style().unpolish(self.inner_card)
             self.inner_card.style().polish(self.inner_card)
 
-            # 자식(lbl_title) 리프레시
             self.lbl_title.style().unpolish(self.lbl_title)
             self.lbl_title.style().polish(self.lbl_title)
 

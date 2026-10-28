@@ -1,7 +1,17 @@
-import math
+import time
+import os
+
+_env_opengl = os.environ.get("mine4playlist_use_opengl", "False")
+IS_OPENGL = _env_opengl == "True"
+
 from PyQt6.QtWidgets import QFrame, QWidget
+WidgetType = QFrame
+if IS_OPENGL:
+    from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+    WidgetType = QOpenGLWidget
+    
 from PyQt6.QtCore import Qt, QRectF, QTimer
-from PyQt6.QtGui import QPainter, QColor, QImage, QPen, QPainterPath, QPixmap
+from PyQt6.QtGui import QPainter, QColor, QImage, QPen, QPainterPath
 
 from src.C.native_bridge import get_native_engine
 from src.effect.particles import ParticleSystem
@@ -18,9 +28,9 @@ AMBIENT_MAX_FPS   = 30
 SHADOW_MAX_FPS    = 24
 AMBIENT_QUALITY_PERCENT = 50
 
-profiler = PerfProfiler(interval_sec=1.0, ENABLE_PROFILER=False)
+profiler = PerfProfiler(interval_sec=100, ENABLE_PROFILER=False)
 
-class AmbientVideoContainer(QFrame):
+class AmbientVideoContainer(WidgetType):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.c_engine = get_native_engine()
@@ -33,7 +43,8 @@ class AmbientVideoContainer(QFrame):
         self.aurora_mgr = AuroraRenderer()
         self.shadow_mgr = VideoShadowRenderer(fps_shadow=SHADOW_MAX_FPS)
         self.ambient_pipe = AmbientPipeline(self.c_engine, profiler, quality_percent=AMBIENT_QUALITY_PERCENT)
-        self.ambient_pipe.rendered.connect(self.update)
+        
+        self.ambient_pipe.rendered.connect(self._on_ambient_rendered)
 
         self.particle_system = ParticleSystem()
         self.border_system = ScreenBorderSystem()
@@ -41,9 +52,12 @@ class AmbientVideoContainer(QFrame):
         self.fps_effect = EFFECT_TARGET_FPS
         self.fps_ambient = AMBIENT_MAX_FPS
         self.raw_frame_image = None
-        self.phase = 0.0
         self.motion_intensity = 0.35
         self.motion_speed = 1.0
+
+        self._last_anim_tick_time = 0.0
+        self._last_ambient_req_time = 0.0
+        self._last_ambient_draw_time = 0.0
 
         self.floating_rim_enabled = True
         self.tint_enabled = False
@@ -58,9 +72,6 @@ class AmbientVideoContainer(QFrame):
         self.window_radius = 12.0
         self._window_clip_path = None
         self._window_clip_key = None
-
-        self._effect_cache_pixmap = None
-        self._effect_dirty = True
 
         self.anim_timer = QTimer(self)
         self.anim_timer.setInterval(max(10, int(1000 / max(1, self.fps_effect))))
@@ -98,7 +109,6 @@ class AmbientVideoContainer(QFrame):
         if aspect > 0.1 and abs(self.layout_mgr.video_aspect - aspect) > 0.01:
             self.layout_mgr.video_aspect = aspect
             self.shadow_mgr.mark_dirty()
-            self._effect_dirty = True
             self.update_sub_geometries()
             self._trigger_ambient_prerender(force=True)
             self.update()
@@ -121,8 +131,7 @@ class AmbientVideoContainer(QFrame):
         )
         if changed:
             self.shadow_mgr.mark_dirty()
-            self._effect_dirty = True
-        self.restore_child_stacking()
+            self.restore_child_stacking()
 
     def restore_child_stacking(self):
         self.layout_mgr.restore_child_stacking(
@@ -134,15 +143,18 @@ class AmbientVideoContainer(QFrame):
             self.fps_effect = max(10, min(60, int(cfg.get("fps_effect", 24))))
             self.anim_timer.setInterval(max(10, int(1000 / max(1, self.fps_effect))))
         if "fps_ambient" in cfg:
-            self.fps_ambient = max(10, min(120, int(cfg.get("fps_ambient", 60))))
+            self.fps_ambient = max(5, min(120, int(cfg.get("fps_ambient", 30))))
+            self.ambient_pipe.fps_ambient = self.fps_ambient
 
-        # 앰비언트
+        # 앰비언트 설정
         if "ambient_quality_percent" in cfg:
             self.ambient_pipe.update_quality(int(cfg["ambient_quality_percent"]))
         self.ambient_pipe.enabled = bool(cfg.get('ambient_glow', True))
         self.ambient_pipe.brightness = float(cfg.get('ambient_brightness', 1.65))
         self.ambient_pipe.black_lift = float(cfg.get('ambient_black_lift', 0.25))
         self.ambient_pipe.gamma = float(cfg.get('ambient_gamma', 1.35))
+        self.ambient_pipe.saturation = float(cfg.get('ambient_saturation', 1.2))
+        self.ambient_pipe.ca_strength = float(cfg.get('ambient_ca_strength', 0.0))
         self.ambient_pipe.decay_scale = float(cfg.get('ambient_decay_scale', 1.0))
         self.ambient_pipe.blur_radius = max(0, min(64, int(round(float(cfg.get('ambient_blur_radius', 12))))))
         self.ambient_pipe.vignette_enabled = bool(cfg.get('ambient_vignette_enabled', True))
@@ -151,12 +163,14 @@ class AmbientVideoContainer(QFrame):
         self.ambient_pipe.vignette_shape_depth = float(cfg.get('ambient_vignette_shape_depth', 0.85))
         self.ambient_pipe.vignette_darkness = float(cfg.get('ambient_vignette_darkness', 0.80))
 
-        # 오로라
+        # 오로라 설정
         self.aurora_mgr.set_params(
             enabled=bool(cfg.get('aurora_enabled', True)),
             style=str(cfg.get('aurora_style', '오로라')),
             palette=str(cfg.get('aurora_palette', '청록')),
-            intensity=float(cfg.get('aurora_intensity', 0.55))
+            intensity=float(cfg.get('aurora_intensity', 0.55)),
+            speed=float(cfg.get('aurora_speed', 1.0)),
+            size=float(cfg.get('aurora_size', 1.0))
         )
 
         # 그림자
@@ -165,7 +179,7 @@ class AmbientVideoContainer(QFrame):
         self.shadow_mgr.set_params(
             enabled=bool(cfg.get('video_shadow_enabled', True)),
             opacity=float(cfg.get('video_shadow_opacity', 0.25)),
-            radius=int(cfg.get('video_shadow_radius', 28)),
+            radius=int(cfg.get('video_shadow_radius', 25)) if not cfg.get('use_OpenGL_video', False) else 0,
             offset=int(cfg.get('video_shadow_offset', 8)),
             video_radius=vr,
             fps=sh_fps
@@ -188,8 +202,10 @@ class AmbientVideoContainer(QFrame):
             direction=str(cfg.get('particle_direction', '아래로')),
             palette=str(cfg.get('particle_palette', '청록')),
             density=float(cfg.get('particle_density', 0.45)),
-            speed=float(cfg.get('particle_speed', 1.0))
+            speed=float(cfg.get('particle_speed', 1.0)),
+            size=float(cfg.get('particle_size', 1.0))
         )
+        
         border_r = int(cfg.get('border_radius', 0))
         border_en = bool(cfg.get('border_enabled', True))
         self.border_system.set_params(
@@ -213,67 +229,66 @@ class AmbientVideoContainer(QFrame):
             raw_win_r = float(border_r)
         self.window_radius = raw_win_r
 
-        self._effect_dirty = True
         self.update_sub_geometries()
         self._trigger_ambient_prerender(force=True)
         self.update()
+        
+    def _on_ambient_rendered(self):
+        now = time.monotonic()
+        min_interval = 1.0 / max(1, self.fps_ambient)
+        if now - self._last_ambient_draw_time >= min_interval:
+            self._last_ambient_draw_time = now
+            self.update()
 
     def update_video_frame(self, qimage: QImage):
         if qimage.isNull() or not self.ambient_pipe.enabled or not self.video_widget:
             return
         self.raw_frame_image = qimage
+
+        now = time.monotonic()
+        if now - self._last_ambient_req_time < (1.0 / max(1, self.fps_ambient)):
+            return
+        self._last_ambient_req_time = now
+
         self._trigger_ambient_prerender(image=qimage)
 
     def _trigger_ambient_prerender(self, image: QImage = None, force: bool = False):
+        if not self.ambient_pipe.enabled or not self.video_widget:
+            return
         target_img = image if image is not None else self.raw_frame_image
-        if target_img is None or target_img.isNull() or not self.video_widget:
+        if target_img is None or target_img.isNull():
             return
         W, H = self.width(), self.height()
         vf_rect = tuple(self.video_widget.geometry().getRect())
-        self.ambient_pipe.trigger_prerender(target_img, W, H, vf_rect)
+        self.ambient_pipe.trigger_prerender(target_img, W, H, vf_rect, force=force)
 
     def on_anim_tick(self):
-        active = False
-        if self.ambient_pipe.enabled and self.raw_frame_image is not None and self.motion_intensity > 0.01:
-            self.phase = (self.phase + 0.05 * self.motion_speed) % (math.pi * 2.0)
+        import time
+        now = time.monotonic()
+        if self._last_anim_tick_time == 0.0:
+            dt = 1.0 / max(1, self.fps_effect)
+        else:
+            dt = now - self._last_anim_tick_time
+        self._last_anim_tick_time = now
 
-        if self.aurora_mgr.tick():
+        dt = max(0.001, min(0.1, dt))
+
+        active = False
+
+        if self.aurora_mgr.tick(dt):
             active = True
 
         with profiler.measure("[Tick] Particle/Border Update"):
             if self.particle_system.enabled and self.particle_system.density > 0.001:
-                self.particle_system.update(self.width(), self.height())
+                self.particle_system.update(self.width(), self.height(), dt)
                 active = True
             if self.border_system.enabled and self.border_system.style != '없음':
-                self.border_system.update()
+                self.border_system.update(dt)
                 if self.border_system.anim_mode not in ('정지', '없음') or self.border_system.color_mode == '무지개':
                     active = True
 
         if active:
-            self._effect_dirty = True
             self.update()
-
-    def _render_effect_layer(self, W: int, H: int):
-        if self._effect_cache_pixmap is None or self._effect_cache_pixmap.size() != self.size():
-            self._effect_cache_pixmap = QPixmap(W, H)
-
-        self._effect_cache_pixmap.fill(Qt.GlobalColor.transparent)
-        ep = QPainter(self._effect_cache_pixmap)
-        ep.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        ep.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-
-        with profiler.measure("[Paint] Aurora"):
-            self.aurora_mgr.paint(ep, W, H, self.c_engine)
-
-        vf_rect = QRectF(self.video_widget.geometry()) if self.video_widget and self.video_widget.isVisible() else None
-        with profiler.measure("[Paint] Particles"):
-            self.particle_system.draw(ep, W, H, exclude_rect=vf_rect)
-
-        with profiler.measure("[Paint] Border"):
-            self.border_system.draw(ep, W, H)
-
-        ep.end()
-        self._effect_dirty = False
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -293,7 +308,7 @@ class AmbientVideoContainer(QFrame):
             eff_wr = max(eff_wr, float(self.border_system.radius))
 
         if eff_wr > 0.5:
-            clip_key = (W, H, round(eff_wr, 3))
+            clip_key = (W, H, round(eff_wr, 2))
             if self._window_clip_key != clip_key or self._window_clip_path is None:
                 path = QPainterPath()
                 path.addRoundedRect(QRectF(0, 0, W, H), eff_wr, eff_wr)
@@ -303,12 +318,14 @@ class AmbientVideoContainer(QFrame):
 
         p.fillRect(0, 0, W, H, self._base_fullscreen_color if is_fs else self._base_window_color)
 
+        # 앰비언트
         if self.ambient_pipe.enabled and self.video_widget:
             front_img = self.ambient_pipe.acquire_front_image()
             if not front_img.isNull():
                 with profiler.measure("[Paint] Ambient Draw"):
                     p.drawImage(QRectF(0, 0, W, H), front_img)
 
+                # 비디오 그림자
                 if self.shadow_mgr.enabled and self.shadow_mgr.opacity > 0.01:
                     with profiler.measure("[Paint] Shadow"):
                         if self.shadow_mgr.is_dirty or self.shadow_mgr.cache_pixmap is None:
@@ -316,6 +333,7 @@ class AmbientVideoContainer(QFrame):
                         if self.shadow_mgr.cache_pixmap:
                             p.drawPixmap(self.shadow_mgr.cache_pos, self.shadow_mgr.cache_pixmap)
 
+                # 플로팅 림
                 if self.floating_rim_enabled:
                     p.save()
                     p.setPen(self._rim_pen)
@@ -328,21 +346,25 @@ class AmbientVideoContainer(QFrame):
                         p.drawRect(rim_rect)
                     p.restore()
 
+                # 틴트
                 if self.tint_enabled and self.tint_ratio > 0.01:
                     p.fillRect(0, 0, W, H, self._tint_overlay_color)
 
-        if self._effect_dirty or self._effect_cache_pixmap is None:
-            self._render_effect_layer(W, H)
+        with profiler.measure("[Paint] Aurora"):
+            self.aurora_mgr.paint(p, W, H, self.c_engine)
 
-        if self._effect_cache_pixmap:
-            with profiler.measure("[Paint] Effect Cache Blit"):
-                p.drawPixmap(0, 0, self._effect_cache_pixmap)
+        if self.particle_system.enabled and self.particle_system.density > 0.001:
+            with profiler.measure("[Paint] Particles"):
+                self.particle_system.draw(p, W, H, exclude_rect=vf_rect if (self.video_widget and self.video_widget.isVisible()) else None)
+
+        if self.border_system.enabled and self.border_system.style != '없음':
+            with profiler.measure("[Paint] Border"):
+                self.border_system.draw(p, W, H)
 
         p.end()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self._effect_dirty = True
         self.update_sub_geometries()
         self._trigger_ambient_prerender(force=True)
 

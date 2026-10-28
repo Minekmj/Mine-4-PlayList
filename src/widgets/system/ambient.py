@@ -14,9 +14,12 @@ class AmbientPipeline(QObject):
         self.profiler = profiler
 
         self.enabled = True
+        self.fps_ambient = 30
         self.brightness = 1.65
         self.black_lift = 0.25
         self.gamma = 1.35
+        self.saturation = 1.00
+        self.ca_strength = 0.0 
         self.decay_scale = 1.0
         self.blur_radius = 12
 
@@ -45,6 +48,7 @@ class AmbientPipeline(QObject):
         self._has_new = False
         self._pending_job = None
         self._last_render_time = 0.0
+        self._last_trigger_time = 0.0
 
         self._worker_event = threading.Event()
         self._worker_running = True
@@ -72,11 +76,18 @@ class AmbientPipeline(QObject):
             self._temp_buf = (ctypes.c_uint32 * (self.c_w * self.c_h))()
             self._has_new = False
 
-    def trigger_prerender(self, raw_image: QImage, container_w: int, container_h: int, vf_key: tuple):
+    def trigger_prerender(self, raw_image: QImage, container_w: int, container_h: int, vf_key: tuple, force: bool = False):
         if not self.enabled or not self.c_engine or raw_image is None or raw_image.isNull():
             return
         if container_w <= 0 or container_h <= 0:
             return
+
+        now = time.monotonic()
+        min_interval = 1.0 / max(1, self.fps_ambient)
+        if not force and (now - self._last_trigger_time < min_interval):
+            return
+        self._last_trigger_time = now
+
         with self._job_lock:
             self._pending_job = (raw_image, container_w, container_h, vf_key)
         self._worker_event.set()
@@ -105,13 +116,16 @@ class AmbientPipeline(QObject):
             if not job:
                 continue
 
+            now = time.monotonic()
+            min_interval = 1.0 / max(1, self.fps_ambient)
+            elapsed = now - self._last_render_time
+            if elapsed < min_interval:
+                time.sleep(min_interval - elapsed)
+
             raw_image, W, H, vf_key = job
             try:
-                if raw_image.format() not in (
-                    QImage.Format.Format_RGB32,
-                    QImage.Format.Format_ARGB32,
-                    QImage.Format.Format_ARGB32_Premultiplied
-                ):
+                fmt = raw_image.format()
+                if fmt != QImage.Format.Format_RGB32 and fmt != QImage.Format.Format_ARGB32 and fmt != QImage.Format.Format_ARGB32_Premultiplied:
                     raw_image = raw_image.convertToFormat(QImage.Format.Format_RGB32)
 
                 max_src_w = int(480 * self._scale)
@@ -137,9 +151,12 @@ class AmbientPipeline(QObject):
         if not self.c_engine or image is None or image.isNull():
             return False
 
-        sx, sy = (self.c_w / float(max(1, W)), self.c_h / float(max(1, H)))
-        c_vx1, c_vy1 = (vf_key[0] * sx, vf_key[1] * sy)
-        c_vx2, c_vy2 = ((vf_key[0] + vf_key[2]) * sx, (vf_key[1] + vf_key[3]) * sy)
+        sx = self.c_w / float(max(1, W))
+        sy = self.c_h / float(max(1, H))
+        c_vx1 = vf_key[0] * sx
+        c_vy1 = vf_key[1] * sy
+        c_vx2 = (vf_key[0] + vf_key[2]) * sx
+        c_vy2 = (vf_key[1] + vf_key[3]) * sy
 
         out_ptr = ctypes.cast(int(self._back_img.bits()), ctypes.POINTER(ctypes.c_uint32))
         src_ptr = ctypes.cast(int(image.bits()), ctypes.POINTER(ctypes.c_uint32))
@@ -154,7 +171,9 @@ class AmbientPipeline(QObject):
                 float(self.vignette_max_dist),
                 float(self.vignette_intensity),
                 float(self.vignette_shape_depth),
-                float(self.vignette_darkness)
+                float(self.vignette_darkness),
+                float(self.saturation),
+                float(self.ca_strength)
             )
 
         if scaled_blur > 0:

@@ -1,7 +1,15 @@
 import os
+import subprocess
+import sys
 from PyQt6.QtWidgets import QMainWindow, QWidget, QMessageBox
-from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent, QRect
-from PyQt6.QtGui import QCursor  # [추가] 마우스 전역 위치 확인용
+from PyQt6.QtCore import Qt, QTimer, QPoint, QEvent
+from PyQt6.QtGui import QCursor
+
+import src.main_logic.file as fi
+import src.main_logic.timer as ti
+import src.main_logic.playback as pb
+import src.main_logic.playlist_ops as pl_ops
+import src.main_logic.event_handler as evt_handler
 
 from src.main_ui.dock import dock_panel
 from src.main_ui.playlist import playlist_panel
@@ -15,13 +23,6 @@ from src.mini_mode.mini import (
     reposition_mini_bar, get_resize_edge, update_cursor_for_edge,
     handle_mini_resizing
 )
-
-import src.main_logic.file as fi
-import src.main_logic.timer as ti
-import src.main_logic.playback as pb
-import src.main_logic.playlist_ops as pl_ops
-import src.main_logic.event_handler as evt_handler
-
 
 class EchoMediaPlayer(QMainWindow):
     EDGE_MARGIN = 8
@@ -192,7 +193,7 @@ class EchoMediaPlayer(QMainWindow):
 
     def update_window_and_video_radius(self):
         cfg = self.engine_config
-        vr = float(cfg.get("video_radius", 8))
+        vr = float(cfg.get("video_radius", 8)  if not cfg.get('use_OpenGL_video', False) else 0)
         wr = 0.0 if self.isFullScreen() else float(cfg.get("window_radius", 12))
 
         self.ambient_container.set_video_radius(vr)
@@ -200,25 +201,11 @@ class EchoMediaPlayer(QMainWindow):
         if self.core:
             self.core.set_video_radius(vr)
         self.clearMask()
-
-    def play_index(self, idx: int): pb.play_index(self, idx)
-    def toggle_play(self): pb.toggle_play(self)
-    def next_track(self): pb.next_track(self)
-    def prev_track(self): pb.prev_track(self)
-    def cycle_playback_mode(self): pb.cycle_playback_mode(self)
-    def set_volume(self, val): pb.set_volume(self, val)
-    def toggle_mute(self): pb.toggle_mute(self)
-    def toggle_subtitle(self): pb.toggle_subtitle(self)
-
-    def refresh_playlist_view(self): pl_ops.refresh_playlist_view(self)
-    def highlight_playing_row(self): pl_ops.highlight_playing_row(self)
+    
     def on_item_double_click(self, item):
         path = item.data(Qt.ItemDataRole.UserRole)
         if path in self.playlist:
             self.play_index(self.playlist.index(path))
-    def handle_dropped_files(self, paths): pl_ops.handle_dropped_files(self, paths)
-    def open_media_files(self): pl_ops.open_media_files(self)
-    def show_context_menu(self, pos: QPoint): pl_ops.show_context_menu(self, pos)
 
     def apply_settings(self, sub_cfg: dict, eng_cfg: dict):
         self.sub_config, self.engine_config = sub_cfg, eng_cfg
@@ -229,7 +216,18 @@ class EchoMediaPlayer(QMainWindow):
             self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
         self.ambient_container.set_ambient_params(self.engine_config)
         self.update_window_and_video_radius()
+        
+        data = fi.read_session_state()
+        if data:
+            d = data.get("engine_config", {})
+            ug = d.get("use_OpenGL", False)
+            ugv = d.get("use_OpenGL_video", False)
+            
         fi.save_session(self)
+        
+        if ug != self.engine_config.get("use_OpenGL", False) or ugv != self.engine_config.get("use_OpenGL_video", False):
+            subprocess.Popen([sys.executable] + sys.argv)
+            sys.exit(0)
 
     def open_settings(self):
         if hasattr(self, 'settings_panel') and self.settings_panel and self.settings_panel.isVisible():
@@ -468,3 +466,19 @@ class EchoMediaPlayer(QMainWindow):
 
     def _update_sub_icon(self):
         pb.update_sub_icon(self)
+        
+    def play_index(self, idx: int): pb.play_index(self, idx)
+    def toggle_play(self): pb.toggle_play(self)
+    def next_track(self): pb.next_track(self)
+    def prev_track(self): pb.prev_track(self)
+    def cycle_playback_mode(self): pb.cycle_playback_mode(self)
+    def set_volume(self, val): pb.set_volume(self, val)
+    def toggle_mute(self): pb.toggle_mute(self)
+    def toggle_subtitle(self): pb.toggle_subtitle(self)
+
+    def refresh_playlist_view(self): pl_ops.refresh_playlist_view(self)
+    def highlight_playing_row(self): pl_ops.highlight_playing_row(self)
+    
+    def handle_dropped_files(self, paths): pl_ops.handle_dropped_files(self, paths)
+    def open_media_files(self): pl_ops.open_media_files(self)
+    def show_context_menu(self, pos: QPoint): pl_ops.show_context_menu(self, pos)

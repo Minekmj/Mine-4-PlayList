@@ -106,13 +106,13 @@ class ScreenBorderSystem:
         self.glow_spread = max(0, min(40, glow_spread))
         self.opacity = max(0.0, min(1.0, opacity))
 
-    def update(self):
+    def update(self, dt_sec: float = 0.01667):
         if not self.enabled:
             return
 
-        dt = 0.04 * self.anim_speed
-        self.phase = (self.phase + dt) % (math.pi * 2)
-        self.sweep_angle = (self.sweep_angle + 2.4 * self.anim_speed) % 360.0
+        dt = dt_sec * self.anim_speed
+        self.phase = (self.phase + dt * 1.5) % (math.pi * 2)
+        self.sweep_angle = (self.sweep_angle + 60.0 * dt_sec * self.anim_speed) % 360.0
 
         anim = get_animation(self.anim_mode)
         anim.update(self, dt)

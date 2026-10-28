@@ -64,6 +64,7 @@ class ParticleSystem:
         self.palette_name = "흰색"
         self.density = 0.45
         self.speed = 1.0
+        self.size_scale = 1.0
         self.prev_w = 0
         self.prev_h = 0
         self._temp_pen = QPen()
@@ -100,15 +101,24 @@ class ParticleSystem:
         new_speed = kwargs.get("speed", self.speed)
         self.set_params(new_enabled, new_ptype, new_dir, new_pal, new_density, new_speed)
 
-    def set_params(self, enabled: bool, p_type: str, direction: str, palette: str, density: float, speed: float):
+    def set_params(self, enabled: bool, p_type: str, direction: str, palette: str, density: float, speed: float, size: float = 1.0):
         reset_needed = (self.p_type != p_type or self.direction != direction)
         cache_changed = self.palette_name != palette or self.density != max(0.0, min(1.0, density))
+        old_size = self.size_scale
         self.enabled = enabled
         self.p_type = p_type
         self.direction = direction
         self.palette_name = palette
         self.density = max(0.0, min(1.0, density))
-        self.speed = max(0.1, min(3.0, speed))
+        self.speed = max(0.1, min(5.0, float(speed)))
+        self.size_scale = max(0.2, min(5.0, float(size)))
+
+        if abs(old_size - self.size_scale) > 0.01 and old_size > 0:
+            scale_ratio = self.size_scale / old_size
+            for i in range(self.active_count):
+                self.particle_array[i].size *= scale_ratio
+                self.particle_array[i].pad = self.particle_array[i].size + 15.0
+
         if cache_changed:
             self._color_cache.clear()
 
@@ -130,7 +140,7 @@ class ParticleSystem:
         p.phase = random.uniform(0.0, 6.2831853)
 
         cfg = getattr(handler, "config", DEFAULT_CONFIG)
-        p.size = random.uniform(cfg[0], cfg[1])
+        p.size = random.uniform(cfg[0], cfg[1]) * self.size_scale
         p.base_speed = random.uniform(cfg[2], cfg[3])
         p.alpha_factor = random.uniform(cfg[4], cfg[5])
         p.pad = p.size + 15.0
@@ -174,7 +184,7 @@ class ParticleSystem:
         elif self.active_count > target:
             self.active_count = target
 
-    def update(self, w: int, h: int):
+    def update(self, w: int, h: int, dt_sec: float = 0.01667):
         if not self.enabled or w <= 0 or h <= 0 or self.density <= 0.001:
             return
 
@@ -192,7 +202,7 @@ class ParticleSystem:
         if self.active_count == 0:
             return
 
-        dt = self.speed
+        dt = dt_sec * 60.0 * self.speed
         phase_dt = 0.03 * dt
         sway_speed = 0.45 * dt
 

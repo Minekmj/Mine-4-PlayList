@@ -1,4 +1,3 @@
-from PyQt6.QtCore import QRectF
 from PyQt6.QtWidgets import QWidget
 
 class ContainerLayoutManager:
@@ -33,9 +32,12 @@ class ContainerLayoutManager:
             vx = (W - target_w) // 2
             vy = (H - target_h) // 2
             self.set_widget_geometry(video_w, vx, vy, target_w, target_h)
-            video_w.show()
-            dock_w.hide()
-            list_w.hide()
+            if not video_w.isVisible():
+                video_w.show()
+            if dock_w.isVisible():
+                dock_w.hide()
+            if list_w.isVisible():
+                list_w.hide()
         else:
             pad = 16
             plist_w = 330 if self.playlist_visible else 0
@@ -57,7 +59,9 @@ class ContainerLayoutManager:
             vy = view_center_y - target_h // 2
 
             self.set_widget_geometry(video_w, vx, vy, target_w, target_h)
-            video_w.show()
+            if not video_w.isVisible():
+                video_w.show()
+                
             dock_w_val = min(880, max(520, target_w + 40))
             dock_h_val = 76
             self.set_widget_geometry(dock_w, view_center_x - dock_w_val // 2, H - dock_h_val - pad, dock_w_val, dock_h_val)

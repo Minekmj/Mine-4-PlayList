@@ -1,5 +1,7 @@
+import os
+
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
+    QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QSpinBox, QSlider, QCheckBox, QColorDialog,
     QLabel, QScrollArea, QFrame, QComboBox,
     QSizePolicy
@@ -7,6 +9,22 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QColor
 
+os.environ["mine4play_back_tab"] = "영상 효과"
+
+class TabList(QTabWidget):
+    def __init__(self):
+        super().__init__()
+        self.tab_names = []
+        
+        self.currentChanged.connect(self._on_tab_changed)
+        
+    def add(self, tab, name: str):
+        self.addTab(tab, name)
+        self.tab_names.append(name)
+        
+    def _on_tab_changed(self, index):
+        if 0 <= index < len(self.tab_names):
+            os.environ["mine4play_back_tab"] = self.tab_names[index]
 
 class SmoothScrollArea(QScrollArea):
     def __init__(self, parent=None):
@@ -114,6 +132,19 @@ class ConfigBinder:
             val_map.get(v, str(v)) if val_map else str(v)
         )
         return cb
+    
+    def label(self, form: QFormLayout, text: str) -> QLabel:
+        la = QLabel(text)
+        la.setObjectName("pub")
+        form.addRow("", la)
+        return la
+    
+    def button(self, form: QFormLayout, text: str, label: str, callback) -> QPushButton:
+        bt = QPushButton(text)
+        bt.setStyleSheet("margin-left: 10px; margin-right: 10px;")
+        bt.clicked.connect(callback)
+        form.addRow(label, bt)
+        return bt
 
     def check(self, form: QFormLayout, text: str, target: dict, key: str,
               default: bool = False, on_change=None) -> QCheckBox:
@@ -207,19 +238,25 @@ class ConfigBinder:
 class SettingsGroup(QFrame):
     def __init__(self, binder: ConfigBinder, title: str = "",
                  target: dict = None, check_key: str = None,
-                 check_default: bool = False, parent: QWidget = None):
+                 check_default: bool = False, parent_item: "SettingsGroup" = None, 
+                 parent: QWidget = None):
         super().__init__(parent)
         self.setObjectName("cardFrame")
         self.b = binder
+        self.parent_item = parent_item
         self.form = QFormLayout(self)
         self.form.setContentsMargins(14, 12, 14, 12)
-        self.form.setSpacing(10)
+        self.form.setSpacing(3)
         self.form.setLabelAlignment(
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         )
 
         self.inner_fields: list[QWidget] = []
+        self.child_groups: list["SettingsGroup"] = []
         self.chk_toggle: QCheckBox | None = None
+
+        if self.parent_item is not None:
+            self.parent_item.child_groups.append(self)
 
         if check_key is not None and target is not None:
             self.chk_toggle = self.b.check(
@@ -232,20 +269,44 @@ class SettingsGroup(QFrame):
             lbl.setStyleSheet("font-weight: 700;")
             self.form.addRow(lbl)
 
-    def _register_field(self, field: QWidget):
-        self.inner_fields.append(field)
-        visible = self.chk_toggle is None or self.chk_toggle.isChecked()
-        field.setVisible(visible)
-        label = self.form.labelForField(field)
-        if label:
-            label.setVisible(visible)
+        if self.parent_item is not None:
+            self.setVisible(self.parent_item.is_active())
 
-    def _on_toggle(self, checked: bool):
+    def is_active(self) -> bool:
+        my_active = (self.chk_toggle is None or self.chk_toggle.isChecked())
+        if not my_active:
+            return False
+        if self.parent_item is not None:
+            return self.parent_item.is_active()
+        return True
+
+    def update_visibility(self):
+        if self.parent_item is not None:
+            parent_active = self.parent_item.is_active()
+            self.setVisible(parent_active)
+            if not parent_active:
+                return
+            
+        my_active = (self.chk_toggle is None or self.chk_toggle.isChecked())
         for field in self.inner_fields:
-            field.setVisible(checked)
+            field.setVisible(my_active)
             label = self.form.labelForField(field)
             if label:
-                label.setVisible(checked)
+                label.setVisible(my_active)
+
+        for child in self.child_groups:
+            child.update_visibility()
+
+    def _register_field(self, field: QWidget):
+        self.inner_fields.append(field)
+        my_active = (self.chk_toggle is None or self.chk_toggle.isChecked())
+        field.setVisible(my_active)
+        label = self.form.labelForField(field)
+        if label:
+            label.setVisible(my_active)
+
+    def _on_toggle(self, checked: bool = None):
+        self.update_visibility()
 
     def slider(self, label: str, target: dict, key: str,
                v_min: int, v_max: int, scale: float = 1.0,
@@ -265,6 +326,20 @@ class SettingsGroup(QFrame):
         )
         self._register_field(cb)
         return cb
+    
+    def label(self, text: str) -> QLabel:
+        la = self.b.label(
+            self.form, text
+        )
+        self._register_field(la)
+        return la
+    
+    def button(self, label: str, text: str, callback) -> QLabel:
+        bt = self.b.button(
+            self.form, label, text, callback
+        )
+        self._register_field(bt)
+        return bt
 
     def check(self, text: str, target: dict, key: str,
               default: bool = False, on_change=None) -> QCheckBox:
@@ -321,10 +396,11 @@ class BaseSettingsTab(SmoothScrollArea):
 
     def add_group(self, title: str = "", target: dict = None,
                   check_key: str = None,
-                  check_default: bool = False) -> SettingsGroup:
+                  check_default: bool = False,
+                  parent_item: SettingsGroup=None) -> SettingsGroup:
         grp = SettingsGroup(
             binder=self.b, title=title, target=target,
-            check_key=check_key, check_default=check_default,
+            check_key=check_key, check_default=check_default, parent_item=parent_item,
             parent=self.page
         )
         self.layout.addWidget(grp)

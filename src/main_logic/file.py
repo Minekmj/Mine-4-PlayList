@@ -85,7 +85,7 @@ def get_default_engine_config() -> dict:
         "video_radius": 25,
         "window_radius_individual": False,
         "video_radius_individual": False,
-        "ambient_quality_percent": 35,
+        "ambient_quality_percent": 50,
         "ambient_vignette_enabled": True,
         "ambient_vignette_max_dist": 60,
         "ambient_vignette_intensity": 1.0,
@@ -98,7 +98,7 @@ def get_default_engine_config() -> dict:
     }
 
 
-def read_session_state(filepath: str) -> dict:
+def read_session_state(filepath: str = SESSION_FILE) -> dict:
     if not os.path.exists(filepath):
         return {}
     try:

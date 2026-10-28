@@ -66,11 +66,13 @@ def _find_vcvarsall():
 
 def _compile_with_msvc(base_dir: str, c_src_name: str, lib_name: str):
     vcvars_bat, arch = _find_vcvarsall()
+    msvc_flags = ["/O2", "/Ot", "/fp:fast", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
+
     if shutil.which("cl") is not None:
-        cmd = ["cl", "/O2", "/arch:AVX2", "/LD", f"/Fe:{lib_name}", c_src_name]
+        cmd = ["cl"] + msvc_flags
         res = subprocess.run(cmd, cwd=base_dir, capture_output=True, text=True)
     elif vcvars_bat and os.path.exists(vcvars_bat):
-        cmd = f'call "{vcvars_bat}" {arch} && cl /O2 /openmp /LD /Fe:"{lib_name}" "{c_src_name}"'
+        cmd = f'call "{vcvars_bat}" {arch} && cl {" ".join(msvc_flags)}'
         res = subprocess.run(cmd, shell=True, cwd=base_dir, capture_output=True, text=True)
     else:
         raise RuntimeError("MSVC (cl.exe) 또는 vcvarsall.bat를 찾을 수 없습니다. Visual Studio C++ 빌드 도구를 확인하세요.")
@@ -112,7 +114,7 @@ def get_native_engine():
             if system == "Windows":
                 _compile_with_msvc(base_dir, c_src_name, lib_name)
             else:
-                cmd = ["gcc", "-O3", "-shared", "-fPIC", "-o", lib_path, c_src, "-lm"]
+                cmd = ["gcc", "-O3", "-ffast-math", "-mavx2", "-shared", "-fPIC", "-o", lib_path, c_src, "-lm"]
                 subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             print(f"[NativeBridge] Compilation failed: {e}")
@@ -129,7 +131,8 @@ def get_native_engine():
             ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
             ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
             ctypes.c_int,
-            ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float
+            ctypes.c_int, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float,
+            ctypes.c_float, ctypes.c_float
         ]
         lib.c_render_vanishing_perspective.restype = None
 

@@ -6,6 +6,8 @@ from src.widgets.widgets import PlaylistItemCard
 from src.main_logic.file import save_session
 from src.main_logic.media import collect_media_files
 
+from src.global_py.global_def import global_text
+
 def refresh_playlist_view(self):
     self.list_widget.blockSignals(True)
     self.list_widget.clear()
@@ -53,7 +55,7 @@ def handle_dropped_files(self, paths):
 
 def open_media_files(self):
     files, _ = QFileDialog.getOpenFileNames(
-        self, "파일 선택", "",
+        self, global_text("파일 선택"), "",
         "Media Files (*.mp4 *.mkv *.avi *.mov *.webm *.mp3 *.flac *.wav)"
     )
     if files:
@@ -64,11 +66,11 @@ def show_context_menu(self, pos: QPoint):
     if not item:
         return
     menu = QMenu(self)
-    a_play = menu.addAction("재생")
-    a_show = menu.addAction("파일 위치 탐색기에서 열기")
+    a_play = menu.addAction(global_text("재생"))
+    a_show = menu.addAction(global_text("파일 위치 탐색기에서 열기"))
     menu.addSeparator()
-    a_sub = menu.addAction("수동 자막 연결 (.smi, .srt, .vtt, .ass)")
-    a_del = menu.addAction("목록에서 삭제")
+    a_sub = menu.addAction(global_text("수동 자막 연결 (.smi, .srt, .vtt, .ass)"))
+    a_del = menu.addAction(global_text("목록에서 삭제"))
 
     act = menu.exec(self.list_widget.mapToGlobal(pos))
     path = item.data(Qt.ItemDataRole.UserRole)
@@ -78,7 +80,7 @@ def show_context_menu(self, pos: QPoint):
         os.system(f'explorer /select,"{os.path.abspath(path)}"')
     elif act == a_sub:
         s_file, _ = QFileDialog.getOpenFileName(
-            self, "자막 선택", os.path.dirname(path),
+            self, global_text("자막 선택"), os.path.dirname(path),
             "Subtitles (*.smi *.srt *.vtt *.ass *.ssa)"
         )
         if s_file and self.core:

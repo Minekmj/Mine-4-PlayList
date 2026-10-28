@@ -61,7 +61,6 @@ def update_sub_icon(self):
     icon_name = "subtitle" if self.sub_visible else "subtitle_off"
     icon_color = "#FFFFFF" if self.sub_visible else "#94A3B8"
     self.btn_sub_toggle.setIcon(ModernIcon.create(icon_name, icon_color, 20))
-    self.btn_sub_toggle.setToolTip("자막 끄기" if self.sub_visible else "자막 켜기")
 
 def toggle_subtitle(self):
     self.sub_visible = not self.sub_visible

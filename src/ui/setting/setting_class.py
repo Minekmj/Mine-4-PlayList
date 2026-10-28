@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QColor
 
+from src.global_py.global_def import global_text
+
 os.environ["mine4play_back_tab"] = "영상 효과"
 
 class TabList(QTabWidget):
@@ -19,7 +21,8 @@ class TabList(QTabWidget):
         self.currentChanged.connect(self._on_tab_changed)
         
     def add(self, tab, name: str):
-        self.addTab(tab, name)
+        display_name = global_text(name)
+        self.addTab(tab, display_name)
         self.tab_names.append(name)
         
     def _on_tab_changed(self, index):
@@ -68,6 +71,7 @@ class ConfigBinder:
     def slider(self, form: QFormLayout, label: str, target: dict, key: str,
                v_min: int, v_max: int, scale: float = 1.0,
                fmt="{}%", default=0) -> QWidget:
+        label = global_text(label) if label else label
         val = target.get(key, default)
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(v_min, v_max)
@@ -105,41 +109,59 @@ class ConfigBinder:
     def combo(self, form: QFormLayout, label: str, target: dict, key: str,
               items: list[str], default: str = "", val_map: dict = None,
               on_change=None) -> QComboBox:
+        label = global_text(label) if label else label
         cb = QComboBox()
-        cb.addItems(items)
+
+        for it in items:
+            display_text = global_text(it)
+            cb.addItem(display_text, it)
+
         curr = target.get(key, default)
         curr_text = val_map.get(curr, str(curr)) if val_map else str(curr)
 
-        if curr_text in items:
-            cb.setCurrentText(curr_text)
+        idx = cb.findData(curr_text)
+        if idx >= 0:
+            cb.setCurrentIndex(idx)
         elif items:
             cb.setCurrentIndex(0)
 
         cb.wheelEvent = lambda event: event.ignore()
 
         if on_change:
-            cb.currentTextChanged.connect(on_change)
+            cb.currentIndexChanged.connect(lambda i: on_change(cb.itemData(i)))
 
         form.addRow(label, cb)
         rev_map = {v: k for k, v in val_map.items()} if val_map else None
 
         self.bindings.append((
             target, key,
-            lambda: rev_map.get(cb.currentText(), cb.currentText())
-            if rev_map else cb.currentText()
+            lambda: rev_map.get(cb.currentData(), cb.currentData())
+            if rev_map else cb.currentData()
         ))
-        self.setters[key] = lambda v: cb.setCurrentText(
-            val_map.get(v, str(v)) if val_map else str(v)
-        )
+
+        def setter(v):
+            orig = val_map.get(v, str(v)) if val_map else str(v)
+            match_idx = cb.findData(orig)
+            if match_idx >= 0:
+                cb.setCurrentIndex(match_idx)
+            else:
+                match_idx = cb.findText(global_text(orig))
+                if match_idx >= 0:
+                    cb.setCurrentIndex(match_idx)
+
+        self.setters[key] = setter
         return cb
     
     def label(self, form: QFormLayout, text: str) -> QLabel:
+        text = global_text(text) if text else text
         la = QLabel(text)
         la.setObjectName("pub")
         form.addRow("", la)
         return la
     
     def button(self, form: QFormLayout, text: str, label: str, callback) -> QPushButton:
+        text = global_text(text) if text else text
+        label = global_text(label) if label else label
         bt = QPushButton(text)
         bt.setStyleSheet("margin-left: 10px; margin-right: 10px;")
         bt.clicked.connect(callback)
@@ -148,6 +170,7 @@ class ConfigBinder:
 
     def check(self, form: QFormLayout, text: str, target: dict, key: str,
               default: bool = False, on_change=None) -> QCheckBox:
+        text = global_text(text) if text else text
         chk = QCheckBox(text)
         chk.setChecked(bool(target.get(key, default)))
         chk.setMinimumSize(0, 30)
@@ -180,6 +203,7 @@ class ConfigBinder:
 
     def spin(self, form: QFormLayout, label: str, target: dict, key: str,
              v_min: int, v_max: int, default: int = 0) -> QSpinBox:
+        label = global_text(label) if label else label
         sp = QSpinBox()
         sp.setRange(v_min, v_max)
         sp.setValue(int(target.get(key, default)))
@@ -193,12 +217,13 @@ class ConfigBinder:
 
     def color_btn(self, target: dict, key: str, text: str = "색상 선택",
                   default: str = "#FFFFFF", on_change=None) -> QPushButton:
-        btn = QPushButton(text)
+        display_text = global_text(text) if text else text
+        btn = QPushButton(display_text)
         btn.color = QColor(target.get(key, default))
         self._update_color_style(btn, btn.color.name())
 
         def pick():
-            c = QColorDialog.getColor(btn.color, self.dlg, f"{text} 선택")
+            c = QColorDialog.getColor(btn.color, self.dlg, f"{display_text} " + global_text("선택"))
             if c.isValid():
                 self.set_color(btn, c.name())
                 if on_change:
@@ -265,14 +290,16 @@ class SettingsGroup(QFrame):
         if self.parent_item is not None:
             self.parent_item.child_groups.append(self)
 
+        translated_title = global_text(title) if title else ""
+
         if check_key is not None and target is not None:
             self.chk_toggle = self.b.check(
-                self.form, title or "활성화", target, check_key,
+                self.form, translated_title or global_text("활성화"), target, check_key,
                 check_default, self._on_toggle
             )
             self.chk_toggle.setStyleSheet("font-weight: 700;")
-        elif title:
-            lbl = QLabel(title)
+        elif translated_title:
+            lbl = QLabel(translated_title)
             lbl.setStyleSheet("font-weight: 700;")
             self.form.addRow(lbl)
 
@@ -343,7 +370,7 @@ class SettingsGroup(QFrame):
     
     def button(self, label: str, text: str, callback) -> QLabel:
         bt = self.b.button(
-            self.form, label, text, callback
+            self.form, text, label, callback
         )
         self._register_field(bt)
         return bt
@@ -367,6 +394,7 @@ class SettingsGroup(QFrame):
     def color_btn(self, label: str, target: dict, key: str,
                   text: str = "색상 선택", default: str = "#FFFFFF",
                   on_change=None) -> QPushButton:
+        label = global_text(label) if label else label
         btn = self.b.color_btn(target, key, text, default, on_change)
         self.form.addRow(label, btn)
         self._register_field(btn)
@@ -374,10 +402,14 @@ class SettingsGroup(QFrame):
 
     def add_row(self, label_or_widget, field: QWidget = None):
         if field is None:
+            if isinstance(label_or_widget, str):
+                label_or_widget = global_text(label_or_widget)
             self.form.addRow(label_or_widget)
             if isinstance(label_or_widget, QWidget):
                 self._register_field(label_or_widget)
         else:
+            if isinstance(label_or_widget, str):
+                label_or_widget = global_text(label_or_widget)
             self.form.addRow(label_or_widget, field)
             self._register_field(field)
 

@@ -1,3 +1,5 @@
+import os
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QFontComboBox, QLabel, QFrame, QComboBox, QMessageBox, QInputDialog
@@ -5,12 +7,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QUrl, Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QDesktopServices
+
 from src.main_logic.file import save_session
-
-import os
-
 from src.ui.base import *
 from src.ui.setting.setting_class import BaseSettingsTab, ConfigBinder, TabList
+from src.global_py.global_def import global_text
+
 
 class FxTab(BaseSettingsTab):
     def setup_ui(self):
@@ -103,7 +105,7 @@ class BorderTab(BaseSettingsTab):
         on_cmode_change(e.get("border_color_mode", "단색"))
         
         g_b_d.slider("선 두께", e, "border_width", 1, 24, fmt="{} px", default=5)
-        g_b_d.slider("화면 여백", e, "border_margin", 0, 50, fmt=lambda v: "화면 밀착" if v == 0 else f"{v} px", default=0)
+        g_b_d.slider("화면 여백", e, "border_margin", 0, 50, fmt=lambda v: global_text("화면 밀착") if v == 0 else f"{v} px", default=0)
         g_b_d.slider("글로우 번짐", e, "border_glow_spread", 0, 40, fmt="{} px", default=20)
         g_b_d.slider("불투명도", e, "border_opacity", 10, 100, scale=0.01, default=0.15)
 
@@ -118,10 +120,6 @@ class SubTab(BaseSettingsTab):
         s = self.sub_cfg
 
         g_pre = self.add_group("글꼴")
-        cb_preset = QComboBox()
-        cb_preset.addItems(["직접 설정", "기본", "시인성", "네온", "부드러운 자막"])
-        cb_preset.currentTextChanged.connect(self.dlg.apply_subtitle_preset)
-        g_pre.add_row("스타일 프리셋", cb_preset)
 
         font_cb = QFontComboBox()
         font_cb.setCurrentFont(QFont(s.get("font", "HY견고딕")))
@@ -175,6 +173,7 @@ class EngineTab(BaseSettingsTab):
         g_fps.slider("그림자 FPS", e, "fps_shadow", 1, 60, fmt="{} fps", default=5)
         g_fps.slider("자막 갱신 FPS", e, "fps_subtitle", 1, 60, fmt="{} fps", default=20)
 
+
 class PresetTab(BaseSettingsTab):
     def setup_ui(self):
         self.p = self.dlg.p
@@ -190,11 +189,11 @@ class PresetTab(BaseSettingsTab):
         r_layout.setContentsMargins(0, 4, 0, 0)
         r_layout.setSpacing(6)
 
-        btn_save_new = QPushButton("새 이름으로 저장")
+        btn_save_new = QPushButton(global_text("새 이름으로 저장"))
         btn_save_new.clicked.connect(self.save_new_preset)
-        btn_overwrite = QPushButton("현재 프리셋 덮어쓰기")
+        btn_overwrite = QPushButton(global_text("현재 프리셋 덮어쓰기"))
         btn_overwrite.clicked.connect(self.overwrite_preset)
-        btn_del = QPushButton("프리셋 삭제")
+        btn_del = QPushButton(global_text("프리셋 삭제"))
         btn_del.clicked.connect(self.delete_preset)
 
         r_layout.addWidget(btn_save_new)
@@ -226,7 +225,7 @@ class PresetTab(BaseSettingsTab):
             self.dlg.apply_preset_dict(presets[name])
 
     def save_new_preset(self):
-        name, ok = QInputDialog.getText(self, "설정 프리셋 저장", "새 프리셋 이름을 입력하세요:")
+        name, ok = QInputDialog.getText(self, global_text("설정 프리셋 저장"), global_text("새 프리셋 이름을 입력하세요:"))
         if not ok or not name.strip():
             return
         name = name.strip()
@@ -234,7 +233,7 @@ class PresetTab(BaseSettingsTab):
         presets = getattr(self.p, "setting_preset", {})
         if name in presets:
             res = QMessageBox.question(
-                self, "덮어쓰기", f"'{name}' 프리셋이 이미 존재합니다. 덮어쓰시겠습니까?",
+                self, global_text("덮어쓰기"), f"'{name}' " + global_text("프리셋이 이미 존재합니다. 덮어쓰시겠습니까?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if res != QMessageBox.StandardButton.Yes:
@@ -263,16 +262,16 @@ class PresetTab(BaseSettingsTab):
         }
         self.p.setting_preset = presets
         save_session(self.p)
-        QMessageBox.information(self, "저장 완료", f"'{name}' 프리셋에 현재 설정을 덮어썼습니다.")
+        QMessageBox.information(self, global_text("저장 완료"), f"'{name}' " + global_text("프리셋에 현재 설정을 덮어썼습니다."))
 
     def delete_preset(self):
         name = self.cb_preset.currentText()
         if not name or name == "기본":
-            QMessageBox.warning(self, "경고", "'기본' 프리셋은 삭제할 수 없습니다.")
+            QMessageBox.warning(self, global_text("경고"), global_text("'기본' 프리셋은 삭제할 수 없습니다."))
             return
 
         res = QMessageBox.question(
-            self, "삭제 확인", f"'{name}' 프리셋을 삭제하시겠습니까?",
+            self, global_text("삭제 확인"), f"'{name}' " + global_text("프리셋을 삭제하시겠습니까?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if res != QMessageBox.StandardButton.Yes:
@@ -288,10 +287,11 @@ class PresetTab(BaseSettingsTab):
             self.cb_preset.setCurrentText("기본")
             self.on_preset_selected("기본")        
 
+
 class AboutTab(BaseSettingsTab):
     def setup_ui(self):
         v_path = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..", "ver.txt")
-        ver = "(확인불가)"
+        ver = f"({global_text('확인불가')})"
         if os.path.exists(v_path):
             with open(v_path, "r", encoding="UTF-8") as f:
                 ver = f.readline().strip()
@@ -345,7 +345,7 @@ class SettingsDialog(AnimatedDialogBase):
         btn_close.setObjectName("dialogCloseBtn")
         btn_close.setFixedSize(26, 26)
         btn_close.clicked.connect(self.animated_close)
-        h_layout.addWidget(QLabel("환경 설정", objectName="dialogTitle"))
+        h_layout.addWidget(QLabel(global_text("환경 설정"), objectName="dialogTitle"))
         h_layout.addStretch()
         h_layout.addWidget(btn_close)
         vbox.addWidget(header)
@@ -368,27 +368,15 @@ class SettingsDialog(AnimatedDialogBase):
 
         h_btn = QHBoxLayout()
         h_btn.addStretch()
-        btn_cancel = QPushButton("취소")
+        btn_cancel = QPushButton(global_text("취소"))
         btn_cancel.setFixedWidth(80)
         btn_cancel.clicked.connect(self.animated_close)
-        btn_apply = QPushButton("저장", objectName="accentBtn")
+        btn_apply = QPushButton(global_text("저장"), objectName="accentBtn")
         btn_apply.setFixedWidth(90)
         btn_apply.clicked.connect(self.save)
         h_btn.addWidget(btn_cancel)
         h_btn.addWidget(btn_apply)
         vbox.addLayout(h_btn)
-
-    def apply_subtitle_preset(self, name: str):
-        presets = {
-            "기본": {"size": 25, "color": "#f9f9f9", "outline_color": "#232323", "border_size": 4, "blur": 1, "pos": 95, "bold": True, "anim_style": "팝업 바운스", "fade_in_enabled": True, "shadow_enabled": True, "shadow_color": "#000000", "shadow_opacity": 0.3, "shadow_offset": 2, "shadow_blur": 3},
-            "시인성": {"size": 40, "color": "#FFF4D8", "outline_color": "#17131B", "border_size": 3, "blur": 2, "pos": 92, "bold": False, "anim_style": "자연스러운 페이드", "fade_in_enabled": True, "shadow_enabled": True, "shadow_color": "#000000", "shadow_opacity": 0.85, "shadow_offset": 3, "shadow_blur": 2},
-            "네온": {"size": 44, "color": "#D9F8FF", "outline_color": "#173CFF", "border_size": 4, "blur": 8, "pos": 94, "bold": True, "anim_style": "팝업 바운스", "fade_in_enabled": True, "shadow_enabled": True, "shadow_color": "#0A1240", "shadow_opacity": 0.90, "shadow_offset": 5, "shadow_blur": 6},
-            "부드러운 자막": {"size": 40, "color": "#F1F5F9", "outline_color": "#242936", "border_size": 2, "blur": 2, "pos": 93, "bold": False, "anim_style": "슬라이드 & 페이드", "fade_in_enabled": True, "shadow_enabled": False, "shadow_color": "#000000", "shadow_opacity": 0.50, "shadow_offset": 2, "shadow_blur": 2},
-        }
-        p = presets.get(name)
-        if p:
-            for k, val in p.items():
-                self.b.set_val(k, val)
                 
     def apply_preset_dict(self, preset_data: dict):
         sub = preset_data.get("sub_config", {})

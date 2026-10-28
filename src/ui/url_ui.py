@@ -10,6 +10,7 @@ from src.ui.ffmpeg_ui import (
     ensure_ffmpeg, 
     AnimatedDialogBase, DraggableHeader, Get_qss
 )
+from src.global_py.global_def import global_text
 
 class UrlDialog(AnimatedDialogBase):
     def __init__(self, parent, default_dir: str):
@@ -50,7 +51,7 @@ class UrlDialog(AnimatedDialogBase):
         h_layout.setContentsMargins(0, 0, 0, 0)
         h_layout.setSpacing(8)
 
-        lbl_head = QLabel("동영상 URL 가져오기")
+        lbl_head = QLabel(global_text("동영상 URL 가져오기"))
         lbl_head.setObjectName("dialogTitle")
         h_layout.addWidget(lbl_head)
         h_layout.addStretch()
@@ -69,7 +70,7 @@ class UrlDialog(AnimatedDialogBase):
         c_layout.setContentsMargins(14, 14, 14, 14)
         c_layout.setSpacing(10)
 
-        lbl_desc = QLabel("YouTube 링크를 입력하세요:")
+        lbl_desc = QLabel(global_text("YouTube 링크를 입력하세요:"))
         lbl_desc.setStyleSheet("color: #475569; font-size: 11px; font-weight: 500;")
         c_layout.addWidget(lbl_desc)
 
@@ -77,7 +78,7 @@ class UrlDialog(AnimatedDialogBase):
         self.inp.setPlaceholderText("https://...")
         c_layout.addWidget(self.inp)
 
-        self.status = QLabel("다운로드 대기 중")
+        self.status = QLabel(global_text("다운로드 대기 중"))
         self.status.setStyleSheet("color: #64748B; font-size: 11px;")
         c_layout.addWidget(self.status)
 
@@ -85,10 +86,10 @@ class UrlDialog(AnimatedDialogBase):
 
         h_btn = QHBoxLayout()
         h_btn.addStretch()
-        btn_cancel = QPushButton("취소")
+        btn_cancel = QPushButton(global_text("취소"))
         btn_cancel.clicked.connect(self.animated_close)
 
-        self.btn_run = QPushButton("다운로드 시작")
+        self.btn_run = QPushButton(global_text("다운로드 시작"))
         self.btn_run.setObjectName("accentBtn")
         self.btn_run.clicked.connect(self.start_download)
 
@@ -103,13 +104,13 @@ class UrlDialog(AnimatedDialogBase):
 
         if not ensure_ffmpeg(self, self.default_dir):
             self.status.setStyleSheet("color: #DC2626; font-size: 11px; font-weight: 600;")
-            self.status.setText("FFmpeg 구성 요소가 없어 다운로드를 시작할 수 없습니다.")
+            self.status.setText(global_text("FFmpeg 구성 요소가 없어 다운로드를 시작할 수 없습니다."))
             return
 
         self.btn_run.setEnabled(False)
         self.inp.setEnabled(False)
         self.status.setStyleSheet("color: #2563EB; font-size: 11px; font-weight: 600;")
-        self.status.setText("영상 정보를 분석하는 중...")
+        self.status.setText(global_text("영상 정보를 분석하는 중..."))
 
         signals = DownloadSignals()
         signals.status.connect(self.status.setText)
@@ -128,6 +129,6 @@ class UrlDialog(AnimatedDialogBase):
 
     def on_error(self, err: str):
         self.status.setStyleSheet("color: #DC2626; font-size: 11px; font-weight: 600;")
-        self.status.setText(f"오류: {err}")
+        self.status.setText(f"{global_text('오류')}: {err}")
         self.btn_run.setEnabled(True)
         self.inp.setEnabled(True)

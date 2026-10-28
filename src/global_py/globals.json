@@ -1,0 +1,1448 @@
+{
+    "환경 설정": {
+        "ko": "환경 설정",
+        "ja": "環境設定",
+        "en": "Preferences",
+        "cn": "首选项"
+    },
+    "앰비언트": {
+        "ko": "앰비언트",
+        "ja": "アンビエント",
+        "en": "Ambient",
+        "cn": "氛围"
+    },
+    "화면 화질 축소 비율": {
+        "ko": "화면 화질 축소 비율",
+        "ja": "画面解像度縮小率",
+        "en": "Screen Downscale Ratio",
+        "cn": "画面画质缩放比例"
+    },
+    "배경 밝기": {
+        "ko": "배경 밝기",
+        "ja": "背景の明るさ",
+        "en": "Background brightness",
+        "cn": "背景亮度"
+    },
+    "캡처 안쪽 여백": {
+        "ko": "캡처 안쪽 여백",
+        "ja": "キャプチャ内側の余白",
+        "en": "Capture Inner Margin",
+        "cn": "截屏内边距"
+    },
+    "앰비언트 보정": {
+        "ko": "앰비언트 보정",
+        "ja": "アンビエント補正",
+        "en": "Ambient Correction",
+        "cn": "氛围光校正"
+    },
+    "색상 채도": {
+        "ko": "색상 채도",
+        "ja": "彩度",
+        "en": "Color Saturation",
+        "cn": "色彩饱和度"
+    },
+    "감마 보정": {
+        "ko": "감마 보정",
+        "ja": "ガンマ補正",
+        "en": "Gamma correction",
+        "cn": "伽马校正"
+    },
+    "암부 보정": {
+        "ko": "암부 보정",
+        "ja": "暗部補正",
+        "en": "Shadow Boost",
+        "cn": "暗部校正"
+    },
+    "색수차 효과": {
+        "ko": "색수차 효과",
+        "ja": "色収差エフェクト",
+        "en": "Chromatic Aberration",
+        "cn": "色差效果"
+    },
+    "흐림 반경": {
+        "ko": "흐림 반경",
+        "ja": "ぼかし半径",
+        "en": "Blur Radius",
+        "cn": "模糊半径"
+    },
+    "컬러 틴트": {
+        "ko": "컬러 틴트",
+        "ja": "カラーティント",
+        "en": "Color Tint",
+        "cn": "色彩着色"
+    },
+    "Color Tint": {
+        "ko": "Color Tint",
+        "ja": "Color Tint",
+        "en": "Color Tint",
+        "cn": "Color Tint"
+    },
+    "틴트 색상": {
+        "ko": "틴트 색상",
+        "ja": "ティント色",
+        "en": "Tint Color",
+        "cn": "着色颜色"
+    },
+    "틴트 농도": {
+        "ko": "틴트 농도",
+        "ja": "ティント濃度",
+        "en": "Tint Density",
+        "cn": "着色浓度"
+    },
+    "비네트": {
+        "ko": "비네트",
+        "ja": "ビネット",
+        "en": "Vignette",
+        "cn": "暗角"
+    },
+    "Vinet": {
+        "ko": "Vinet",
+        "ja": "Vinet",
+        "en": "Vinet",
+        "cn": "Vinet"
+    },
+    "광원 최대 도달 거리": {
+        "ko": "광원 최대 도달 거리",
+        "ja": "光源の最大到達距離",
+        "en": "Maximum Light Source Distance",
+        "cn": "光源最大可达距离"
+    },
+    "광원 선명도 및 강도": {
+        "ko": "광원 선명도 및 강도",
+        "ja": "光源の鮮明度および強度",
+        "en": "Light source clarity and intensity",
+        "cn": "光源清晰度及强度"
+    },
+    "색상별 형상 굴곡 깊이": {
+        "ko": "색상별 형상 굴곡 깊이",
+        "ja": "色別形状曲げ深さ",
+        "en": "Shape and curve depth by color",
+        "cn": "按颜色分类的形状曲面深度"
+    },
+    "외곽 암부 페이드 깊이": {
+        "ko": "외곽 암부 페이드 깊이",
+        "ja": "外周暗部のフェード深度",
+        "en": "Outer Shadow Fade Depth",
+        "cn": "边缘暗部淡化深度"
+    },
+    "모서리": {
+        "ko": "모서리",
+        "ja": "角",
+        "en": "Corners",
+        "cn": "边角"
+    },
+    "비디오 외곽 은은한 림라이트": {
+        "ko": "비디오 외곽 은은한 림라이트",
+        "ja": "ビデオ外周のリムライト",
+        "en": "Subtle Video Rim Light",
+        "cn": "视频边缘柔和轮廓光"
+    },
+    "동영상 모서리 둥글기": {
+        "ko": "동영상 모서리 둥글기",
+        "ja": "動画の角の丸み",
+        "en": "Video Corner Radius",
+        "cn": "视频圆角大小"
+    },
+    "창 모서리 둥글기": {
+        "ko": "창 모서리 둥글기",
+        "ja": "ウィンドウの角の丸み",
+        "en": "Window Corner Radius",
+        "cn": "窗口圆角大小"
+    },
+    "섀도우": {
+        "ko": "섀도우",
+        "ja": "シャドウ",
+        "en": "Shadow",
+        "cn": "阴影"
+    },
+    "Shadow": {
+        "ko": "Shadow",
+        "ja": "Shadow",
+        "en": "Shadow",
+        "cn": "Shadow"
+    },
+    "그림자 농도": {
+        "ko": "그림자 농도",
+        "ja": "影の濃さ",
+        "en": "Shadow density",
+        "cn": "影子浓度"
+    },
+    "그림자 번짐": {
+        "ko": "그림자 번짐",
+        "ja": "影のぼかし",
+        "en": "Shadow Blur",
+        "cn": "阴影模糊"
+    },
+    "대각선 거리": {
+        "ko": "대각선 거리",
+        "ja": "対角線距離",
+        "en": "Diagonal distance",
+        "cn": "对角线距离"
+    },
+    "영상 효과": {
+        "ko": "영상 효과",
+        "ja": "映像効果",
+        "en": "Video effects",
+        "cn": "视频效果"
+    },
+    "오로라": {
+        "ko": "오로라",
+        "ja": "オーロラ",
+        "en": "Aurora",
+        "cn": "极光"
+    },
+    "Aurora": {
+        "ko": "Aurora",
+        "ja": "Aurora",
+        "en": "Aurora",
+        "cn": "Aurora"
+    },
+    "오로라 형태": {
+        "ko": "오로라 형태",
+        "ja": "オーロラの形態",
+        "en": "Aurora shape",
+        "cn": "极光形态"
+    },
+    "오로라 색상": {
+        "ko": "오로라 색상",
+        "ja": "オーロラカラー",
+        "en": "Aurora color",
+        "cn": "极光颜色"
+    },
+    "오로라 강도": {
+        "ko": "오로라 강도",
+        "ja": "オーロラの強さ",
+        "en": "Aurora strength",
+        "cn": "极光强度"
+    },
+    "오로라 속도": {
+        "ko": "오로라 속도",
+        "ja": "オーロラの速度",
+        "en": "Aurora speed",
+        "cn": "极光速度"
+    },
+    "오로라 크기": {
+        "ko": "오로라 크기",
+        "ja": "オーロラの大きさ",
+        "en": "Aurora size",
+        "cn": "极光大小"
+    },
+    "파티클": {
+        "ko": "파티클",
+        "ja": "パーティクル",
+        "en": "Particle",
+        "cn": "粒子"
+    },
+    "Particle": {
+        "ko": "Particle",
+        "ja": "Particle",
+        "en": "Particle",
+        "cn": "Particle"
+    },
+    "파티클 모양": {
+        "ko": "파티클 모양",
+        "ja": "パーティクル形状",
+        "en": "Particle shape",
+        "cn": "粒子形状"
+    },
+    "이동 방향": {
+        "ko": "이동 방향",
+        "ja": "移動方向",
+        "en": "Direction of movement",
+        "cn": "移动方向"
+    },
+    "파티클 색상": {
+        "ko": "파티클 색상",
+        "ja": "パーティクルカラー",
+        "en": "Particle color",
+        "cn": "粒子颜色"
+    },
+    "입자 밀도": {
+        "ko": "입자 밀도",
+        "ja": "粒子密度",
+        "en": "Particle density",
+        "cn": "粒子密度"
+    },
+    "이동 속도": {
+        "ko": "이동 속도",
+        "ja": "移動速度",
+        "en": "Travel speed",
+        "cn": "移动速度"
+    },
+    "입자 크기": {
+        "ko": "입자 크기",
+        "ja": "粒子サイズ",
+        "en": "Particle size",
+        "cn": "颗粒大小"
+    },
+    "배경": {
+        "ko": "배경",
+        "ja": "背景",
+        "en": "Background",
+        "cn": "背景"
+    },
+    "테두리": {
+        "ko": "테두리",
+        "ja": "枠線",
+        "en": "Border",
+        "cn": "边框"
+    },
+    "border line": {
+        "ko": "border line",
+        "ja": "border line",
+        "en": "border line",
+        "cn": "border line"
+    },
+    "테두리 모양": {
+        "ko": "테두리 모양",
+        "ja": "縁の形状",
+        "en": "Border shape",
+        "cn": "边框形状"
+    },
+    "테두리 디자인": {
+        "ko": "테두리 디자인",
+        "ja": "フチデザイン",
+        "en": "Border design",
+        "cn": "边框设计"
+    },
+    "1차 색상": {
+        "ko": "1차 색상",
+        "ja": "プライマリカラー",
+        "en": "Primary Color",
+        "cn": "第一颜色"
+    },
+    "2차 색상": {
+        "ko": "2차 색상",
+        "ja": "セカンダリカラー",
+        "en": "Secondary Color",
+        "cn": "第二颜色"
+    },
+    "색상 방식": {
+        "ko": "색상 방식",
+        "ja": "カラーモード",
+        "en": "Color Mode",
+        "cn": "颜色模式"
+    },
+    "지정 색상": {
+        "ko": "지정 색상",
+        "ja": "指定色",
+        "en": "Custom Color",
+        "cn": "指定颜色"
+    },
+    "선 두께": {
+        "ko": "선 두께",
+        "ja": "線の太さ",
+        "en": "Border Width",
+        "cn": "线条粗细"
+    },
+    "화면 여백": {
+        "ko": "화면 여백",
+        "ja": "画面余白",
+        "en": "Screen margin",
+        "cn": "屏幕边距"
+    },
+    "화면 밀착": {
+        "ko": "화면 밀착",
+        "ja": "画面密着",
+        "en": "Flush to Screen",
+        "cn": "贴合屏幕"
+    },
+    "글로우 번짐": {
+        "ko": "글로우 번짐",
+        "ja": "グローの拡散",
+        "en": "Glow Spread",
+        "cn": "光晕扩散"
+    },
+    "불투명도": {
+        "ko": "불투명도",
+        "ja": "不透明度",
+        "en": "Opacity",
+        "cn": "不透明度"
+    },
+    "테두리 효과": {
+        "ko": "테두리 효과",
+        "ja": "フチ効果",
+        "en": "Border effect",
+        "cn": "边框效果"
+    },
+    "효과": {
+        "ko": "효과",
+        "ja": "効果",
+        "en": "Effect",
+        "cn": "效果"
+    },
+    "펄스 호흡 깊이": {
+        "ko": "펄스 호흡 깊이",
+        "ja": "パルス呼吸の深さ",
+        "en": "Pulse Breathing Depth",
+        "cn": "脉冲呼吸深度"
+    },
+    "효과 속도": {
+        "ko": "효과 속도",
+        "ja": "効果速度",
+        "en": "Effect Speed",
+        "cn": "效果速度"
+    },
+    "글꼴": {
+        "ko": "글꼴",
+        "ja": "フォント",
+        "en": "Font",
+        "cn": "字体"
+    },
+    "스타일 프리셋": {
+        "ko": "스타일 프리셋",
+        "ja": "スタイルプリセット",
+        "en": "Style Preset",
+        "cn": "风格预设"
+    },
+    "폰트 패밀리": {
+        "ko": "폰트 패밀리",
+        "ja": "フォントファミリー",
+        "en": "Font family",
+        "cn": "字体家族"
+    },
+    "폰트 굵게 (Bold)": {
+        "ko": "폰트 굵게 (Bold)",
+        "ja": "フォントを太く (Bold)",
+        "en": "Bold font",
+        "cn": "加粗字体"
+    },
+    "글자 세부 속성": {
+        "ko": "글자 세부 속성",
+        "ja": "文字の詳細設定",
+        "en": "Text Properties",
+        "cn": "文字详细属性"
+    },
+    "글자 크기": {
+        "ko": "글자 크기",
+        "ja": "文字サイズ",
+        "en": "Text Size",
+        "cn": "字体大小"
+    },
+    "텍스트 색상": {
+        "ko": "텍스트 색상",
+        "ja": "テキストの色",
+        "en": "Text color",
+        "cn": "文本颜色"
+    },
+    "외곽선 두께": {
+        "ko": "외곽선 두께",
+        "ja": "輪郭線の太さ",
+        "en": "Outline Thickness",
+        "cn": "描边粗细"
+    },
+    "외곽선 색상": {
+        "ko": "외곽선 색상",
+        "ja": "輪郭色",
+        "en": "Outline Color",
+        "cn": "描边颜色"
+    },
+    "글로우 블러": {
+        "ko": "글로우 블러",
+        "ja": "グローぼかし",
+        "en": "Glow Blur",
+        "cn": "光晕模糊"
+    },
+    "수직 위치 (%)": {
+        "ko": "수직 위치 (%)",
+        "ja": "垂直位置 (%)",
+        "en": "Vertical position (%)",
+        "cn": "垂直位置 (%)"
+    },
+    "줄바꿈 너비": {
+        "ko": "줄바꿈 너비",
+        "ja": "折り返し幅",
+        "en": "Line Wrap Width",
+        "cn": "换行宽度"
+    },
+    "텍스트 그림자 효과": {
+        "ko": "텍스트 그림자 효과",
+        "ja": "テキストの影効果",
+        "en": "Text Shadow Effect",
+        "cn": "文本阴影效果"
+    },
+    "Text Shadow Effect": {
+        "ko": "Text Shadow Effect",
+        "ja": "Text Shadow Effect",
+        "en": "Text Shadow Effect",
+        "cn": "Text Shadow Effect"
+    },
+    "그림자 색상": {
+        "ko": "그림자 색상",
+        "ja": "影の色",
+        "en": "Shadow color",
+        "cn": "阴影颜色"
+    },
+    "그림자 거리": {
+        "ko": "그림자 거리",
+        "ja": "影の距離",
+        "en": "Shadow Distance",
+        "cn": "阴影距离"
+    },
+    "등장 애니메이션": {
+        "ko": "등장 애니메이션",
+        "ja": "登場アニメーション",
+        "en": "Appearance animation",
+        "cn": "登场动画"
+    },
+    "적용 애니메이션": {
+        "ko": "적용 애니메이션",
+        "ja": "適用アニメーション",
+        "en": "Applied Animation",
+        "cn": "适用动画"
+    },
+    "나타나는 방향": {
+        "ko": "나타나는 방향",
+        "ja": "表示方向",
+        "en": "Entrance Direction",
+        "cn": "出现方向"
+    },
+    "이동 거리": {
+        "ko": "이동 거리",
+        "ja": "移動距離",
+        "en": "Slide Distance",
+        "cn": "移动距离"
+    },
+    "자연스럽게 나타나기": {
+        "ko": "자연스럽게 나타나기",
+        "ja": "フェードイン",
+        "en": "Fade In",
+        "cn": "平滑淡入"
+    },
+    "페이드 시간": {
+        "ko": "페이드 시간",
+        "ja": "フェード時間",
+        "en": "Fade Duration",
+        "cn": "淡化时间"
+    },
+    "글자 차례대로 나타나기": {
+        "ko": "글자 차례대로 나타나기",
+        "ja": "タイプライター効果",
+        "en": "Typewriter Effect",
+        "cn": "打字机效果"
+    },
+    "타이핑 속도": {
+        "ko": "타이핑 속도",
+        "ja": "タイピング速度",
+        "en": "Typing Speed",
+        "cn": "打字速度"
+    },
+    "자막 스타일": {
+        "ko": "자막 스타일",
+        "ja": "字幕スタイル",
+        "en": "Subtitle style",
+        "cn": "字幕样式"
+    },
+    "엔진 최적화": {
+        "ko": "엔진 최적화",
+        "ja": "エンジン最適化",
+        "en": "Engine optimization",
+        "cn": "引擎优化"
+    },
+    "오디오 자동 볼륨 노멀라이제이션": {
+        "ko": "오디오 자동 볼륨 노멀라이제이션",
+        "ja": "オーディオ自動音量ノーマライゼーション",
+        "en": "Audio Auto Volume Normalization",
+        "cn": "音频自动音量归一化"
+    },
+    "동영상들의 볼륨을 자동으로 조정합니다.": {
+        "ko": "동영상들의 볼륨을 자동으로 조정합니다.",
+        "ja": "動画の音量を自動で調整します。",
+        "en": "Automatically adjusts the volume of videos.",
+        "cn": "自动调整视频的音量。"
+    },
+    "하드웨어 GPU 가속 디코딩 (권장)": {
+        "ko": "하드웨어 GPU 가속 디코딩 (권장)",
+        "ja": "ハードウェアGPUアクセラレーションデコーディング（推奨）",
+        "en": "Hardware GPU-accelerated decoding (recommended)",
+        "cn": "硬件 GPU 加速解码（推荐）"
+    },
+    "OpenGL 배경 설정 (재시작)": {
+        "ko": "OpenGL 배경 설정 (재시작)",
+        "ja": "OpenGL 背景設定（再起動）",
+        "en": "OpenGL Background Settings (Restart)",
+        "cn": "OpenGL 背景设置（需重启）"
+    },
+    "OpenGL을 이용하여 배경을 렌더링\n둥근 모서리가 불안정합니다.": {
+        "ko": "OpenGL을 이용하여 배경을 렌더링\n둥근 모서리가 불안정합니다.",
+        "ja": "OpenGLを利用して背景をレンダリングする\n丸みを帯びた角が不安定です。",
+        "en": "Render the background using OpenGL\nThe rounded corners are unstable.",
+        "cn": "使用OpenGL渲染背景\n圆角不稳定。"
+    },
+    "OpenGL 동영상 설정 (재시작)": {
+        "ko": "OpenGL 동영상 설정 (재시작)",
+        "ja": "OpenGL動画設定（再起動）",
+        "en": "OpenGL Video Settings (Restart)",
+        "cn": "OpenGL 视频设置（重启）"
+    },
+    "OpenGL을 이용하여 동영상을 렌더링\n둥근 모서리를 지원하지 않습니다.": {
+        "ko": "OpenGL을 이용하여 동영상을 렌더링\n둥근 모서리를 지원하지 않습니다.",
+        "ja": "OpenGLを利用して動画をレンダリングする\n角丸はサポートされていません。",
+        "en": "Render a video using OpenGL\nRounded corners are not supported.",
+        "cn": "使用OpenGL渲染视频\n不支持圆角。"
+    },
+    "프레임 레이트": {
+        "ko": "프레임 레이트",
+        "ja": "フレームレート",
+        "en": "Frame rate",
+        "cn": "帧率"
+    },
+    "이펙트 애니메이션 FPS": {
+        "ko": "이펙트 애니메이션 FPS",
+        "ja": "エフェクトアニメーションFPS",
+        "en": "Effect Animation FPS",
+        "cn": "特效动画帧率 (FPS)"
+    },
+    "앰비언트 백라이트 FPS": {
+        "ko": "앰비언트 백라이트 FPS",
+        "ja": "アンビエントバックライトFPS",
+        "en": "Ambient Backlight FPS",
+        "cn": "氛围背光帧率 (FPS)"
+    },
+    "그림자 FPS": {
+        "ko": "그림자 FPS",
+        "ja": "影FPS",
+        "en": "Shadow FPS",
+        "cn": "阴影帧率 (FPS)"
+    },
+    "자막 갱신 FPS": {
+        "ko": "자막 갱신 FPS",
+        "ja": "字幕更新FPS",
+        "en": "Subtitle Refresh FPS",
+        "cn": "字幕刷新帧率 (FPS)"
+    },
+    "재생 엔진": {
+        "ko": "재생 엔진",
+        "ja": "プレイエンジン",
+        "en": "Playback engine",
+        "cn": "播放引擎"
+    },
+    "설정 프리셋": {
+        "ko": "설정 프리셋",
+        "ja": "設定プリセット",
+        "en": "Settings Preset",
+        "cn": "设置预设"
+    },
+    "프리셋 선택": {
+        "ko": "프리셋 선택",
+        "ja": "プリセット選択",
+        "en": "Select Preset",
+        "cn": "选择预设"
+    },
+    "새 이름으로 저장": {
+        "ko": "새 이름으로 저장",
+        "ja": "新しい名前で保存",
+        "en": "Save As New Name",
+        "cn": "以新名称另存为"
+    },
+    "현재 프리셋 덮어쓰기": {
+        "ko": "현재 프리셋 덮어쓰기",
+        "ja": "現在のプリセットを上書き",
+        "en": "Overwrite Current Preset",
+        "cn": "覆盖当前预设"
+    },
+    "프리셋 삭제": {
+        "ko": "프리셋 삭제",
+        "ja": "プリセット削除",
+        "en": "Delete Preset",
+        "cn": "删除预设"
+    },
+    "": {
+        "ko": "",
+        "ja": "",
+        "en": "",
+        "cn": ""
+    },
+    "프리셋": {
+        "ko": "프리셋",
+        "ja": "プリセット",
+        "en": "Preset",
+        "cn": "预设"
+    },
+    "확인불가": {
+        "ko": "확인불가",
+        "ja": "確認不可",
+        "en": "Unknown",
+        "cn": "未知"
+    },
+    "Mine 4 PlayList - (Cannot verify)": {
+        "ko": "Mine 4 PlayList - (Cannot verify)",
+        "ja": "Mine 4 PlayList - (Cannot verify)",
+        "en": "Mine 4 PlayList - (Cannot verify)",
+        "cn": "Mine 4 PlayList - (Cannot verify)"
+    },
+    "GitHub": {
+        "ko": "GitHub",
+        "ja": "GitHub",
+        "en": "GitHub",
+        "cn": "GitHub"
+    },
+    "홈페이지": {
+        "ko": "홈페이지",
+        "ja": "ホームページ",
+        "en": "Homepage",
+        "cn": "主页"
+    },
+    "Releases": {
+        "ko": "Releases",
+        "ja": "Releases",
+        "en": "Releases",
+        "cn": "Releases"
+    },
+    "최신버전": {
+        "ko": "최신버전",
+        "ja": "最新バージョン",
+        "en": "Latest version",
+        "cn": "最新版本"
+    },
+    "업데이트 내역": {
+        "ko": "업데이트 내역",
+        "ja": "アップデート履歴",
+        "en": "Update History",
+        "cn": "更新日志"
+    },
+    "정보": {
+        "ko": "정보",
+        "ja": "情報",
+        "en": "About",
+        "cn": "关于"
+    },
+    "취소": {
+        "ko": "취소",
+        "ja": "キャンセル",
+        "en": "Cancel",
+        "cn": "取消"
+    },
+    "저장": {
+        "ko": "저장",
+        "ja": "保存",
+        "en": "Save",
+        "cn": "保存"
+    },
+    "선택": {
+        "ko": "선택",
+        "ja": "選択",
+        "en": "Select",
+        "cn": "选择"
+    },
+    "설정 프리셋 저장": {
+        "ko": "설정 프리셋 저장",
+        "ja": "設定プリセットを保存",
+        "en": "Save configuration preset",
+        "cn": "保存设置预设"
+    },
+    "새 프리셋 이름을 입력하세요:": {
+        "ko": "새 프리셋 이름을 입력하세요:",
+        "ja": "新しいプリセット名を入力してください:",
+        "en": "Enter the name of the new preset:",
+        "cn": "请输入新的预设名称："
+    },
+    "PLAYLIST 프리셋": {
+        "ko": "PLAYLIST 프리셋",
+        "ja": "PLAYLIST プリセット",
+        "en": "PLAYLIST Preset",
+        "cn": "播放列表预设"
+    },
+    "프리셋 이름 검색...": {
+        "ko": "프리셋 이름 검색...",
+        "ja": "プリセット名を検索···",
+        "en": "Search for the preset name...",
+        "cn": "搜索预设名称..."
+    },
+    "곡 수록": {
+        "ko": "곡 수록",
+        "ja": "曲収録",
+        "en": " Tracks",
+        "cn": " 首曲目"
+    },
+    "선택됨": {
+        "ko": "선택됨",
+        "ja": "選択済み",
+        "en": "Selected",
+        "cn": "已选择"
+    },
+    "이름 수정": {
+        "ko": "이름 수정",
+        "ja": "名前の変更",
+        "en": "Rename",
+        "cn": "重命名"
+    },
+    "삭제": {
+        "ko": "삭제",
+        "ja": "削除",
+        "en": "Delete",
+        "cn": "删除"
+    },
+    "새 프리셋 추가": {
+        "ko": "새 프리셋 추가",
+        "ja": "新しいプリセットを追加",
+        "en": "Add new preset",
+        "cn": "添加新预设"
+    },
+    "프리셋 이름 수정": {
+        "ko": "프리셋 이름 수정",
+        "ja": "プリセット名の変更",
+        "en": "Modify the preset name",
+        "cn": "修改预设名称"
+    },
+    "새로운 이름을 입력하세요:": {
+        "ko": "새로운 이름을 입력하세요:",
+        "ja": "新しい名前を入力してください:",
+        "en": "Enter a new name:",
+        "cn": "请输入新名称："
+    },
+    "현재 재생목록으로 추가": {
+        "ko": "현재 재생목록으로 추가",
+        "ja": "現在の再生リストに追加",
+        "en": "Add to current playlist",
+        "cn": "添加到当前播放列表"
+    },
+    "새로 생성 (빈 재생목록)": {
+        "ko": "새로 생성 (빈 재생목록)",
+        "ja": "新規作成（空のプレイリスト）",
+        "en": "Create (Empty Playlist)",
+        "cn": "新建（空播放列表）"
+    },
+    "새 프리셋 생성": {
+        "ko": "새 프리셋 생성",
+        "ja": "新しいプリセットを作成",
+        "en": "Create a new preset",
+        "cn": "创建新预设"
+    },
+    "새로 생성할 프리셋 이름:": {
+        "ko": "새로 생성할 프리셋 이름:",
+        "ja": "新しく作成するプリセット名:",
+        "en": "New preset name:",
+        "cn": "要新建的预设名称："
+    },
+    "프리셋 추가": {
+        "ko": "프리셋 추가",
+        "ja": "プリセット追加",
+        "en": "Add Presets",
+        "cn": "添加预设"
+    },
+    "현재 목록을 저장할 프리셋 이름:": {
+        "ko": "현재 목록을 저장할 프리셋 이름:",
+        "ja": "現在のリストを保存するプリセット名:",
+        "en": "Preset name to save the current list:",
+        "cn": "当前要保存列表的预设名称："
+    },
+    "동영상 URL 가져오기": {
+        "ko": "동영상 URL 가져오기",
+        "ja": "動画URLを取得する",
+        "en": "Get video URL",
+        "cn": "导入视频 URL"
+    },
+    "YouTube 링크를 입력하세요:": {
+        "ko": "YouTube 링크를 입력하세요:",
+        "ja": "YouTubeリンクを入力してください:",
+        "en": "Enter YouTube link:",
+        "cn": "请输入 YouTube 链接："
+    },
+    "다운로드 대기 중": {
+        "ko": "다운로드 대기 중",
+        "ja": "ダウンロード待ち",
+        "en": "Waiting to download",
+        "cn": "等待下载"
+    },
+    "다운로드 시작": {
+        "ko": "다운로드 시작",
+        "ja": "ダウンロード開始",
+        "en": "Start Download",
+        "cn": "开始下载"
+    },
+    "영상 정보를 분석하는 중...": {
+        "ko": "영상 정보를 분석하는 중...",
+        "ja": "動画情報を分析中···",
+        "en": "Analyzing video information...",
+        "cn": "正在分析视频信息……"
+    },
+    "오류": {
+        "ko": "오류",
+        "ja": "エラー",
+        "en": "Error",
+        "cn": "错误"
+    },
+    "재생": {
+        "ko": "재생",
+        "ja": "再生",
+        "en": "Play",
+        "cn": "播放"
+    },
+    "파일 위치 탐색기에서 열기": {
+        "ko": "파일 위치 탐색기에서 열기",
+        "ja": "ファイルの場所をエクスプローラーで開く",
+        "en": "Show in File Explorer",
+        "cn": "在文件资源管理器中打开"
+    },
+    "수동 자막 연결 (.smi, .srt, .vtt, .ass)": {
+        "ko": "수동 자막 연결 (.smi, .srt, .vtt, .ass)",
+        "ja": "字幕ファイルの手動読み込み (.smi, .srt, .vtt, .ass)",
+        "en": "Load Subtitle File (.smi, .srt, .vtt, .ass)",
+        "cn": "手动关联字幕 (.smi, .srt, .vtt, .ass)"
+    },
+    "목록에서 삭제": {
+        "ko": "목록에서 삭제",
+        "ja": "リストから削除",
+        "en": "Remove from list",
+        "cn": "从列表中删除"
+    },
+    "파일 선택": {
+        "ko": "파일 선택",
+        "ja": "ファイルを選択",
+        "en": "Select file",
+        "cn": "选择文件"
+    },
+    "순차 재생": {
+        "ko": "순차 재생",
+        "ja": "順次再生",
+        "en": "Sequential Play",
+        "cn": "顺序播放"
+    },
+    "1곡 반복": {
+        "ko": "1곡 반복",
+        "ja": "1曲リピート",
+        "en": "Repeat One",
+        "cn": "单曲循环"
+    },
+    "전체 반복": {
+        "ko": "전체 반복",
+        "ja": "全曲リピート",
+        "en": "Repeat All",
+        "cn": "列表循环"
+    },
+    "랜덤 재생": {
+        "ko": "랜덤 재생",
+        "ja": "シャッフル再生",
+        "en": "Shuffle Play",
+        "cn": "随机播放"
+    },
+    "FFmpeg 다운로드 및 설치": {
+        "ko": "FFmpeg 다운로드 및 설치",
+        "ja": "FFmpegのダウンロードとインストール",
+        "en": "FFmpeg Download and Installation",
+        "cn": "FFmpeg 下载及安装"
+    },
+    "다운로드를 준비하는 중입니다...": {
+        "ko": "다운로드를 준비하는 중입니다...",
+        "ja": "ダウンロードを準備しています···",
+        "en": "Preparing the download...",
+        "cn": "正在准备下载..."
+    },
+    "FFmpeg 다운로드 중... 잠시 기다려주세요.": {
+        "ko": "FFmpeg 다운로드 중... 잠시 기다려주세요.",
+        "ja": "FFmpegをダウンロード中··· 少々お待ちください.",
+        "en": "Downloading FFmpeg... Just a moment, please.",
+        "cn": "FFmpeg 正在下载... 稍等一下。"
+    },
+    "압축 해제 및 ffmpeg.exe 배치 중...": {
+        "ko": "압축 해제 및 ffmpeg.exe 배치 중...",
+        "ja": "解凍および ffmpeg.exe を配置中...",
+        "en": "Extracting and placing ffmpeg.exe...",
+        "cn": "正在解压并部署 ffmpeg.exe..."
+    },
+    "설치 완료! 준비되었습니다.": {
+        "ko": "설치 완료! 준비되었습니다.",
+        "ja": "インストールが完了しました！準備できました。",
+        "en": "Installation complete! Ready.",
+        "cn": "安装完成！已准备好。"
+    },
+    "FFmpeg 설치 안내": {
+        "ko": "FFmpeg 설치 안내",
+        "ja": "FFmpeg インストール案内",
+        "en": "FFmpeg Installation Guide",
+        "cn": "FFmpeg 安装指南"
+    },
+    "유튜브 동영상 다운로드 및 병합에 필요한 필수 구성 요소(FFmpeg)가 없습니다.\n\n지금 자동으로 다운로드하여 설치하시겠습니까?": {
+        "ko": "유튜브 동영상 다운로드 및 병합에 필요한 필수 구성 요소(FFmpeg)가 없습니다.\n\n지금 자동으로 다운로드하여 설치하시겠습니까?",
+        "ja": "YouTube 動画のダウンロードおよび結合に必要な必須コンポーネント (FFmpeg) がありません。\n\n今すぐ自動的にダウンロードしてインストールしますか？",
+        "en": "The required component for downloading and merging YouTube videos (FFmpeg) is not available.\n\nWould you like to download and install it now?",
+        "cn": "缺少下载和合并 YouTube 视频所需的必需组件（FFmpeg）。\n\n现在是否自动下载并安装？"
+    },
+    "경고: FFmpeg 미설치": {
+        "ko": "경고: FFmpeg 미설치",
+        "ja": "警告: FFmpeg がインストールされていません",
+        "en": "Warning: FFmpeg is not installed",
+        "cn": "警告：未安装 FFmpeg"
+    },
+    "FFmpeg 설치가 취소되었습니다.\nFFmpeg 없이는 동영상을 다운로드할 수 없습니다.": {
+        "ko": "FFmpeg 설치가 취소되었습니다.\nFFmpeg 없이는 동영상을 다운로드할 수 없습니다.",
+        "ja": "FFmpeg のインストールがキャンセルされました。\nFFmpegがなければ、動画をダウンロードすることはできません。",
+        "en": "FFmpeg installation was canceled.\nYou cannot download videos without FFmpeg.",
+        "cn": "FFmpeg 的安装已被取消。\n没有 FFmpeg 无法下载视频。"
+    },
+    "Vignette": {
+        "ko": "Vignette",
+        "ja": "Vignette",
+        "en": "Vignette",
+        "cn": "Vignette"
+    },
+    "Border": {
+        "ko": "Border",
+        "ja": "Border",
+        "en": "Border",
+        "cn": "Border"
+    },
+    "Mine 4 PlayList - (Unknown)": {
+        "ko": "Mine 4 PlayList - (Unknown)",
+        "ja": "Mine 4 PlayList - (Unknown)",
+        "en": "Mine 4 PlayList - (Unknown)",
+        "cn": "Mine 4 PlayList - (Unknown)"
+    },
+    "경고": {
+        "ko": "경고",
+        "ja": "警告",
+        "en": "Warning",
+        "cn": "警告"
+    },
+    "덮어쓰기": {
+        "ko": "덮어쓰기",
+        "ja": "上書き",
+        "en": "Overwrite",
+        "cn": "覆盖"
+    },
+    "삭제 확인": {
+        "ko": "삭제 확인",
+        "ja": "削除の確認",
+        "en": "Confirm Deletion",
+        "cn": "确认删除"
+    },
+    "저장 완료": {
+        "ko": "저장 완료",
+        "ja": "保存完了",
+        "en": "Save Complete",
+        "cn": "保存完成"
+    },
+    "설치 취소": {
+        "ko": "설치 취소",
+        "ja": "インストール中止",
+        "en": "Cancel Installation",
+        "cn": "取消安装"
+    },
+    "설치 취소 중...": {
+        "ko": "설치 취소 중...",
+        "ja": "インストールを中止しています...",
+        "en": "Canceling installation...",
+        "cn": "正在取消安装..."
+    },
+    "설치 오류": {
+        "ko": "설치 오류",
+        "ja": "インストールエラー",
+        "en": "Installation Error",
+        "cn": "安装错误"
+    },
+    "설치를 중단하시겠습니까?\nFFmpeg이 없으면 유튜브 다운로드가 불가능합니다.": {
+        "ko": "설치를 중단하시겠습니까?\nFFmpeg이 없으면 유튜브 다운로드가 불가능합니다.",
+        "ja": "インストールを中止しますか？\nFFmpegがないとYouTube動画のダウンロードができません。",
+        "en": "Do you want to cancel the installation?\nWithout FFmpeg, YouTube downloads are not possible.",
+        "cn": "是否要中止安装？\n如果没有 FFmpeg，将无法下载 YouTube 视频。"
+    },
+    "FFmpeg 다운로드 중 오류가 발생했습니다": {
+        "ko": "FFmpeg 다운로드 중 오류가 발생했습니다",
+        "ja": "FFmpegのダウンロード中にエラーが発生しました",
+        "en": "An error occurred while downloading FFmpeg",
+        "cn": "下载 FFmpeg 时发生错误"
+    },
+    "압축 파일 내에서 bin/ffmpeg.exe를 찾지 못했습니다.": {
+        "ko": "압축 파일 내에서 bin/ffmpeg.exe를 찾지 못했습니다.",
+        "ja": "圧縮ファイル内に bin/ffmpeg.exe が見つかりませんでした。",
+        "en": "Could not find bin/ffmpeg.exe in the archive.",
+        "cn": "压缩包内未找到 bin/ffmpeg.exe。"
+    },
+    "FFmpeg 구성 요소가 없어 다운로드를 시작할 수 없습니다.": {
+        "ko": "FFmpeg 구성 요소가 없어 다운로드를 시작할 수 없습니다.",
+        "ja": "FFmpeg コンポーネントがないため、ダウンロードを開始できません。",
+        "en": "Cannot start download because FFmpeg component is missing.",
+        "cn": "缺少 FFmpeg 组件，无法开始下载。"
+    },
+    "프리셋이 이미 존재합니다. 덮어쓰시겠습니까?": {
+        "ko": "프리셋이 이미 존재합니다. 덮어쓰시겠습니까?",
+        "ja": "プリセットが既に存在します。上書きしますか？",
+        "en": "preset already exists. Overwrite?",
+        "cn": "预设已存在。是否覆盖？"
+    },
+    "프리셋이 이미 존재합니다.": {
+        "ko": "프리셋이 이미 존재합니다.",
+        "ja": "プリセットが既に存在します。",
+        "en": "preset already exists.",
+        "cn": "预设已存在。"
+    },
+    "이름의 프리셋이 이미 존재합니다.": {
+        "ko": "이름의 프리셋이 이미 존재합니다.",
+        "ja": "という名前のプリセットが既に存在します。",
+        "en": "named preset already exists.",
+        "cn": "同名预设已存在。"
+    },
+    "프리셋을 삭제하시겠습니까?": {
+        "ko": "프리셋을 삭제하시겠습니까?",
+        "ja": "プリセットを削除しますか？",
+        "en": "preset. Delete?",
+        "cn": "预设。是否删除？"
+    },
+    "프리셋에 현재 설정을 덮어썼습니다.": {
+        "ko": "프리셋에 현재 설정을 덮어썼습니다.",
+        "ja": "プリセットに現在の設定を上書きしました。",
+        "en": "preset has been overwritten with current settings.",
+        "cn": "预设已覆盖为当前设置。"
+    },
+    "'기본' 프리셋의 이름은 변경할 수 없습니다.": {
+        "ko": "'기본' 프리셋의 이름은 변경할 수 없습니다.",
+        "ja": "「デフォルト」プリセットの名前は変更できません。",
+        "en": "The 'Default' preset name cannot be changed.",
+        "cn": "无法更改“默认”预设的名称。"
+    },
+    "'기본' 프리셋은 삭제할 수 없습니다.": {
+        "ko": "'기본' 프리셋은 삭제할 수 없습니다.",
+        "ja": "「デフォルト」プリセットは削除できません。",
+        "en": "The 'Default' preset cannot be deleted.",
+        "cn": "无法删除“默认”预设。"
+    },
+    "최저 (15%)": {
+        "ko": "최저 (15%)",
+        "ja": "最低 (15%)",
+        "en": "Lowest (15%)",
+        "cn": "最低 (15%)"
+    },
+    "최소 (35%)": {
+        "ko": "최소 (35%)",
+        "ja": "最小 (35%)",
+        "en": "Minimum (35%)",
+        "cn": "最小 (35%)"
+    },
+    "보통 (50%)": {
+        "ko": "보통 (50%)",
+        "ja": "普通 (50%)",
+        "en": "Normal (50%)",
+        "cn": "正常 (50%)"
+    },
+    "최대 (85%)": {
+        "ko": "최대 (85%)",
+        "ja": "最大 (85%)",
+        "en": "Maximum (85%)",
+        "cn": "最大 (85%)"
+    },
+    "맥스 (100%)": {
+        "ko": "맥스 (100%)",
+        "ja": "マックス (100%)",
+        "en": "Max (100%)",
+        "cn": "极致 (100%)"
+    },
+    "물결": {
+        "ko": "물결",
+        "ja": "波",
+        "en": "Wave",
+        "cn": "水波"
+    },
+    "없음": {
+        "ko": "없음",
+        "ja": "なし",
+        "en": "None",
+        "cn": "无"
+    },
+    "청록": {
+        "ko": "청록",
+        "ja": "青緑",
+        "en": "Teal",
+        "cn": "青绿"
+    },
+    "분홍": {
+        "ko": "분홍",
+        "ja": "ピンク",
+        "en": "Pink",
+        "cn": "粉红"
+    },
+    "파랑": {
+        "ko": "파랑",
+        "ja": "青",
+        "en": "Blue",
+        "cn": "蓝色"
+    },
+    "보라": {
+        "ko": "보라",
+        "ja": "紫",
+        "en": "Purple",
+        "cn": "紫色"
+    },
+    "주황": {
+        "ko": "주황",
+        "ja": "オレンジ",
+        "en": "Orange",
+        "cn": "橙色"
+    },
+    "먼지": {
+        "ko": "먼지",
+        "ja": "ほこり",
+        "en": "Dust",
+        "cn": "灰尘"
+    },
+    "벚꽃": {
+        "ko": "벚꽃",
+        "ja": "桜",
+        "en": "Cherry Blossom",
+        "cn": "樱花"
+    },
+    "별": {
+        "ko": "별",
+        "ja": "星",
+        "en": "Star",
+        "cn": "星星"
+    },
+    "빛망울": {
+        "ko": "빛망울",
+        "ja": "ボケ",
+        "en": "Bokeh",
+        "cn": "光斑"
+    },
+    "비": {
+        "ko": "비",
+        "ja": "雨",
+        "en": "Rain",
+        "cn": "雨"
+    },
+    "하트": {
+        "ko": "하트",
+        "ja": "ハート",
+        "en": "Heart",
+        "cn": "心形"
+    },
+    "깃털": {
+        "ko": "깃털",
+        "ja": "羽",
+        "en": "Feather",
+        "cn": "羽毛"
+    },
+    "음표": {
+        "ko": "음표",
+        "ja": "音符",
+        "en": "Music Note",
+        "cn": "音符"
+    },
+    "반짝이": {
+        "ko": "반짝이",
+        "ja": "キラキラ",
+        "en": "Glitter",
+        "cn": "闪烁"
+    },
+    "큐브": {
+        "ko": "큐브",
+        "ja": "キューブ",
+        "en": "Cube",
+        "cn": "立方体"
+    },
+    "아래로": {
+        "ko": "아래로",
+        "ja": "下へ",
+        "en": "Down",
+        "cn": "向下"
+    },
+    "위로": {
+        "ko": "위로",
+        "ja": "上へ",
+        "en": "Up",
+        "cn": "向上"
+    },
+    "왼쪽 대각선": {
+        "ko": "왼쪽 대각선",
+        "ja": "左斜め",
+        "en": "Diagonal Left",
+        "cn": "左斜向"
+    },
+    "오른쪽 대각선": {
+        "ko": "오른쪽 대각선",
+        "ja": "右斜め",
+        "en": "Diagonal Right",
+        "cn": "右斜向"
+    },
+    "흩날림": {
+        "ko": "흩날림",
+        "ja": "舞い散り",
+        "en": "Scattering",
+        "cn": "飘散"
+    },
+    "흰색": {
+        "ko": "흰색",
+        "ja": "白",
+        "en": "White",
+        "cn": "白色"
+    },
+    "노랑": {
+        "ko": "노랑",
+        "ja": "黄色",
+        "en": "Yellow",
+        "cn": "黄色"
+    },
+    "형광": {
+        "ko": "형광",
+        "ja": "蛍光",
+        "en": "Fluorescent",
+        "cn": "荧光"
+    },
+    "연분홍": {
+        "ko": "연분홍",
+        "ja": "薄ピンク",
+        "en": "Light Pink",
+        "cn": "淡粉色"
+    },
+    "네온": {
+        "ko": "네온",
+        "ja": "ネオン",
+        "en": "Neon",
+        "cn": "霓虹"
+    },
+    "기본": {
+        "ko": "기본",
+        "ja": "デフォルト",
+        "en": "Default",
+        "cn": "默认"
+    },
+    "이중선": {
+        "ko": "이중선",
+        "ja": "二重線",
+        "en": "Double Line",
+        "cn": "双线"
+    },
+    "액자": {
+        "ko": "액자",
+        "ja": "額縁",
+        "en": "Frame",
+        "cn": "画框"
+    },
+    "모따기": {
+        "ko": "모따기",
+        "ja": "面取り",
+        "en": "Chamfer",
+        "cn": "倒角"
+    },
+    "도트": {
+        "ko": "도트",
+        "ja": "ドット",
+        "en": "Dot",
+        "cn": "点状"
+    },
+    "분할선": {
+        "ko": "분할선",
+        "ja": "区切り線",
+        "en": "Divider",
+        "cn": "分割线"
+    },
+    "상하 바": {
+        "ko": "상하 바",
+        "ja": "上下バー",
+        "en": "Top & Bottom Bars",
+        "cn": "上下边条"
+    },
+    "십자": {
+        "ko": "십자",
+        "ja": "十字",
+        "en": "Cross",
+        "cn": "十字"
+    },
+    "단색": {
+        "ko": "단색",
+        "ja": "単色",
+        "en": "Solid Color",
+        "cn": "单色"
+    },
+    "그라디언트": {
+        "ko": "그라디언트",
+        "ja": "グラデーション",
+        "en": "Gradient",
+        "cn": "渐变"
+    },
+    "무지개": {
+        "ko": "무지개",
+        "ja": "レインボー",
+        "en": "Rainbow",
+        "cn": "彩虹"
+    },
+    "정지": {
+        "ko": "정지",
+        "ja": "静止",
+        "en": "Static",
+        "cn": "静止"
+    },
+    "숨쉬기": {
+        "ko": "숨쉬기",
+        "ja": "呼吸",
+        "en": "Breathing",
+        "cn": "呼吸"
+    },
+    "회전": {
+        "ko": "회전",
+        "ja": "回転",
+        "en": "Rotation",
+        "cn": "旋转"
+    },
+    "깜빡임": {
+        "ko": "깜빡임",
+        "ja": "点滅",
+        "en": "Blink",
+        "cn": "闪烁"
+    },
+    "브리딩 펄스": {
+        "ko": "브리딩 펄스",
+        "ja": "ブリージングパルス",
+        "en": "Breathing Pulse",
+        "cn": "呼吸脉冲"
+    },
+    "슬라이드 & 페이드": {
+        "ko": "슬라이드 & 페이드",
+        "ja": "スライド＆フェード",
+        "en": "Slide & Fade",
+        "cn": "滑动淡入"
+    },
+    "자연스러운 페이드": {
+        "ko": "자연스러운 페이드",
+        "ja": "スムーズフェード",
+        "en": "Smooth Fade",
+        "cn": "平滑淡入"
+    },
+    "타자기": {
+        "ko": "타자기",
+        "ja": "タイプライター",
+        "en": "Typewriter",
+        "cn": "打字机"
+    },
+    "팝업 바운스": {
+        "ko": "팝업 바운스",
+        "ja": "ポップアップバウンス",
+        "en": "Popup Bounce",
+        "cn": "弹跳弹出"
+    },
+    "웨이브": {
+        "ko": "웨이브",
+        "ja": "ウェーブ",
+        "en": "Wave",
+        "cn": "波浪"
+    },
+    "아래에서 위로": {
+        "ko": "아래에서 위로",
+        "ja": "下から上へ",
+        "en": "Bottom to Top",
+        "cn": "从下往上"
+    },
+    "위에서 아래로": {
+        "ko": "위에서 아래로",
+        "ja": "上から下へ",
+        "en": "Top to Bottom",
+        "cn": "从上到下"
+    },
+    "왼쪽에서": {
+        "ko": "왼쪽에서",
+        "ja": "左から",
+        "en": "From Left",
+        "cn": "从左侧"
+    },
+    "오른쪽에서": {
+        "ko": "오른쪽에서",
+        "ja": "右から",
+        "en": "From Right",
+        "cn": "从右侧"
+    },
+    "활성화": {
+        "ko": "활성화",
+        "ja": "有効化",
+        "en": "Enable",
+        "cn": "启用"
+    }
+}

@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from src.main_logic.file import save_session
 from src.ui.ffmpeg_ui import AnimatedDialogBase, DraggableHeader, Get_qss
+from src.global_py.global_def import global_text
 
 class PresetCard(QFrame):
     def __init__(self, name: str, count: int, is_current: bool, on_select, on_rename=None, on_delete=None, parent=None):
@@ -32,7 +33,7 @@ class PresetCard(QFrame):
             btn_edit = QPushButton("")
             btn_edit.setObjectName("presetCardActionBtn")
             btn_edit.setFixedSize(22, 22)
-            btn_edit.setToolTip("이름 수정")
+            btn_edit.setToolTip(global_text("이름 수정"))
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.clicked.connect(lambda: on_rename(name))
             top_layout.addWidget(btn_edit, 0, Qt.AlignmentFlag.AlignTop)
@@ -41,7 +42,7 @@ class PresetCard(QFrame):
             btn_del = QPushButton("✕")
             btn_del.setObjectName("presetCardDeleteBtn")
             btn_del.setFixedSize(22, 22)
-            btn_del.setToolTip("삭제")
+            btn_del.setToolTip(global_text("삭제"))
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.clicked.connect(lambda: on_delete(name))
             top_layout.addWidget(btn_del, 0, Qt.AlignmentFlag.AlignTop)
@@ -58,13 +59,13 @@ class PresetCard(QFrame):
         bottom_layout = QHBoxLayout()
         bottom_layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl_count = QLabel(f"{count}곡 수록")
+        lbl_count = QLabel(f"{count}{global_text('곡 수록')}")
         lbl_count.setObjectName("presetCardCount")
         bottom_layout.addWidget(lbl_count)
         bottom_layout.addStretch()
 
         if is_current:
-            lbl_badge = QLabel("선택됨")
+            lbl_badge = QLabel(global_text("선택됨"))
             lbl_badge.setObjectName("presetCardBadge")
             bottom_layout.addWidget(lbl_badge)
 
@@ -98,7 +99,7 @@ class AddPresetCard(QFrame):
         lbl_plus.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_plus)
 
-        lbl_text = QLabel("새 프리셋 추가")
+        lbl_text = QLabel(global_text("새 프리셋 추가"))
         lbl_text.setObjectName("presetAddCardText")
         lbl_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_text)
@@ -106,8 +107,8 @@ class AddPresetCard(QFrame):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             menu = QMenu(self)
-            act_current = menu.addAction("현재 재생목록으로 추가")
-            act_empty = menu.addAction("새로 생성 (빈 재생목록)")
+            act_current = menu.addAction(global_text("현재 재생목록으로 추가"))
+            act_empty = menu.addAction(global_text("새로 생성 (빈 재생목록)"))
             action = menu.exec(self.mapToGlobal(event.position().toPoint()))
             if action == act_current:
                 self.on_add_current()
@@ -151,7 +152,7 @@ class PlaylistPresetDialog(AnimatedDialogBase):
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl_title = QLabel("PLAYLIST 프리셋")
+        lbl_title = QLabel(global_text("PLAYLIST 프리셋"))
         lbl_title.setObjectName("dialogTitle")
         h_layout.addWidget(lbl_title)
         h_layout.addStretch()
@@ -170,7 +171,7 @@ class PlaylistPresetDialog(AnimatedDialogBase):
         sb_layout.setSpacing(8)
 
         self.inp_search = QLineEdit()
-        self.inp_search.setPlaceholderText("프리셋 이름 검색...")
+        self.inp_search.setPlaceholderText(global_text("프리셋 이름 검색..."))
         self.inp_search.textChanged.connect(self.refresh_cards)
         sb_layout.addWidget(self.inp_search)
         vbox.addWidget(search_box)
@@ -236,14 +237,14 @@ class PlaylistPresetDialog(AnimatedDialogBase):
             self.grid_layout.addWidget(add_card, row, col)
 
     def add_current_as_preset(self):
-        name, ok = QInputDialog.getText(self, "프리셋 추가", "현재 목록을 저장할 프리셋 이름:")
+        name, ok = QInputDialog.getText(self, global_text("프리셋 추가"), global_text("현재 목록을 저장할 프리셋 이름:"))
         if not ok or not name.strip():
             return
         name = name.strip()
 
         if name in self.p.playlist_preset:
             res = QMessageBox.question(
-                self, "덮어쓰기", f"'{name}' 프리셋이 이미 존재합니다. 덮어쓰시겠습니까?",
+                self, global_text("덮어쓰기"), f"'{name}' " + global_text("프리셋이 이미 존재합니다. 덮어쓰시겠습니까?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if res != QMessageBox.StandardButton.Yes:
@@ -253,13 +254,13 @@ class PlaylistPresetDialog(AnimatedDialogBase):
         self.select_preset(name)
         
     def add_empty_preset(self):
-        name, ok = QInputDialog.getText(self, "새 프리셋 생성", "새로 생성할 프리셋 이름:")
+        name, ok = QInputDialog.getText(self, global_text("새 프리셋 생성"), global_text("새로 생성할 프리셋 이름:"))
         if not ok or not name.strip():
             return
         name = name.strip()
 
         if name in self.p.playlist_preset:
-            QMessageBox.warning(self, "경고", f"'{name}' 프리셋이 이미 존재합니다.")
+            QMessageBox.warning(self, global_text("경고"), f"'{name}' " + global_text("프리셋이 이미 존재합니다."))
             return
 
         self.p.playlist_preset[name] = []
@@ -267,10 +268,10 @@ class PlaylistPresetDialog(AnimatedDialogBase):
         
     def rename_preset(self, old_name: str):
         if old_name == "기본":
-            QMessageBox.warning(self, "경고", "'기본' 프리셋의 이름은 변경할 수 없습니다.")
+            QMessageBox.warning(self, global_text("경고"), global_text("'기본' 프리셋의 이름은 변경할 수 없습니다."))
             return
 
-        new_name, ok = QInputDialog.getText(self, "프리셋 이름 수정", "새로운 이름을 입력하세요:", text=old_name)
+        new_name, ok = QInputDialog.getText(self, global_text("프리셋 이름 수정"), global_text("새로운 이름을 입력하세요:"), text=old_name)
         if not ok or not new_name.strip():
             return
         new_name = new_name.strip()
@@ -279,7 +280,7 @@ class PlaylistPresetDialog(AnimatedDialogBase):
             return
 
         if new_name in self.p.playlist_preset:
-            QMessageBox.warning(self, "경고", f"'{new_name}' 이름의 프리셋이 이미 존재합니다.")
+            QMessageBox.warning(self, global_text("경고"), f"'{new_name}' " + global_text("이름의 프리셋이 이미 존재합니다."))
             return
 
         self.p.playlist_preset[new_name] = self.p.playlist_preset.pop(old_name)
@@ -303,7 +304,7 @@ class PlaylistPresetDialog(AnimatedDialogBase):
         if name == "기본":
             return
         res = QMessageBox.question(
-            self, "프리셋 삭제", f"'{name}' 프리셋을 삭제하시겠습니까?",
+            self, global_text("프리셋 삭제"), f"'{name}' " + global_text("프리셋을 삭제하시겠습니까?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if res != QMessageBox.StandardButton.Yes:

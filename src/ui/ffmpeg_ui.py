@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QObject, pyqtSignal, QEventLoop
 
 from src.ui.base import *
+from src.global_py.global_def import global_text
 
 FFMPEG_URL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
 
@@ -65,7 +66,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
         h_layout.setContentsMargins(0, 0, 0, 0)
         h_layout.setSpacing(8)
 
-        lbl_head = QLabel("FFmpeg 다운로드 및 설치")
+        lbl_head = QLabel(global_text("FFmpeg 다운로드 및 설치"))
         lbl_head.setObjectName("dialogTitle")
         h_layout.addWidget(lbl_head)
         h_layout.addStretch()
@@ -84,7 +85,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
         c_layout.setContentsMargins(14, 14, 14, 14)
         c_layout.setSpacing(8)
 
-        self.status_lbl = QLabel("다운로드를 준비하는 중입니다...")
+        self.status_lbl = QLabel(global_text("다운로드를 준비하는 중입니다..."))
         self.status_lbl.setStyleSheet("color: #FFF; font-size: 12px; font-weight: 600;")
         c_layout.addWidget(self.status_lbl)
 
@@ -104,7 +105,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
 
         h_btn = QHBoxLayout()
         h_btn.addStretch()
-        self.btn_cancel = QPushButton("취소")
+        self.btn_cancel = QPushButton(global_text("취소"))
         self.btn_cancel.clicked.connect(self.cancel_install)
         h_btn.addWidget(self.btn_cancel)
         vbox.addLayout(h_btn)
@@ -129,14 +130,14 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
     def cancel_install(self):
         ret = QMessageBox.question(
             self,
-            "설치 취소",
-            "설치를 중단하시겠습니까?\nFFmpeg이 없으면 유튜브 다운로드가 불가능합니다.",
+            global_text("설치 취소"),
+            global_text("설치를 중단하시겠습니까?\nFFmpeg이 없으면 유튜브 다운로드가 불가능합니다."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         if ret == QMessageBox.StandardButton.Yes:
             self._cancelled = True
-            self.status_lbl.setText("설치 취소 중...")
+            self.status_lbl.setText(global_text("설치 취소 중..."))
             self.btn_cancel.setEnabled(False)
             self._finish_and_close(False)
 
@@ -149,17 +150,17 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
     def on_finished(self, success: bool, msg: str):
         if success:
             self.prog_bar.setValue(100)
-            self.status_lbl.setText("설치 완료! 준비되었습니다.")
+            self.status_lbl.setText(global_text("설치 완료! 준비되었습니다."))
             from PyQt6.QtCore import QTimer
             QTimer.singleShot(700, lambda: self._finish_and_close(True))
         else:
             if not self._cancelled:
-                QMessageBox.critical(self, "설치 오류", f"FFmpeg 다운로드 중 오류가 발생했습니다:\n{msg}")
+                QMessageBox.critical(self, global_text("설치 오류"), f"{global_text('FFmpeg 다운로드 중 오류가 발생했습니다')}:\n{msg}")
             self._finish_and_close(False)
 
     def _run_install(self):
         try:
-            self.signals.status.emit("FFmpeg 다운로드 중... 잠시 기다려주세요.")
+            self.signals.status.emit(global_text("FFmpeg 다운로드 중... 잠시 기다려주세요."))
             os.makedirs(self.target_dir, exist_ok=True)
 
             req = urllib.request.Request(
@@ -188,7 +189,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
             if self._cancelled:
                 return
 
-            self.signals.status.emit("압축 해제 및 ffmpeg.exe 배치 중...")
+            self.signals.status.emit(global_text("압축 해제 및 ffmpeg.exe 배치 중..."))
             extracted = False
             with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
                 for file_info in zip_ref.infolist():
@@ -199,7 +200,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
                         break
 
             if not extracted:
-                raise RuntimeError("압축 파일 내에서 bin/ffmpeg.exe를 찾지 못했습니다.")
+                raise RuntimeError(global_text("압축 파일 내에서 bin/ffmpeg.exe를 찾지 못했습니다."))
 
             self.signals.finished.emit(True, "")
 
@@ -214,6 +215,7 @@ class FFmpegInstallerDialog(AnimatedDialogBase):
 
 
 def ensure_ffmpeg(parent, target_dir: str) -> bool:
+    
     ffmpeg_exe = os.path.join(target_dir, "ffmpeg.exe")
 
     if os.path.exists(ffmpeg_exe) or shutil.which("ffmpeg"):
@@ -223,9 +225,8 @@ def ensure_ffmpeg(parent, target_dir: str) -> bool:
 
     confirm = QMessageBox.question(
         parent,
-        "FFmpeg 설치 안내",
-        "유튜브 동영상 다운로드 및 병합에 필요한 필수 구성 요소(FFmpeg)가 없습니다.\n\n"
-        "지금 자동으로 다운로드하여 설치하시겠습니까?",
+        global_text("FFmpeg 설치 안내"),
+        global_text("유튜브 동영상 다운로드 및 병합에 필요한 필수 구성 요소(FFmpeg)가 없습니다.\n\n지금 자동으로 다운로드하여 설치하시겠습니까?"),
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         QMessageBox.StandardButton.Yes
     )
@@ -233,8 +234,8 @@ def ensure_ffmpeg(parent, target_dir: str) -> bool:
     if confirm != QMessageBox.StandardButton.Yes:
         QMessageBox.warning(
             parent,
-            "경고: FFmpeg 미설치",
-            "FFmpeg 설치가 취소되었습니다.\nFFmpeg 없이는 동영상을 다운로드할 수 없습니다."
+            global_text("경고: FFmpeg 미설치"),
+            global_text("FFmpeg 설치가 취소되었습니다.\nFFmpeg 없이는 동영상을 다운로드할 수 없습니다.")
         )
         return False
 

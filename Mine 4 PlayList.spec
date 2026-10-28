@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('src/icon/icon.ico', 'src/icon'), ('src/icon/splash.png', 'src/icon'), ('src/C/native_effects.dll', 'src/C'), ('src/qss/main.qss', 'src/qss'), ('src/qss/dialog.qss', 'src/qss')],
+    datas=[('src/icon/icon.ico', 'src/icon'), ('src/icon/splash.png', 'src/icon'), ('src/C/native_effects.pyd', 'src/C'), ('src/qss/main.qss', 'src/qss'), ('src/qss/dialog.qss', 'src/qss')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

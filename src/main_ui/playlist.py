@@ -132,7 +132,7 @@ def on_list_rows_moved(self):
         self.current_idx = self.playlist.index(cur_item)
     self.refresh_playlist_view()
     save_session(self)
-    
+
 def on_list_item_changed(self, current, previous, back=False):
     if previous and (back or self.currect_item != previous):
         prev_card = self.list_widget.itemWidget(previous)
@@ -153,3 +153,6 @@ def on_list_item_changed(self, current, previous, back=False):
             cur_card.set_selected(True)
             if back:
                 self.currect_item = current
+    else:
+        if back:
+            self.currect_item = None

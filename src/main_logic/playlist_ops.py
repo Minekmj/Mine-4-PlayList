@@ -8,39 +8,6 @@ from src.main_logic.media import collect_media_files
 
 from src.global_py.global_def import global_text
 
-def refresh_playlist_view(self):
-    self.list_widget.blockSignals(True)
-    self.list_widget.clear()
-
-    for idx, path in enumerate(self.playlist):
-        title = os.path.splitext(os.path.basename(path))[0]
-        item = QListWidgetItem()
-        item.setSizeHint(QSize(0, 44))
-        item.setData(Qt.ItemDataRole.UserRole, path)
-
-        card = PlaylistItemCard(
-            item=item,
-            title=f"{idx + 1:02d}.  {title}",
-            on_play_callback=self.on_item_double_click
-        )
-        self.list_widget.addItem(item)
-        self.list_widget.setItemWidget(item, card)
-
-    self.list_widget.blockSignals(False)
-    self.lbl_list_count.setText(f"({len(self.playlist)})")
-    self.highlight_playing_row()
-
-    self.core.preload_playlist_gains(self.playlist)
-
-def highlight_playing_row(self):
-    if 0 <= self.current_idx < len(self.playlist):
-        cur = self.playlist[self.current_idx]
-        for i in range(self.list_widget.count()):
-            it = self.list_widget.item(i)
-            if it.data(Qt.ItemDataRole.UserRole) == cur:
-                self.list_set(i)
-                break
-
 def handle_dropped_files(self, paths):
     added = collect_media_files(paths)
     if added:
@@ -95,3 +62,49 @@ def show_context_menu(self, pos: QPoint):
                 self.current_idx -= 1
             self.refresh_playlist_view()
             save_session(self)
+
+def highlight_playing_row(self):
+    if 0 <= self.current_idx < len(self.playlist):
+        cur = self.playlist[self.current_idx]
+        for i in range(self.list_widget.count()):
+            it = self.list_widget.item(i)
+            if it.data(Qt.ItemDataRole.UserRole) == cur:
+                self.list_set(i)
+                return
+
+    self.list_widget.setCurrentRow(-1)
+    self.list_widget.clearSelection()
+    if getattr(self, "currect_item", None):
+        try:
+            prev_card = self.list_widget.itemWidget(self.currect_item)
+            if isinstance(prev_card, PlaylistItemCard):
+                prev_card.set_selected(False)
+        except Exception:
+            pass
+        self.currect_item = None
+
+def refresh_playlist_view(self):
+    self.list_widget.blockSignals(True)
+    self.list_widget.clear()
+    self.currect_item = None
+
+    for idx, path in enumerate(self.playlist):
+        title = os.path.splitext(os.path.basename(path))[0]
+        item = QListWidgetItem()
+        item.setSizeHint(QSize(0, 44))
+        item.setData(Qt.ItemDataRole.UserRole, path)
+
+        card = PlaylistItemCard(
+            item=item,
+            title=f"{idx + 1:02d}.  {title}",
+            on_play_callback=self.on_item_double_click
+        )
+        self.list_widget.addItem(item)
+        self.list_widget.setItemWidget(item, card)
+
+    self.list_widget.blockSignals(False)
+    self.lbl_list_count.setText(f"({len(self.playlist)})")
+    self.highlight_playing_row()
+
+    if getattr(self, "core", None):
+        self.core.preload_playlist_gains(self.playlist)

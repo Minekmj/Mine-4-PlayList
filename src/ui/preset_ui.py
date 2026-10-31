@@ -1,17 +1,31 @@
+import os
 from PyQt6.QtWidgets import (
     QMenu, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFrame,
     QLineEdit, QScrollArea, QGridLayout, QMessageBox, QInputDialog
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPainter, QColor, QPen
+from PyQt6.QtMultimedia import QMediaPlayer
+
 from src.main_logic.file import save_session
+from src.main_logic.media import collect_media_files
 from trash_code.ffmpeg_ui import AnimatedDialogBase, DraggableHeader, Get_qss
 from src.global_py.global_def import global_text
 
+
 class PresetCard(QFrame):
-    def __init__(self, name: str, count: int, is_current: bool, on_select, on_rename=None, on_delete=None, parent=None):
+    def __init__(self, name: str, count: int, is_current: bool, on_select, on_rename=None, on_delete=None, on_add_files=None, get_preset_files=None, parent=None):
         super().__init__(parent)
         self.name = name
         self.on_select = on_select
+        self.on_rename = on_rename
+        self.on_delete = on_delete
+        self.on_add_files = on_add_files
+        self.get_preset_files = get_preset_files
+        self.is_current = is_current
+        self._drag_state = None
+
+        self.setAcceptDrops(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedHeight(175)
         self.setObjectName("presetGridCardActive" if is_current else "presetGridCard")
@@ -70,6 +84,94 @@ class PresetCard(QFrame):
             bottom_layout.addWidget(lbl_badge)
 
         layout.addLayout(bottom_layout)
+
+    def _check_drag_status(self, event):
+        if not event.mimeData().hasUrls():
+            return None
+
+        paths = [
+            url.toLocalFile()
+            for url in event.mimeData().urls()
+            if url.isLocalFile() and os.path.exists(url.toLocalFile())
+        ]
+        if not paths:
+            return None
+
+        added = collect_media_files(paths)
+        if not added:
+            return None
+
+        if self.get_preset_files:
+            existing = [os.path.abspath(p) for p in self.get_preset_files()]
+            if all(os.path.abspath(f) in existing for f in added):
+                return "duplicate"
+
+        return "valid"
+
+    def dragEnterEvent(self, event):
+        status = self._check_drag_status(event)
+        if status:
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+            self._drag_state = status
+            self.update()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        status = self._check_drag_status(event)
+        if status:
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+            if self._drag_state != status:
+                self._drag_state = status
+                self.update()
+        else:
+            super().dragMoveEvent(event)
+
+    def dragLeaveEvent(self, event):
+        self._drag_state = None
+        self.update()
+        super().dragLeaveEvent(event)
+
+    def dropEvent(self, event):
+        prev_state = self._drag_state
+        self._drag_state = None
+        self.update()
+
+        if event.mimeData().hasUrls():
+            paths = [
+                url.toLocalFile()
+                for url in event.mimeData().urls()
+                if url.isLocalFile() and os.path.exists(url.toLocalFile())
+            ]
+            if paths and self.on_add_files:
+                event.setDropAction(Qt.DropAction.CopyAction)
+                event.accept()
+                if prev_state != "duplicate":
+                    self.on_add_files(self.name, paths)
+                return
+
+        super().dropEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._drag_state == "duplicate":
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            pen = QPen(QColor(239, 68, 68, 220), 2)
+            p.setPen(pen)
+            p.setBrush(QColor(239, 68, 68, 45))
+            p.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 13, 13)
+            p.end()
+        elif self._drag_state == "valid":
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            pen = QPen(QColor(59, 130, 246, 220), 2)
+            p.setPen(pen)
+            p.setBrush(QColor(59, 130, 246, 45))
+            p.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 13, 13)
+            p.end()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -289,13 +391,106 @@ class PlaylistPresetDialog(AnimatedDialogBase):
 
         save_session(self.p)
         self.refresh_cards()
+            
+    def _get_current_playing_file(self) -> str:
+        if not getattr(self.p, "core", None):
+            return ""
+        cur_file = getattr(self.p.core, "current_file", "")
+        if not cur_file:
+            return ""
+        qplayer = getattr(self.p.core, "qplayer", None)
+        if qplayer is not None and qplayer.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
+            return ""
+        return os.path.abspath(cur_file)
+
+    def refresh_cards(self):
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        presets = getattr(self.p, "playlist_preset", {})
+        if "기본" not in presets:
+            presets["기본"] = list(self.p.playlist)
+            self.p.playlist_preset = presets
+
+        cur_preset = getattr(self.p, "current_playlist_preset", "기본")
+        query = self.inp_search.text().strip().lower()
+
+        filtered_keys = [k for k in presets.keys() if not query or query in k.lower()]
+
+        item_idx = 0
+        for name in filtered_keys:
+            row = item_idx // 2
+            col = item_idx % 2
+            count = len(presets.get(name, []))
+            is_cur = (name == cur_preset)
+            del_cb = (lambda n: self.delete_preset(n)) if name != "기본" else None
+            ren_cb = (lambda n: self.rename_preset(n)) if name != "기본" else None
+
+            card = PresetCard(
+                name=name,
+                count=count,
+                is_current=is_cur,
+                on_select=self.select_preset,
+                on_rename=ren_cb,
+                on_delete=del_cb,
+                on_add_files=self.add_files_to_preset,
+                get_preset_files=lambda n=name: getattr(self.p, "playlist_preset", {}).get(n, [])
+            )
+            self.grid_layout.addWidget(card, row, col)
+            item_idx += 1
+
+        if not query:
+            row = item_idx // 2
+            col = item_idx % 2
+            add_card = AddPresetCard(
+                on_add_current=self.add_current_as_preset,
+                on_add_empty=self.add_empty_preset
+            )
+            self.grid_layout.addWidget(add_card, row, col)
+
+    def add_files_to_preset(self, preset_name: str, paths: list):
+        added = collect_media_files(paths)
+        if not added:
+            return
+
+        presets = getattr(self.p, "playlist_preset", {})
+        if preset_name not in presets:
+            presets[preset_name] = []
+
+        target_list = presets[preset_name]
+        new_count = 0
+        for p in added:
+            abs_p = os.path.abspath(p)
+            if abs_p not in target_list:
+                target_list.append(abs_p)
+                new_count += 1
+
+        if new_count == 0:
+            return
+
+        if getattr(self.p, "current_playlist_preset", "기본") == preset_name:
+            self.p.playlist = list(target_list)
+            self.p.refresh_playlist_view()
+
+        save_session(self.p)
+        self.refresh_cards()
 
     def select_preset(self, name: str):
         if name not in self.p.playlist_preset:
             return
+
+        playing_file = self._get_current_playing_file()
         self.p.playlist = list(self.p.playlist_preset[name])
         self.p.current_playlist_preset = name
-        self.p.current_idx = 0 if self.p.playlist else -1
+
+        if playing_file and playing_file in self.p.playlist:
+            self.p.current_idx = self.p.playlist.index(playing_file)
+        else:
+            self.p.current_idx = -1
+
         self.p.refresh_playlist_view()
         save_session(self.p)
         self.refresh_cards()
@@ -313,9 +508,15 @@ class PlaylistPresetDialog(AnimatedDialogBase):
         if name in self.p.playlist_preset:
             del self.p.playlist_preset[name]
             if getattr(self.p, "current_playlist_preset", "") == name:
+                playing_file = self._get_current_playing_file()
                 self.p.current_playlist_preset = "기본"
                 self.p.playlist = list(self.p.playlist_preset.get("기본", []))
-                self.p.current_idx = 0 if self.p.playlist else -1
+
+                if playing_file and playing_file in self.p.playlist:
+                    self.p.current_idx = self.p.playlist.index(playing_file)
+                else:
+                    self.p.current_idx = -1
+
                 self.p.refresh_playlist_view()
 
             save_session(self.p)

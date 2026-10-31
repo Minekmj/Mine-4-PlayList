@@ -1,7 +1,6 @@
 import os
-
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QAbstractAnimation
-from PyQt6.QtGui import QPainter, QDragEnterEvent, QDropEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QAbstractAnimation, QUrl
+from PyQt6.QtGui import QPainter, QDragEnterEvent, QDropEvent, QDrag
 from PyQt6.QtWidgets import (
     QSlider, QLabel, QListWidget, QAbstractItemView, QFrame, QToolTip,
     QWidget, QSizePolicy, QHBoxLayout
@@ -241,7 +240,6 @@ class PlaylistItemCard(QWidget):
         self.lbl_title.update()
         self._repaint_parent_area()
 
-
 class PlaylistWidget(QListWidget):
     files_dropped = pyqtSignal(list)
 
@@ -252,20 +250,49 @@ class PlaylistWidget(QListWidget):
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
+    def mimeData(self, items):
+        mime = super().mimeData(items)
+        urls = []
+        for item in items:
+            path = item.data(Qt.ItemDataRole.UserRole)
+            if path:
+                urls.append(QUrl.fromLocalFile(os.path.abspath(path)))
+        if urls:
+            mime.setUrls(urls)
+        return mime
+
+    def startDrag(self, supportedActions):
+        items = self.selectedItems()
+        if not items:
+            cur = self.currentItem()
+            if cur:
+                items = [cur]
+        if not items:
+            return
+
+        drag = QDrag(self)
+        mime = self.mimeData(items)
+        drag.setMimeData(mime)
+        drag.exec(Qt.DropAction.MoveAction | Qt.DropAction.CopyAction, Qt.DropAction.MoveAction)
+
     def dragEnterEvent(self, event: QDragEnterEvent):
-        if event.mimeData().hasUrls():
+        if event.source() == self:
+            super().dragEnterEvent(event)
+        elif event.mimeData().hasUrls():
             event.acceptProposedAction()
         else:
             super().dragEnterEvent(event)
 
     def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
+        if event.source() == self:
+            super().dragMoveEvent(event)
+        elif event.mimeData().hasUrls():
             event.acceptProposedAction()
         else:
             super().dragMoveEvent(event)
 
     def dropEvent(self, event: QDropEvent):
-        if event.mimeData().hasUrls():
+        if event.source() != self and event.mimeData().hasUrls():
             paths = [
                 url.toLocalFile()
                 for url in event.mimeData().urls()
@@ -277,6 +304,7 @@ class PlaylistWidget(QListWidget):
                 event.acceptProposedAction()
                 return
 
+        # 내부 순서 변경 드롭 처리
         super().dropEvent(event)
 
 

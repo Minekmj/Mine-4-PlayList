@@ -299,7 +299,7 @@ class AboutTab(BaseSettingsTab):
         about = self.add_group(f"Mine 4 PlayList - {ver}")
         about.button("홈페이지", "GitHub", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Minekmj/Mine-4-PlayList")))
         about.button("최신버전", "Releases", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Minekmj/Mine-4-PlayList/releases")))
-        about.button("업데이트 내역", "Releases", lambda: QDesktopServices.openUrl(QUrl(f"https://github.com/Minekmj/Mine-4-PlayList/releases/tag/{ver}")))
+        about.button("업데이트 내역", "Update", lambda: QDesktopServices.openUrl(QUrl(f"https://github.com/Minekmj/Mine-4-PlayList/releases/tag/{ver}")))
 
 
 class SettingsDialog(AnimatedDialogBase):

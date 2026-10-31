@@ -11,7 +11,7 @@ if IS_GET:
         pass
 
 GLOBAL_TARGET = "ko"
-GLOBAL_FILE = "./src/global_py/globals.json"
+GLOBAL_FILE = os.path.join(os.path.dirname(__file__), "globals.json")
 
 GLOBAL_TEXTS = {
     "ko": "Malgun Gothic",

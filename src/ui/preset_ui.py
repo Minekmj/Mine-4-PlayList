@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from src.main_logic.file import save_session
-from src.ui.ffmpeg_ui import AnimatedDialogBase, DraggableHeader, Get_qss
+from trash_code.ffmpeg_ui import AnimatedDialogBase, DraggableHeader, Get_qss
 from src.global_py.global_def import global_text
 
 class PresetCard(QFrame):
@@ -59,7 +59,7 @@ class PresetCard(QFrame):
         bottom_layout = QHBoxLayout()
         bottom_layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl_count = QLabel(f"{count}{global_text('곡 수록')}")
+        lbl_count = QLabel(f"{count}{global_text(' 수록')}")
         lbl_count.setObjectName("presetCardCount")
         bottom_layout.addWidget(lbl_count)
         bottom_layout.addStretch()

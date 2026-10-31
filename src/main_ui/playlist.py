@@ -64,10 +64,10 @@ def playlist_panel(self):
     self.lbl_list_count = QLabel("(0)")
     self.lbl_list_count.setObjectName("lbl_list_count")
 
-    btn_url = QPushButton()
-    btn_url.setIcon(ModernIcon.create("url", "#FFFFFF", 16))
-    btn_url.setObjectName("iconBtn")
-    btn_url.clicked.connect(self.open_url_dialog)
+    #btn_url = QPushButton()
+    #btn_url.setIcon(ModernIcon.create("url", "#FFFFFF", 16))
+    #btn_url.setObjectName("iconBtn")
+    #btn_url.clicked.connect(self.open_url_dialog)
 
     btn_files = QPushButton()
     btn_files.setIcon(ModernIcon.create("folder", "#FFFFFF", 16))
@@ -90,7 +90,9 @@ def playlist_panel(self):
     option_layout.addWidget(lbl_list)
     option_layout.addWidget(self.lbl_list_count)
     option_layout.addStretch(3)
-    option_layout.addWidget(btn_url)
+    
+    #option_layout.addWidget(btn_url)
+    
     option_layout.addWidget(btn_files)
     option_layout.addWidget(btn_preset)
     option_layout.addStretch(1)

@@ -17,7 +17,7 @@ from src.main_ui.top import top_bar, hide_top_bar, check_top_bar_hover
 from src.ui.icons import ModernIcon
 from src.widgets.backs import AmbientVideoContainer
 from src.core.player_core import PlayerCore
-from src.ui.dialogs import SettingsDialog, UrlDialog, PlaylistPresetDialog
+from src.ui.dialogs import SettingsDialog, PlaylistPresetDialog # , UrlDialog
 from src.mini_mode.mini import (
     reset_all_cursors, toggle_mini_mode,
     reposition_mini_bar, get_resize_edge, update_cursor_for_edge,
@@ -242,14 +242,14 @@ class EchoMediaPlayer(QMainWindow):
         self.settings_panel = SettingsDialog(self)
         self.settings_panel.show()
 
-    def open_url_dialog(self):
-        if hasattr(self, 'url_panel') and self.url_panel and self.url_panel.isVisible():
-            self.url_panel.raise_()
-            self.url_panel.activateWindow()
-            return
-        d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..")
-        self.url_panel = UrlDialog(self, d)
-        self.url_panel.show()
+    #def open_url_dialog(self):
+    #    if hasattr(self, 'url_panel') and self.url_panel and self.url_panel.isVisible():
+    #        self.url_panel.raise_()
+    #        self.url_panel.activateWindow()
+    #        return
+    #    d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..")
+    #    self.url_panel = UrlDialog(self, d)
+    #    self.url_panel.show()
         
     def open_preset_dialog(self):
         if hasattr(self, 'preset_panel') and self.preset_panel and self.preset_panel.isVisible():

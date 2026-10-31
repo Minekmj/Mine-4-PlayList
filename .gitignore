@@ -22,3 +22,4 @@ __pycache__/
 MyApplication.egg-info/
 dist/
 build/
+trash_code/

@@ -153,16 +153,7 @@ class PlayerCore(QObject):
         self.current_file = ""
         self.sub_delay = 0.0
         self.sub_visible = True
-        self.sub_config = {
-            "font": "Pretendard, Malgun Gothic, sans-serif", "size": 44,
-            "color": "#FFFFFF", "outline_color": "#000000", "border_size": 3,
-            "blur": 3, "pos": 94, "bold": True, "typewriter_enabled": False,
-            "typewriter_speed": 28, "fade_in_enabled": True, "fade_duration": 200,
-            "slide_direction": "아래에서 위로", "slide_distance": 16,
-            "anim_style": "슬라이드 & 페이드", "max_width_ratio": 0.88,
-            "shadow_enabled": True, "shadow_color": "#000000", "shadow_opacity": 0.75,
-            "shadow_offset": 4, "shadow_blur": 4
-        }
+        self.sub_config = {}
 
         self._latest_frame = None
         self._last_ambient_frame_time = -1

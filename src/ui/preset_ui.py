@@ -488,10 +488,16 @@ class PlaylistPresetDialog(AnimatedDialogBase):
 
         if playing_file and playing_file in self.p.playlist:
             self.p.current_idx = self.p.playlist.index(playing_file)
+            self.p.refresh_playlist_view()
         else:
-            self.p.current_idx = -1
+            if self.p.playlist:
+                self.p.current_idx = 0
+                self.p.refresh_playlist_view()
+                self.p.play_index(0)
+            else:
+                self.p.current_idx = -1
+                self.p.refresh_playlist_view()
 
-        self.p.refresh_playlist_view()
         save_session(self.p)
         self.refresh_cards()
 
@@ -514,10 +520,15 @@ class PlaylistPresetDialog(AnimatedDialogBase):
 
                 if playing_file and playing_file in self.p.playlist:
                     self.p.current_idx = self.p.playlist.index(playing_file)
+                    self.p.refresh_playlist_view()
                 else:
-                    self.p.current_idx = -1
-
-                self.p.refresh_playlist_view()
+                    if self.p.playlist:
+                        self.p.current_idx = 0
+                        self.p.refresh_playlist_view()
+                        self.p.play_index(0)
+                    else:
+                        self.p.current_idx = -1
+                        self.p.refresh_playlist_view()
 
             save_session(self.p)
             self.refresh_cards()

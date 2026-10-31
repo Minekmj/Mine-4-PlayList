@@ -11,7 +11,7 @@ from PyQt6.QtGui import QDesktopServices
 from src.main_logic.file import save_session
 from src.ui.base import *
 from src.ui.setting.setting_class import BaseSettingsTab, ConfigBinder, TabList
-from src.global_py.global_def import global_text
+from src.global_py.global_def import global_text, get_font
 
 
 class FxTab(BaseSettingsTab):
@@ -122,7 +122,7 @@ class SubTab(BaseSettingsTab):
         g_pre = self.add_group("글꼴")
 
         font_cb = QFontComboBox()
-        font_cb.setCurrentFont(QFont(s.get("font", "HY견고딕")))
+        font_cb.setCurrentFont(QFont(s.get("font", get_font())))
         g_pre.add_row("폰트 패밀리", font_cb)
         self.b.bindings.append((s, "font", lambda: font_cb.currentFont().family()))
         self.b.setters["font"] = lambda f_name: font_cb.setCurrentFont(QFont(f_name))
@@ -308,7 +308,7 @@ class SettingsDialog(AnimatedDialogBase):
         self.p = parent
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setFixedSize(540, 680)
+        self.setFixedSize(700, 680)
         self.setStyleSheet(Get_qss())
 
         self.sub_cfg = dict(self.p.sub_config)

@@ -4,10 +4,12 @@ import json
 from PyQt6.QtCore import QTimer
 from src.base import *
 
+from src.global_py.global_def import get_font
+
 
 def get_default_sub_config() -> dict:
     return {
-        "font": "HY견고딕",
+        "font": get_font(),
         "size": 25,
         "color": "#f9f9f9",
         "outline_color": "#232323",

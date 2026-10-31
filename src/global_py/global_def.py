@@ -1,23 +1,34 @@
 import os
 import json
 import time
-from src.download.trans import papago_translate
 
-#귀찮아 안 만들어 나중에 함....
+IS_GET = True
 
-IS_GET = False
+if IS_GET:
+    try:
+        from src.download.trans import papago_translate
+    except:
+        pass
+
 GLOBAL_TARGET = "ko"
 GLOBAL_FILE = "./src/global_py/globals.json"
-GLOBAL_FONT = "HY견고딕"
+
+GLOBAL_TEXTS = {
+    "ko": "Malgun Gothic",
+    "ja": "Meiryo",
+    "en": "Arial",
+    "cn": "Microsoft YaHei",
+}
+GLOBAL_FONT = ""
 
 DATA = {}
 TARGET_CACHE = {}
 
 
 def load_translations():
-    return # 안만들어... 귀찮아
-
-    global DATA, TARGET_CACHE
+    global DATA, TARGET_CACHE, GLOBAL_FONT, GLOBAL_TARGET
+    
+    GLOBAL_FONT = GLOBAL_TEXTS[GLOBAL_TARGET]
     if os.path.exists(GLOBAL_FILE):
         try:
             with open(GLOBAL_FILE, "r", encoding="UTF-8") as f:
@@ -35,28 +46,27 @@ load_translations()
 
 
 def global_text(text: str) -> str:
-    return text  # 안만들어... 귀찮아
-    
     translated = TARGET_CACHE.get(text)
     if translated is not None:
         return translated
 
     if IS_GET:
-        translations = {
-            "ko": text,
-            "ja": papago_translate(text, "ko", "ja"),
-            "en": papago_translate(text, "ko", "en"),
-            "cn": papago_translate(text, "ko", "zh-CN"),
-        }
-        
-        DATA[text] = translations
-        TARGET_CACHE[text] = translations.get(GLOBAL_TARGET, text)
-
-        with open(GLOBAL_FILE, "w", encoding="UTF-8") as f:
-            json.dump(DATA, f, ensure_ascii=False, indent=4)
+        if GLOBAL_TARGET == "ko":
+            translations = {
+                "ko": text,
+                "ja": papago_translate(text, "ko", "ja"),
+                "en": papago_translate(text, "ko", "en"),
+                "cn": papago_translate(text, "ko", "zh-CN"),
+            }
             
-        time.sleep(0.15)
-        return TARGET_CACHE[text]
+            DATA[text] = translations
+            TARGET_CACHE[text] = translations.get(GLOBAL_TARGET, text)
+
+            with open(GLOBAL_FILE, "w", encoding="UTF-8") as f:
+                json.dump(DATA, f, ensure_ascii=False, indent=4)
+                
+            time.sleep(0.15)
+            return TARGET_CACHE[text]
 
     return text
 
@@ -67,3 +77,19 @@ def set_target(target: str):
 def get_target():
     global GLOBAL_TARGET
     return GLOBAL_TARGET
+
+def get_font():
+    global GLOBAL_FONT
+    return GLOBAL_FONT
+
+def Change_Data(data: dict):
+    DATA.update(data)
+    with open(GLOBAL_FILE, "w", encoding="UTF-8") as f:
+        json.dump(DATA, f, ensure_ascii=False, indent=4)
+
+
+# 데이터 정리 용
+if __name__ == "__main__":
+    corrections = {
+    }
+    Change_Data(corrections)

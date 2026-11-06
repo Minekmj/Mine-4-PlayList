@@ -203,6 +203,11 @@ class PlayerCore(QObject):
     def set_subtitle_fps(self, fps: int):
         self.fps_subtitle = max(1, min(60, int(fps)))
 
+    def set_audio_target_db(self, db: float):
+        self.normalizer.set_target_db(db)
+        if self.audio_norm_enabled and self.current_file and not self.current_file.startswith(("http://", "https://", "rtsp://", "rtmp://")):
+            self.normalizer.analyze_track_gain(self.current_file)
+
     def preload_playlist_gains(self, playlist):
         if not self.audio_norm_enabled:
             return

@@ -20,6 +20,12 @@ class AudioNormalizer(QObject):
         self._pool = ThreadPoolExecutor(max_workers=2)
         self.c_engine = get_native_engine()
 
+    def set_target_db(self, target_db: float):
+        with self._lock:
+            if abs(self.target_db - target_db) > 0.1:
+                self.target_db = target_db
+                self.gain_cache.clear()
+
     def _measure_track_stats(self, filepath: str) -> tuple[float, float]:
         with av.open(filepath) as container:
             audio_streams = [s for s in container.streams if s.type == 'audio']
@@ -31,7 +37,7 @@ class AudioNormalizer(QObject):
             dur = float(container.duration / 1000000.0) if container.duration else 0.0
 
             if dur > 20.0:
-                seek_pos = max(5.0, dur * 0.30)
+                seek_pos = 0.0
                 try:
                     container.seek(int(seek_pos * 1000000))
                 except Exception:
@@ -76,7 +82,7 @@ class AudioNormalizer(QObject):
                     if block_db > -70.0:
                         block_powers.append(10.0 ** (block_db / 10.0))
 
-                if collected_sec >= 12.0:
+                if collected_sec >= 600.0:
                     break
 
             if not block_powers:
@@ -118,14 +124,14 @@ class AudioNormalizer(QObject):
                 
                 raw_gain = math.pow(10.0, diff_db / 20.0)
 
-                gain = max(0.10, min(6.0, raw_gain))
+                gain = max(0.01, min(100.0, raw_gain))
 
                 if peak > 0.001:
-                    max_safe_gain = 0.95 / peak
+                    max_safe_gain = 1.0 / peak
                     if gain > max_safe_gain:
                         gain = max_safe_gain
 
-                gain = max(0.10, gain)
+                gain = max(0.01, gain)
 
             except Exception:
                 gain = 1.0

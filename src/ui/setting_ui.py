@@ -1,10 +1,11 @@
 import os
+import copy
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QFontComboBox, QLabel, QFrame, QComboBox, QMessageBox, QInputDialog
 )
-from PyQt6.QtCore import QUrl, Qt
+from PyQt6.QtCore import QUrl, Qt, QTimer
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QDesktopServices
 
@@ -41,8 +42,9 @@ class FxTab(BaseSettingsTab):
         g_vig.slider("색상별 형상 굴곡 깊이", e, "ambient_vignette_shape_depth", 0, 100, scale=0.01, fmt="{}%", default=0.8)
         g_vig.slider("외곽 암부 페이드 깊이", e, "ambient_vignette_darkness", 0, 100, scale=0.01, fmt="{}%", default=0.8)
 
-        g_crn = self.add_group("모서리")
+        g_crn = self.add_group("모서리 및 화면")
         g_crn.check("비디오 외곽 은은한 림라이트", e, "video_floating_rim", True)
+        g_crn.slider("동영상 화면 크기", e, "video_scale_percent", 30, 110, fmt="{}%", default=100)
         g_crn.slider("동영상 모서리 둥글기", e, "video_radius", 0, 48, fmt="{} px", default=25)
         g_crn.slider("창 모서리 둥글기", e, "window_radius", 0, 48, fmt="{} px", default=25)
 
@@ -144,14 +146,14 @@ class SubTab(BaseSettingsTab):
         g_sh.slider("그림자 거리", s, "shadow_offset", 0, 20, fmt="{} px", default=2)
         g_sh.slider("그림자 번짐", s, "shadow_blur", 0, 15, fmt="{} px", default=3)
 
-        g_an = self.add_group("등장 애니메이션")
-        g_an.combo("적용 애니메이션", s, "anim_style", ["슬라이드 & 페이드", "자연스러운 페이드", "타자기", "팝업 바운스", "웨이브", "없음"], "팝업 바운스")
-        g_an.combo("나타나는 방향", s, "slide_direction", ["아래에서 위로", "위에서 아래로", "왼쪽에서", "오른쪽에서", "없음"], "아래에서 위로")
-        g_an.slider("이동 거리", s, "slide_distance", 4, 40, fmt="{} px", default=16)
-        g_an.check("자연스럽게 나타나기", s, "fade_in_enabled", True)
-        g_an.slider("페이드 시간", s, "fade_duration", 50, 600, fmt="{} ms", default=220)
-        g_an.check("글자 차례대로 나타나기", s, "typewriter_enabled", False)
-        g_an.slider("타이핑 속도", s, "typewriter_speed", 10, 80, fmt="{} ms", default=28)
+
+class AudioTab(BaseSettingsTab):
+    def setup_ui(self):
+        e = self.engine_cfg
+
+        g_aud = self.add_group("음향 평준화")
+        g_aud.check("오디오 자동 볼륨 노멀라이제이션", e, "audio_norm", True)
+        g_aud.slider("목표 볼륨", e, "audio_target_db", -30, 20, fmt="{} dB", default=-18)
 
 
 class EngineTab(BaseSettingsTab):
@@ -159,8 +161,6 @@ class EngineTab(BaseSettingsTab):
         e = self.engine_cfg
 
         g_eng = self.add_group("엔진 최적화")
-        g_eng.check("오디오 자동 볼륨 노멀라이제이션", e, "audio_norm", True)
-        g_eng.label("동영상들의 볼륨을 자동으로 조정합니다.")
         g_eng.check("하드웨어 GPU 가속 디코딩 (권장)", e, "hwdec", True)
         g_eng.check("OpenGL 배경 설정 (재시작)", e, "use_OpenGL", False)
         g_eng.label("OpenGL을 이용하여 배경을 렌더링\n둥근 모서리가 불안정합니다.")
@@ -300,8 +300,6 @@ class AboutTab(BaseSettingsTab):
         about.button("홈페이지", "GitHub", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Minekmj/Mine-4-PlayList")))
         about.button("최신버전", "Releases", lambda: QDesktopServices.openUrl(QUrl("https://github.com/Minekmj/Mine-4-PlayList/releases")))
         about.button("업데이트 내역", "Update", lambda: QDesktopServices.openUrl(QUrl(f"https://github.com/Minekmj/Mine-4-PlayList/releases/tag/{ver}")))
-
-
 class SettingsDialog(AnimatedDialogBase):
     def __init__(self, parent):
         super().__init__(parent)
@@ -311,12 +309,25 @@ class SettingsDialog(AnimatedDialogBase):
         self.setFixedSize(700, 680)
         self.setStyleSheet(Get_qss())
 
+        self.orig_sub_cfg = copy.deepcopy(dict(self.p.sub_config))
+        self.orig_engine_cfg = copy.deepcopy(dict(self.p.engine_config))
         self.sub_cfg = dict(self.p.sub_config)
         self.engine_cfg = dict(self.p.engine_config)
         self.b = ConfigBinder(self)
 
         self.init_ui()
         self._center_to_parent()
+        
+        self.live_timer = QTimer(self)
+        self.live_timer.timeout.connect(self._check_live_preview)
+        self.live_timer.start(100)
+        
+        self.apply_timer = QTimer(self)
+        self.apply_timer.setSingleShot(True)
+        self.apply_timer.timeout.connect(self._apply_live_preview)
+        
+        self.pending_sub = None
+        self.pending_eng = None
 
     def _center_to_parent(self):
         if self.p:
@@ -344,7 +355,7 @@ class SettingsDialog(AnimatedDialogBase):
         btn_close = QPushButton("✕")
         btn_close.setObjectName("dialogCloseBtn")
         btn_close.setFixedSize(26, 26)
-        btn_close.clicked.connect(self.animated_close)
+        btn_close.clicked.connect(self.cancel_changes)
         h_layout.addWidget(QLabel(global_text("환경 설정"), objectName="dialogTitle"))
         h_layout.addStretch()
         h_layout.addWidget(btn_close)
@@ -355,6 +366,7 @@ class SettingsDialog(AnimatedDialogBase):
         self.tabs.add(AtmosTab(self), "배경")
         self.tabs.add(BorderTab(self), "테두리")
         self.tabs.add(SubTab(self), "자막 스타일")
+        self.tabs.add(AudioTab(self), "음향")
         self.tabs.add(EngineTab(self), "재생 엔진")
         self.tabs.add(PresetTab(self), "프리셋")
         self.tabs.add(AboutTab(self), "정보")
@@ -370,13 +382,33 @@ class SettingsDialog(AnimatedDialogBase):
         h_btn.addStretch()
         btn_cancel = QPushButton(global_text("취소"))
         btn_cancel.setFixedWidth(80)
-        btn_cancel.clicked.connect(self.animated_close)
+        btn_cancel.clicked.connect(self.cancel_changes)
         btn_apply = QPushButton(global_text("저장"), objectName="accentBtn")
         btn_apply.setFixedWidth(90)
         btn_apply.clicked.connect(self.save)
         h_btn.addWidget(btn_cancel)
         h_btn.addWidget(btn_apply)
         vbox.addLayout(h_btn)
+
+    def _check_live_preview(self):
+        old_sub = copy.deepcopy(self.sub_cfg)
+        old_eng = copy.deepcopy(self.engine_cfg)
+        self.b.save()
+        
+        self.engine_cfg["ambient_glow"] = True
+        self.engine_cfg["border_radius"] = self.engine_cfg.get("window_radius", 25)
+        self.sub_cfg["fps_subtitle"] = self.engine_cfg.get("fps_subtitle", 20)
+        
+        if old_sub != self.sub_cfg or old_eng != self.engine_cfg:
+            self.pending_sub = copy.deepcopy(self.sub_cfg)
+            self.pending_eng = copy.deepcopy(self.engine_cfg)
+            self.apply_timer.start(150)
+            
+    def _apply_live_preview(self):
+        if self.pending_sub is not None and self.pending_eng is not None:
+            self.p.preview_settings(self.pending_sub, self.pending_eng)
+            self.pending_sub = None
+            self.pending_eng = None
                 
     def apply_preset_dict(self, preset_data: dict):
         sub = preset_data.get("sub_config", {})
@@ -388,7 +420,19 @@ class SettingsDialog(AnimatedDialogBase):
             self.engine_cfg[k] = v
             self.b.set_val(k, v)
 
+    def cancel_changes(self):
+        if hasattr(self, 'live_timer'):
+            self.live_timer.stop()
+        if hasattr(self, 'apply_timer'):
+            self.apply_timer.stop()
+        self.p.preview_settings(self.orig_sub_cfg, self.orig_engine_cfg)
+        self.animated_close()
+
     def save(self):
+        if hasattr(self, 'live_timer'):
+            self.live_timer.stop()
+        if hasattr(self, 'apply_timer'):
+            self.apply_timer.stop()
         self.b.save()
         self.engine_cfg["ambient_glow"] = True
         self.engine_cfg["border_radius"] = self.engine_cfg.get("window_radius", 25)

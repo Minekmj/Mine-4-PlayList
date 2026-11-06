@@ -277,10 +277,9 @@ class SettingsGroup(QFrame):
         self.b = binder
         self.parent_item = parent_item
         self.form = QFormLayout(self)
-        self.form.setContentsMargins(14, 12, 14, 12)
-        self.form.setSpacing(3)
-        self.form.setLabelAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        self.form.setContentsMargins(20, 12, 14, 12)
+        self.form.setSpacing(5)
+        self.form.setLabelAlignment( Qt.AlignmentFlag.AlignVCenter
         )
 
         self.inner_fields: list[QWidget] = []

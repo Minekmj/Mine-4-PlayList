@@ -5,6 +5,7 @@ class ContainerLayoutManager:
         self.video_aspect = 16.0 / 9.0
         self.playlist_visible = True
         self.is_mini_mode = False
+        self.video_scale = 1.0
 
     @staticmethod
     def set_widget_geometry(widget: QWidget, x: int, y: int, width: int, height: int):
@@ -29,9 +30,13 @@ class ContainerLayoutManager:
             else:
                 target_w = int(avail_w)
                 target_h = int(round(target_w / self.video_aspect))
-            vx = (W - target_w) // 2
-            vy = (H - target_h) // 2
-            self.set_widget_geometry(video_w, vx, vy, target_w, target_h)
+
+            scaled_w = int(target_w * self.video_scale)
+            scaled_h = int(target_h * self.video_scale)
+            vx = (W - scaled_w) // 2
+            vy = (H - scaled_h) // 2
+
+            self.set_widget_geometry(video_w, vx, vy, scaled_w, scaled_h)
             if not video_w.isVisible():
                 video_w.show()
             if dock_w.isVisible():
@@ -55,10 +60,13 @@ class ContainerLayoutManager:
 
             view_center_x = (W - (plist_w + pad if self.playlist_visible else 0)) // 2
             view_center_y = (H - 50) // 2
-            vx = view_center_x - target_w // 2
-            vy = view_center_y - target_h // 2
 
-            self.set_widget_geometry(video_w, vx, vy, target_w, target_h)
+            scaled_w = int(target_w * self.video_scale)
+            scaled_h = int(target_h * self.video_scale)
+            vx = view_center_x - scaled_w // 2
+            vy = view_center_y - scaled_h // 2
+
+            self.set_widget_geometry(video_w, vx, vy, scaled_w, scaled_h)
             if not video_w.isVisible():
                 video_w.show()
                 

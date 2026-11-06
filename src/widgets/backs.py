@@ -28,7 +28,7 @@ AMBIENT_MAX_FPS   = 30
 SHADOW_MAX_FPS    = 24
 AMBIENT_QUALITY_PERCENT = 50
 
-profiler = PerfProfiler(interval_sec=100, ENABLE_PROFILER=False)
+profiler = PerfProfiler(interval_sec=1, ENABLE_PROFILER=True)
 
 class AmbientVideoContainer(WidgetType):
     def __init__(self, parent=None):
@@ -146,7 +146,6 @@ class AmbientVideoContainer(WidgetType):
             self.fps_ambient = max(5, min(120, int(cfg.get("fps_ambient", 30))))
             self.ambient_pipe.fps_ambient = self.fps_ambient
 
-        # 앰비언트 설정
         if "ambient_quality_percent" in cfg:
             self.ambient_pipe.update_quality(int(cfg["ambient_quality_percent"]))
         self.ambient_pipe.enabled = bool(cfg.get('ambient_glow', True))
@@ -163,7 +162,6 @@ class AmbientVideoContainer(WidgetType):
         self.ambient_pipe.vignette_shape_depth = float(cfg.get('ambient_vignette_shape_depth', 0.85))
         self.ambient_pipe.vignette_darkness = float(cfg.get('ambient_vignette_darkness', 0.80))
 
-        # 오로라 설정
         self.aurora_mgr.set_params(
             enabled=bool(cfg.get('aurora_enabled', True)),
             style=str(cfg.get('aurora_style', '오로라')),
@@ -173,7 +171,6 @@ class AmbientVideoContainer(WidgetType):
             size=float(cfg.get('aurora_size', 1.0))
         )
 
-        # 그림자
         sh_fps = max(5, min(60, int(cfg.get("fps_shadow", 24))))
         vr = float(cfg.get('video_radius', 8))
         self.shadow_mgr.set_params(
@@ -185,7 +182,6 @@ class AmbientVideoContainer(WidgetType):
             fps=sh_fps
         )
 
-        # 기타
         self.motion_intensity = max(0.0, min(1.0, float(cfg.get('ambient_motion_intensity', 0.35))))
         self.motion_speed = max(0.0, min(5.0, float(cfg.get('ambient_motion_speed', 1.0))))
         self.tint_enabled = bool(cfg.get('ambient_tint_enabled', False))
@@ -194,8 +190,9 @@ class AmbientVideoContainer(WidgetType):
         self._tint_overlay_color = QColor(self.tint_color)
         self._tint_overlay_color.setAlpha(int(255 * self.tint_ratio * 0.35))
         self.floating_rim_enabled = bool(cfg.get('video_floating_rim', True))
+        
+        self.layout_mgr.video_scale = float(cfg.get("video_scale_percent", 100)) / 100.0
 
-        # 파티클 & 보더
         self.particle_system.set_params(
             enabled=bool(cfg.get('particle_enabled', True)),
             p_type=str(cfg.get('particle_type', '먼지')),
@@ -318,14 +315,12 @@ class AmbientVideoContainer(WidgetType):
 
         p.fillRect(0, 0, W, H, self._base_fullscreen_color if is_fs else self._base_window_color)
 
-        # 앰비언트
         if self.ambient_pipe.enabled and self.video_widget:
             front_img = self.ambient_pipe.acquire_front_image()
             if not front_img.isNull():
                 with profiler.measure("[Paint] Ambient Draw"):
                     p.drawImage(QRectF(0, 0, W, H), front_img)
 
-                # 비디오 그림자
                 if self.shadow_mgr.enabled and self.shadow_mgr.opacity > 0.01:
                     with profiler.measure("[Paint] Shadow"):
                         if self.shadow_mgr.is_dirty or self.shadow_mgr.cache_pixmap is None:
@@ -333,7 +328,6 @@ class AmbientVideoContainer(WidgetType):
                         if self.shadow_mgr.cache_pixmap:
                             p.drawPixmap(self.shadow_mgr.cache_pos, self.shadow_mgr.cache_pixmap)
 
-                # 플로팅 림
                 if self.floating_rim_enabled:
                     p.save()
                     p.setPen(self._rim_pen)
@@ -346,7 +340,6 @@ class AmbientVideoContainer(WidgetType):
                         p.drawRect(rim_rect)
                     p.restore()
 
-                # 틴트
                 if self.tint_enabled and self.tint_ratio > 0.01:
                     p.fillRect(0, 0, W, H, self._tint_overlay_color)
 

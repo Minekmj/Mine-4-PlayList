@@ -76,7 +76,7 @@ def _compile_with_msvc(src_dir: str, c_sources: list, out_path: str):
     vcvars_bat, arch = _find_vcvarsall()
     
     msvc_flags = [
-        "/O2", "/Ot", "/fp:fast", "/arch:AVX2", "/LD",
+        "/O2", "/Ot", "/LD",
         f"/Fe:{out_path}",
     ] + c_sources
 

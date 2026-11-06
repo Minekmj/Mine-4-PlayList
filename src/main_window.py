@@ -17,7 +17,7 @@ from src.main_ui.top import top_bar, hide_top_bar, check_top_bar_hover
 from src.ui.icons import ModernIcon
 from src.widgets.backs import AmbientVideoContainer
 from src.core.player_core import PlayerCore
-from src.ui.dialogs import SettingsDialog, PlaylistPresetDialog # , UrlDialog
+from src.ui.dialogs import SettingsDialog, PlaylistPresetDialog
 from src.mini_mode.mini import (
     reset_all_cursors, toggle_mini_mode,
     reposition_mini_bar, get_resize_edge, update_cursor_for_edge,
@@ -189,6 +189,7 @@ class EchoMediaPlayer(QMainWindow):
 
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
+            self.core.set_audio_target_db(float(self.engine_config.get("audio_target_db", -18.0)))
             self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
             self.core.set_volume(self.vol_slider.value())
             self.core.preload_playlist_gains(self.playlist)
@@ -212,22 +213,27 @@ class EchoMediaPlayer(QMainWindow):
         if path in self.playlist:
             self.play_index(self.playlist.index(path))
 
-    def apply_settings(self, sub_cfg: dict, eng_cfg: dict):
-        self.sub_config, self.engine_config = sub_cfg, eng_cfg
+    def preview_settings(self, sub_cfg: dict, eng_cfg: dict):
+        self.sub_config = dict(sub_cfg)
+        self.engine_config = dict(eng_cfg)
         if self.core:
             self.core.apply_subtitle_config(self.sub_config, self.sub_visible)
             self.core.set_audio_normalization(self.engine_config.get("audio_norm", True))
-            self.core.set_hwdec(self.engine_config.get("hwdec", True))
+            self.core.set_audio_target_db(float(self.engine_config.get("audio_target_db", -18.0)))
             self.core.set_ambient_crop_margin(self.engine_config.get("ambient_crop_margin", 5) / 100.0)
         self.ambient_container.set_ambient_params(self.engine_config)
         self.update_window_and_video_radius()
-        
+
+    def apply_settings(self, sub_cfg: dict, eng_cfg: dict):
         data = fi.read_session_state()
+        ug = False
+        ugv = False
         if data:
             d = data.get("engine_config", {})
             ug = d.get("use_OpenGL", False)
             ugv = d.get("use_OpenGL_video", False)
             
+        self.preview_settings(sub_cfg, eng_cfg)
         fi.save_session(self)
         
         if ug != self.engine_config.get("use_OpenGL", False) or ugv != self.engine_config.get("use_OpenGL_video", False):
@@ -242,15 +248,6 @@ class EchoMediaPlayer(QMainWindow):
         self.settings_panel = SettingsDialog(self)
         self.settings_panel.show()
 
-    #def open_url_dialog(self):
-    #    if hasattr(self, 'url_panel') and self.url_panel and self.url_panel.isVisible():
-    #        self.url_panel.raise_()
-    #        self.url_panel.activateWindow()
-    #        return
-    #    d = os.path.join(os.environ.get("SCRIPT_DIR", "./"), "..")
-    #    self.url_panel = UrlDialog(self, d)
-    #    self.url_panel.show()
-        
     def open_preset_dialog(self):
         if hasattr(self, 'preset_panel') and self.preset_panel and self.preset_panel.isVisible():
             self.preset_panel.raise_()
